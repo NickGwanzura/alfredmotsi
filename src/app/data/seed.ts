@@ -1,13 +1,15 @@
 import { User, Customer, Job, GasStockItem, GasUsageRecord, CRMRecord } from '@/app/types';
 
-export const ADMIN_EMAIL = "alfred@splashair.co.za";
+export // Production Admin Credentials
+export const ADMIN_EMAIL = "alfred@splashaironline.co.zw";
 
-export const SEED_USERS: User[] = [
-  { id: "admin1", name: "Alfred Motsi", role: "admin", email: ADMIN_EMAIL, phone: "011 000 0001" },
-  { id: "tech1", name: "Sipho Dlamini", role: "tech", email: "sipho@splashair.co.za", phone: "071 234 5678", specialty: "Installation", status: "available" },
-  { id: "tech2", name: "Themba Nkosi", role: "tech", email: "themba@splashair.co.za", phone: "082 345 6789", specialty: "Maintenance", status: "on-site" },
-  { id: "tech3", name: "Lerato Sithole", role: "tech", email: "lerato@splashair.co.za", phone: "060 456 7890", specialty: "Repairs", status: "in-transit" },
-];
+// Empty arrays for production - data will be created through the UI
+export const SEED_USERS: User[] = [];
+export const SEED_CUSTOMERS: Customer[] = [];
+export const SEED_JOBS: Job[] = [];
+export const SEED_GAS_STOCK: GasStockItem[] = [];
+export const SEED_GAS_USAGE: GasUsageRecord[] = [];
+export const SEED_CRM: CRMRecord[] = [];
 
 export const SEED_CUSTOMERS: Customer[] = [
   { id: "C001", name: "Sandton City Office Park", address: "5 Alice Lane, Sandton, JHB", siteAddress: "5 Alice Lane, Sandton, JHB", phone: "011 881 2000", whatsapp: "27118812000", email: "facilities@sandtoncity.co.za", portalCode: "SC2024", portalEnabled: true },

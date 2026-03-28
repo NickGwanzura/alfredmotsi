@@ -6,7 +6,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
-# Deployment
+# Splash Air CRM - Production Deployment
+
+## Production Admin Credentials
+
+- **Email:** alfred@splashaironline.co.zw
+- **Password:** #631168609K86zw
 
 ## Dokploy Deployment
 
@@ -18,7 +23,7 @@ This application is configured for deployment on [Dokploy](https://dokploy.com/)
 
 - A server with Dokploy installed
 - PostgreSQL database created in Dokploy
-- Domain configured (optional but recommended)
+- Domain configured (recommended for production)
 
 ### PostgreSQL Database Setup
 
@@ -34,49 +39,88 @@ This application is configured for deployment on [Dokploy](https://dokploy.com/)
    - Example: `postgresql://postgres:sw8tyr3sx2ghdh2k@splash-splash-air-crm-xghzwi:5432/postgres`
    - This goes in your app Environment Variables as `DATABASE_URL`
 
-3. **Run Migrations:**
-   After first deploy, run migrations via Dokploy terminal:
+### Environment Variables
+
+Add these in the Dokploy dashboard:
+
+```
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@YOUR_DB_HOST:5432/postgres
+NEXTAUTH_SECRET=your-generated-secret-key
+NEXTAUTH_URL=https://your-domain.com
+NODE_ENV=production
+```
+
+Generate NEXTAUTH_SECRET:
+```bash
+openssl rand -base64 32
+```
+
+### First Time Setup
+
+1. **Deploy the application**
+2. **Run migrations** (automatic on container start)
+3. **Seed the admin user:**
    ```bash
-   npx prisma migrate deploy
+   npx prisma db seed
    ```
 
-### Deployment Steps
-
-1. **Repository is already on GitHub:** https://github.com/NickGwanzura/alfredmotsi.git
-
-2. **In Dokploy Dashboard:**
-   - Create a new Application
-   - Select your Git provider and repository
-   - Branch: `main` (or your preferred branch)
-   - Build type: `Dockerfile`
-   - Dockerfile path: `Dockerfile`
-
-3. **Environment Variables** (if needed):
-   - Add any required environment variables in the Dokploy dashboard
-   - The app runs with `NODE_ENV=production` by default
-
-4. **Deploy**:
-   - Click "Deploy" or enable auto-deploy on push
-   - The app will be built and served on port 3000
+This creates the admin user with production credentials.
 
 ### Configuration Files
 
 - `Dockerfile` - Multi-stage build optimized for Next.js
-- `docker-compose.yml` - Service configuration
-- `dokploy.json` - Dokploy-specific configuration
+- `docker-compose.yml` - Local development with PostgreSQL
 - `next.config.ts` - Updated with `output: 'standalone'` for Docker
+- `prisma/schema.prisma` - Database schema
 
-### Health Check
+### Production Checklist
 
-The container includes a health check that verifies the app is responding on port 3000.
-
-### Ports
-
-- **3000**: Next.js application (exposed and mapped)
+- [ ] Database created in Dokploy
+- [ ] Environment variables configured
+- [ ] Domain pointed to Dokploy server
+- [ ] SSL certificate configured
+- [ ] Admin user seeded
+- [ ] Test login with admin credentials
+- [ ] Create technicians from dashboard
+- [ ] Add customers
+- [ ] Start creating jobs
 
 ### Logs
 
 View logs in Dokploy dashboard or via CLI:
 ```bash
 docker logs splash-air-app
+```
+
+---
+
+## Authentication
+
+The platform uses NextAuth.js with:
+- JWT-based sessions (8-hour expiry)
+- bcrypt password hashing
+- Role-based access control (admin, tech, client)
+
+### User Roles
+
+- **Admin:** Full access to all features
+- **Tech:** Access to schedule, calendar, and assigned jobs
+- **Client:** Portal access (future feature)
+
+---
+
+## Database Schema
+
+The application uses Prisma ORM with PostgreSQL. Key models:
+
+- **User** - Staff accounts (admin, technicians)
+- **Customer** - Client companies with portal codes
+- **Job** - Service jobs with status tracking
+- **GasStockItem** - Refrigerant inventory
+- **GasUsageRecord** - Gas consumption tracking
+- **CRMRecord** - Customer interactions
+
+Run Prisma Studio to explore:
+```bash
+npx prisma studio
 ```

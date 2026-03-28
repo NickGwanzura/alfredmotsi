@@ -158,31 +158,6 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           >
             {loading ? "Signing in..." : "Sign in →"}
           </button>
-
-          {mode === 'staff' && (
-            <div style={{ marginTop: "var(--s7)", borderTop: "1px solid var(--bs1)", paddingTop: "var(--s5)" }}>
-              <p style={{ fontSize: "11px", color: "var(--th)", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: "var(--s3)" }}>
-                Demo accounts
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s2)" }}>
-                <button 
-                  className="btn btn-g btn-sm" 
-                  onClick={() => { setEmail("alfred@splashair.co.za"); setPassword("admin123"); }}
-                >
-                  Alfred (Admin)
-                </button>
-                <button 
-                  className="btn btn-g btn-sm" 
-                  onClick={() => { setEmail("sipho@splashair.co.za"); setPassword("tech123"); }}
-                >
-                  Sipho (Tech)
-                </button>
-              </div>
-              <p style={{ fontSize: "11px", color: "var(--ts)", marginTop: "var(--s3)" }}>
-                Passwords: admin123 / tech123
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
