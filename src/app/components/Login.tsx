@@ -1,36 +1,50 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User } from '@/app/types';
-import { SEED_USERS, ADMIN_EMAIL } from '@/app/data/seed';
+import { signIn } from "next-auth/react";
 import { FormItem, Notification } from './ui';
 
 interface LoginProps {
-  onLogin: (user: User) => void;
+  onLogin?: () => void;
   onPortalLogin?: (customerId: string) => void;
 }
 
 export default function Login({ onLogin, onPortalLogin }: LoginProps) {
   const [mode, setMode] = useState<'staff' | 'portal'>('staff');
   const [email, setEmail] = useState("");
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [portalCode, setPortalCode] = useState("");
   const [err, setErr] = useState("");
   const [loading, setL] = useState(false);
 
-  const go = () => {
+  const go = async () => {
     setL(true);
     setErr("");
-    setTimeout(() => {
-      if (mode === 'staff') {
-        const u = SEED_USERS.find(u => u.email === email && u.pin === pin);
-        u ? onLogin(u) : setErr("The credentials you entered do not match any account.");
-      } else {
-        // Portal login - simplified for demo
-        setErr("Portal login not implemented in this demo.");
+
+    if (mode === 'staff') {
+      try {
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+          callbackUrl: "/",
+        });
+
+        if (result?.error) {
+          setErr("The credentials you entered do not match any account.");
+        } else {
+          onLogin?.();
+        }
+      } catch (error) {
+        setErr("An error occurred during sign in.");
+      } finally {
+        setL(false);
       }
+    } else {
+      // Portal login - simplified for demo
+      setErr("Portal login not implemented in this demo.");
       setL(false);
-    }, 500);
+    }
   };
 
   return (
@@ -98,14 +112,13 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                 />
               </FormItem>
               
-              <FormItem label="PIN">
+              <FormItem label="Password">
                 <input 
                   className="inp" 
                   type="password" 
-                  maxLength={6} 
-                  placeholder="Enter your PIN" 
-                  value={pin} 
-                  onChange={e => setPin(e.target.value)} 
+                  placeholder="Enter your password" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
                   onKeyDown={e => e.key === "Enter" && go()} 
                 />
               </FormItem>
@@ -152,16 +165,22 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                 Demo accounts
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s2)" }}>
-                {SEED_USERS.map(u => (
-                  <button 
-                    key={u.id} 
-                    className="btn btn-g btn-sm" 
-                    onClick={() => { setEmail(u.email); setPin(u.pin || ""); }}
-                  >
-                    {u.name.split(" ")[0]} ({u.role === "admin" ? "Admin" : "Tech"})
-                  </button>
-                ))}
+                <button 
+                  className="btn btn-g btn-sm" 
+                  onClick={() => { setEmail("alfred@splashair.co.za"); setPassword("admin123"); }}
+                >
+                  Alfred (Admin)
+                </button>
+                <button 
+                  className="btn btn-g btn-sm" 
+                  onClick={() => { setEmail("sipho@splashair.co.za"); setPassword("tech123"); }}
+                >
+                  Sipho (Tech)
+                </button>
               </div>
+              <p style={{ fontSize: "11px", color: "var(--ts)", marginTop: "var(--s3)" }}>
+                Passwords: admin123 / tech123
+              </p>
             </div>
           )}
         </div>

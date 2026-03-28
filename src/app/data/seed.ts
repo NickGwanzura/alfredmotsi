@@ -3,10 +3,10 @@ import { User, Customer, Job, GasStockItem, GasUsageRecord, CRMRecord } from '@/
 export const ADMIN_EMAIL = "alfred@splashair.co.za";
 
 export const SEED_USERS: User[] = [
-  { id: "admin1", name: "Alfred Motsi", role: "admin", email: ADMIN_EMAIL, pin: "1234", phone: "011 000 0001" },
-  { id: "tech1", name: "Sipho Dlamini", role: "tech", email: "sipho@splashair.co.za", pin: "0001", phone: "071 234 5678", specialty: "Installation", status: "available" },
-  { id: "tech2", name: "Themba Nkosi", role: "tech", email: "themba@splashair.co.za", pin: "0002", phone: "082 345 6789", specialty: "Maintenance", status: "on-site" },
-  { id: "tech3", name: "Lerato Sithole", role: "tech", email: "lerato@splashair.co.za", pin: "0003", phone: "060 456 7890", specialty: "Repairs", status: "in-transit" },
+  { id: "admin1", name: "Alfred Motsi", role: "admin", email: ADMIN_EMAIL, phone: "011 000 0001" },
+  { id: "tech1", name: "Sipho Dlamini", role: "tech", email: "sipho@splashair.co.za", phone: "071 234 5678", specialty: "Installation", status: "available" },
+  { id: "tech2", name: "Themba Nkosi", role: "tech", email: "themba@splashair.co.za", phone: "082 345 6789", specialty: "Maintenance", status: "on-site" },
+  { id: "tech3", name: "Lerato Sithole", role: "tech", email: "lerato@splashair.co.za", phone: "060 456 7890", specialty: "Repairs", status: "in-transit" },
 ];
 
 export const SEED_CUSTOMERS: Customer[] = [

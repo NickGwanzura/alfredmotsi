@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole, TechStatus, JobType, JobStatus, JobPriority, IssueType, UnitType, RefrigerantType, SystemStatus, JobSource, CRMType, CRMOutcome } from '@prisma/client';
+import { hashPassword } from '../src/app/lib/password';
 
 const prisma = new PrismaClient();
 
@@ -7,7 +8,7 @@ const ADMIN_EMAIL = "alfred@splashair.co.za";
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Clean existing data
+  // Clean existing data (respect foreign key constraints)
   await prisma.cRMRecord.deleteMany();
   await prisma.gasUsageRecord.deleteMany();
   await prisma.gasStockItem.deleteMany();
@@ -17,9 +18,15 @@ async function main() {
   await prisma.recurringSchedule.deleteMany();
   await prisma.job.deleteMany();
   await prisma.customer.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('✅ Cleaned existing data');
+
+  // Hash passwords
+  const adminPassword = await hashPassword("admin123");
+  const techPassword = await hashPassword("tech123");
 
   // Seed Users
   const admin = await prisma.user.create({
@@ -28,7 +35,7 @@ async function main() {
       name: "Alfred Motsi",
       role: UserRole.admin,
       email: ADMIN_EMAIL,
-      pin: "1234",
+      password: adminPassword,
       phone: "011 000 0001",
     },
   });
@@ -39,7 +46,7 @@ async function main() {
       name: "Sipho Dlamini",
       role: UserRole.tech,
       email: "sipho@splashair.co.za",
-      pin: "0001",
+      password: techPassword,
       phone: "071 234 5678",
       specialty: "Installation",
       status: TechStatus.available,
@@ -52,7 +59,7 @@ async function main() {
       name: "Themba Nkosi",
       role: UserRole.tech,
       email: "themba@splashair.co.za",
-      pin: "0002",
+      password: techPassword,
       phone: "082 345 6789",
       specialty: "Maintenance",
       status: TechStatus.on_site,
@@ -65,7 +72,7 @@ async function main() {
       name: "Lerato Sithole",
       role: UserRole.tech,
       email: "lerato@splashair.co.za",
-      pin: "0003",
+      password: techPassword,
       phone: "060 456 7890",
       specialty: "Repairs",
       status: TechStatus.in_transit,
@@ -73,6 +80,8 @@ async function main() {
   });
 
   console.log('✅ Seeded users');
+  console.log('   Admin: alfred@splashair.co.za / admin123');
+  console.log('   Techs: sipho@splashair.co.za / tech123 (and others)');
 
   // Seed Customers
   const customers = await prisma.customer.createMany({

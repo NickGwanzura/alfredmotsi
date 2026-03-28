@@ -5,10 +5,10 @@ export interface User {
   name: string;
   role: UserRole;
   email: string;
-  pin?: string;
   phone?: string;
   specialty?: string;
   status?: TechStatus;
+  image?: string;
 }
 
 export type TechStatus = 'available' | 'on-site' | 'in-transit';

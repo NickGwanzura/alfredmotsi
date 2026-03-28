@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, Job, Customer, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
-import { SEED_USERS, SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
+import { useSession, signOut } from "next-auth/react";
+import { Job, Customer, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
+import { SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
 import { Avatar } from '@/app/components/ui';
 import Login from '@/app/components/Login';
 import AdminDashboard from '@/app/components/AdminDashboard';
@@ -18,7 +19,7 @@ import JobCardModal from '@/app/components/JobCardModal';
 import JobCardPrint from '@/app/components/JobCardPrint';
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session, status } = useSession();
   const [isClient, setIsClient] = useState(false);
   
   const [jobs, setJobs] = useState<Job[]>(SEED_JOBS);
@@ -27,36 +28,17 @@ export default function Home() {
   const [gasUsage, setGasUsage] = useState<GasUsageRecord[]>(SEED_GAS_USAGE);
   const [crmRecords, setCrmRecords] = useState<CRMRecord[]>(SEED_CRM);
   
-  const techs = SEED_USERS.filter(u => u.role === "tech");
   const [page, setPage] = useState<PageId>("home");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showAddJob, setShowAddJob] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
   const [loginTime] = useState<Date>(new Date());
 
-  // Load user from localStorage on mount
   useEffect(() => {
     setIsClient(true);
-    const saved = localStorage.getItem('splashAirUser');
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved));
-      } catch {
-        localStorage.removeItem('splashAirUser');
-      }
-    }
   }, []);
 
-  // Save user to localStorage when it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('splashAirUser', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('splashAirUser');
-    }
-  }, [user]);
-
-  if (!isClient) {
+  if (!isClient || status === "loading") {
     return (
       <div style={{ 
         minHeight: "100vh", 
@@ -71,10 +53,11 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-    return <Login onLogin={u => { setUser(u); setPage("home"); }} />;
+  if (!session) {
+    return <Login onLogin={() => {}} />;
   }
 
+  const user = session.user;
   const isAdmin = user.role === "admin";
   const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
@@ -91,9 +74,10 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('splashAirUser');
+    signOut({ callbackUrl: "/" });
   };
+
+  const techs = [];
 
   const adminNav: NavItem[] = [
     { id: "home", label: "Dashboard", icon: "⊞" },
@@ -155,7 +139,7 @@ export default function Home() {
           paddingLeft: "16px", 
           borderLeft: "1px solid var(--bs1)" 
         }}>
-          <Avatar name={user.name} size={24} color={isAdmin ? "#6929c4" : "#0f62fe"} />
+          <Avatar name={user.name || "User"} size={24} color={isAdmin ? "#6929c4" : "#0f62fe"} />
           <div>
             <p style={{ fontSize: "11px", color: "var(--tp)", fontWeight: 500 }}>{user.name}</p>
             <p style={{ fontSize: "11px", color: isAdmin ? "#6929c4" : "#0f62fe" }}>
@@ -242,7 +226,7 @@ export default function Home() {
               jobs={jobs} 
               techs={techs} 
               customers={customers} 
-              currentUser={user} 
+              currentUser={user as any} 
               onJobClick={setSelectedJob} 
             />
           )}
@@ -252,7 +236,7 @@ export default function Home() {
               jobs={jobs} 
               techs={techs} 
               customers={customers} 
-              currentUser={user} 
+              currentUser={user as any} 
               onJobClick={setSelectedJob} 
             />
           )}
@@ -262,7 +246,7 @@ export default function Home() {
               jobs={jobs} 
               techs={techs} 
               customers={customers} 
-              currentUser={user} 
+              currentUser={user as any} 
               onJobClick={setSelectedJob} 
             />
           )}
@@ -308,7 +292,7 @@ export default function Home() {
         <JobCardModal 
           job={selectedJob} 
           customers={customers} 
-          currentUser={user} 
+          currentUser={user as any} 
           onClose={() => setSelectedJob(null)} 
           onUpdate={updateJob}
           onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
