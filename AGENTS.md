@@ -13,6 +13,61 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Email:** alfred@splashaironline.co.zw
 - **Password:** #631168609K86zw
 
+## Email Configuration (Resend)
+
+The platform uses [Resend](https://resend.com) for transactional emails.
+
+### Setup
+
+1. **Create Resend Account:** https://resend.com
+2. **Add and verify your domain** (e.g., splashair.co.za)
+3. **Generate an API key**
+4. **Add to environment variables:**
+   ```
+   RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   FROM_EMAIL=Splash Air <noreply@splashair.co.za>
+   ```
+
+### Email Templates
+
+The platform includes the following email templates:
+
+1. **Job Scheduled** - Sent to customer when a job is scheduled
+2. **Job Completed** - Sent to customer when work is done
+3. **Portal Invite** - Sent to customers with portal access credentials
+4. **Tech Assignment** - Sent to technicians when assigned to a job
+
+### API Endpoints
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/api/email/job-scheduled` | POST | Send job scheduled notification | Admin |
+| `/api/email/job-completed` | POST | Send job completion notification | Admin/Tech |
+| `/api/email/portal-invite` | POST | Send portal invite to customer | Admin |
+| `/api/email/tech-assignment` | POST | Notify tech of new assignment | Admin |
+
+### Example API Usage
+
+```typescript
+// Send job scheduled email
+const response = await fetch('/api/email/job-scheduled', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    to: 'customer@example.com',
+    customerName: 'ABC Company',
+    jobTitle: 'AC Installation',
+    jobDate: '2024-03-28',
+    jobTime: '09:00',
+    jobType: 'installation',
+    technicianName: 'John Doe',
+    jobId: 'JOB-001',
+  }),
+});
+```
+
+---
+
 ## Dokploy Deployment
 
 This application is configured for deployment on [Dokploy](https://dokploy.com/).
@@ -47,6 +102,8 @@ Add these in the Dokploy dashboard:
 DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@YOUR_DB_HOST:5432/postgres
 NEXTAUTH_SECRET=your-generated-secret-key
 NEXTAUTH_URL=https://your-domain.com
+RESEND_API_KEY=your-resend-api-key
+FROM_EMAIL=Splash Air <noreply@splashair.co.za>
 NODE_ENV=production
 ```
 
@@ -79,11 +136,14 @@ This creates the admin user with production credentials.
 - [ ] Environment variables configured
 - [ ] Domain pointed to Dokploy server
 - [ ] SSL certificate configured
+- [ ] Resend account created and domain verified
+- [ ] Resend API key added to environment variables
 - [ ] Admin user seeded
 - [ ] Test login with admin credentials
 - [ ] Create technicians from dashboard
 - [ ] Add customers
 - [ ] Start creating jobs
+- [ ] Test email sending
 
 ### Logs
 
