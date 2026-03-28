@@ -1,0 +1,27 @@
+{
+  "name": "splash-air-app",
+  "version": "1.0.0",
+  "description": "Next.js application deployment configuration for Dokploy",
+  "type": "docker-compose",
+  "dockerComposeFile": "docker-compose.yml",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "ports": [
+    {
+      "containerPort": 3000,
+      "hostPort": 3000
+    }
+  ],
+  "healthCheck": {
+    "path": "/",
+    "port": 3000,
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

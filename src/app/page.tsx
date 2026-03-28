@@ -1,65 +1,329 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { User, Job, Customer, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
+import { SEED_USERS, SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
+import { Avatar } from '@/app/components/ui';
+import Login from '@/app/components/Login';
+import AdminDashboard from '@/app/components/AdminDashboard';
+import CalendarView from '@/app/components/CalendarView';
+import JobsTable from '@/app/components/JobsTable';
+import CustomerDB from '@/app/components/CustomerDB';
+import GasStock from '@/app/components/GasStock';
+import GasUsage from '@/app/components/GasUsage';
+import CRM from '@/app/components/CRM';
+import ODSReport from '@/app/components/ODSReport';
+import AddJobModal from '@/app/components/AddJobModal';
+import JobCardModal from '@/app/components/JobCardModal';
+import JobCardPrint from '@/app/components/JobCardPrint';
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  
+  const [jobs, setJobs] = useState<Job[]>(SEED_JOBS);
+  const [customers] = useState<Customer[]>(SEED_CUSTOMERS);
+  const [gasStock, setGasStock] = useState<GasStockItem[]>(SEED_GAS_STOCK);
+  const [gasUsage, setGasUsage] = useState<GasUsageRecord[]>(SEED_GAS_USAGE);
+  const [crmRecords, setCrmRecords] = useState<CRMRecord[]>(SEED_CRM);
+  
+  const techs = SEED_USERS.filter(u => u.role === "tech");
+  const [page, setPage] = useState<PageId>("home");
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showAddJob, setShowAddJob] = useState(false);
+  const [printJob, setPrintJob] = useState<Job | null>(null);
+  const [loginTime] = useState<Date>(new Date());
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    setIsClient(true);
+    const saved = localStorage.getItem('splashAirUser');
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved));
+      } catch {
+        localStorage.removeItem('splashAirUser');
+      }
+    }
+  }, []);
+
+  // Save user to localStorage when it changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('splashAirUser', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('splashAirUser');
+    }
+  }, [user]);
+
+  if (!isClient) {
+    return (
+      <div style={{ 
+        minHeight: "100vh", 
+        background: "#f4f4f4", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center",
+        color: "#161616"
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={u => { setUser(u); setPage("home"); }} />;
+  }
+
+  const isAdmin = user.role === "admin";
+  const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
+  const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
+
+  const updateJob = (updatedJob: Job) => {
+    setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
+    setSelectedJob(updatedJob);
+  };
+
+  const addJob = (newJob: Job) => {
+    setJobs(prev => [...prev, newJob]);
+    setShowAddJob(false);
+    setPage("jobs");
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('splashAirUser');
+  };
+
+  const adminNav: NavItem[] = [
+    { id: "home", label: "Dashboard", icon: "⊞" },
+    { id: "calendar", label: "Calendar", icon: "⊟" },
+    { id: "jobs", label: "Jobs", icon: "⊡" },
+    { id: "customers", label: "Customers", icon: "⬡" },
+    { id: "gas-stock", label: "Gas Stock", icon: "◉" },
+    { id: "gas-usage", label: "Gas Usage", icon: "◈" },
+    { id: "crm", label: "CRM", icon: "◎" },
+    { id: "ods-report", label: "ODS Report", icon: "⚑" },
+  ];
+
+  const techNav: NavItem[] = [
+    { id: "home", label: "My Schedule", icon: "⊞" },
+    { id: "calendar", label: "Calendar", icon: "⊟" },
+    { id: "jobs", label: "My Jobs", icon: "⊡" },
+  ];
+
+  const nav = isAdmin ? adminNav : techNav;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{ fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, sans-serif", minHeight: "100vh" }}>
+      {/* Header */}
+      <header className="hdr">
+        <span style={{ fontSize: 20 }}>❄</span>
+        <a className="hdr-name">Splash Air <span>/ Service Platform v10</span></a>
+        <div style={{ flex: 1 }} />
+        
+        {unallocatedCount > 0 && isAdmin && (
+          <span style={{ 
+            background: "#b28600", 
+            color: "#fff", 
+            fontSize: "11px", 
+            fontWeight: 700, 
+            padding: "2px 8px", 
+            marginRight: "8px"
+          }}>
+            {unallocatedCount} UNALLOCATED
+          </span>
+        )}
+        
+        {alertCount > 0 && (
+          <span style={{ 
+            background: "#da1e28", 
+            color: "#fff", 
+            fontSize: "11px", 
+            fontWeight: 700, 
+            padding: "2px 8px",
+            marginRight: "8px"
+          }}>
+            {alertCount} ALERT{alertCount > 1 ? "S" : ""}
+          </span>
+        )}
+        
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "12px", 
+          paddingLeft: "16px", 
+          borderLeft: "1px solid var(--bs1)" 
+        }}>
+          <Avatar name={user.name} size={24} color={isAdmin ? "#6929c4" : "#0f62fe"} />
+          <div>
+            <p style={{ fontSize: "11px", color: "var(--tp)", fontWeight: 500 }}>{user.name}</p>
+            <p style={{ fontSize: "11px", color: isAdmin ? "#6929c4" : "#0f62fe" }}>
+              {isAdmin ? "Administrator" : "Technician"}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </header>
+
+      {/* Sidebar */}
+      <nav className="snav">
+        <div className="snav-items">
+          <p className="snav-sec">Navigation</p>
+          {nav.map(n => (
+            <div 
+              key={n.id} 
+              className={`snav-item ${page === n.id ? "active" : ""}`} 
+              onClick={() => { setPage(n.id); setShowAddJob(false); }}
+            >
+              <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>{n.icon}</span>
+              <span style={{ flex: 1 }}>{n.label}</span>
+              {n.id === "home" && alertCount > 0 && (
+                <span style={{ background: "#da1e28", color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 5px" }}>
+                  {alertCount}
+                </span>
+              )}
+            </div>
+          ))}
+          
+          {isAdmin && (
+            <>
+              <div className="snav-div" />
+              <p className="snav-sec">Actions</p>
+              <div 
+                className="snav-item" 
+                style={{ color: "#0f62fe", fontWeight: 600 }} 
+                onClick={() => { setShowAddJob(true); }}
+              >
+                <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>+</span>
+                Schedule Job
+              </div>
+            </>
+          )}
+        </div>
+        
+        <div className="snav-foot">
+          <p style={{ fontSize: "11px", color: "var(--ts)", marginBottom: "8px" }}>
+            Session started {loginTime.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+          </p>
+          <button 
+            className="btn btn-g btn-sm" 
+            style={{ width: "100%", justifyContent: "center" }} 
+            onClick={handleLogout}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            Sign out
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="content">
+        <div className="page">
+          {showAddJob && isAdmin && (
+            <AddJobModal 
+              techs={techs} 
+              customers={customers} 
+              jobs={jobs} 
+              onSave={addJob} 
+              onClose={() => { setShowAddJob(false); }} 
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
+          
+          {!showAddJob && page === "home" && isAdmin && (
+            <AdminDashboard 
+              jobs={jobs} 
+              techs={techs} 
+              customers={customers} 
+              onJobClick={setSelectedJob} 
+            />
+          )}
+          
+          {!showAddJob && page === "home" && !isAdmin && (
+            <CalendarView 
+              jobs={jobs} 
+              techs={techs} 
+              customers={customers} 
+              currentUser={user} 
+              onJobClick={setSelectedJob} 
+            />
+          )}
+          
+          {!showAddJob && page === "calendar" && (
+            <CalendarView 
+              jobs={jobs} 
+              techs={techs} 
+              customers={customers} 
+              currentUser={user} 
+              onJobClick={setSelectedJob} 
+            />
+          )}
+          
+          {!showAddJob && page === "jobs" && (
+            <JobsTable 
+              jobs={jobs} 
+              techs={techs} 
+              customers={customers} 
+              currentUser={user} 
+              onJobClick={setSelectedJob} 
+            />
+          )}
+          
+          {!showAddJob && page === "customers" && isAdmin && (
+            <CustomerDB 
+              customers={customers} 
+              jobs={jobs} 
+              onJobClick={setSelectedJob} 
+            />
+          )}
+          
+          {!showAddJob && page === "gas-stock" && isAdmin && (
+            <GasStock 
+              stock={gasStock} 
+            />
+          )}
+          
+          {!showAddJob && page === "gas-usage" && isAdmin && (
+            <GasUsage 
+              usage={gasUsage} 
+            />
+          )}
+          
+          {!showAddJob && page === "crm" && isAdmin && (
+            <CRM 
+              records={crmRecords}
+              customers={customers}
+            />
+          )}
+          
+          {!showAddJob && page === "ods-report" && isAdmin && (
+            <ODSReport 
+              jobs={jobs}
+              customers={customers}
+            />
+          )}
         </div>
       </main>
+
+      {/* Job Card Modal */}
+      {selectedJob && (
+        <JobCardModal 
+          job={selectedJob} 
+          customers={customers} 
+          currentUser={user} 
+          onClose={() => setSelectedJob(null)} 
+          onUpdate={updateJob}
+          onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
+        />
+      )}
+
+      {/* Print Modal */}
+      {printJob && (
+        <JobCardPrint
+          job={printJob}
+          customer={customers.find(c => c.id === printJob.customerId)}
+          technician={techs.find(t => printJob.techIds.includes(t.id))}
+          onClose={() => setPrintJob(null)}
+        />
+      )}
     </div>
   );
 }
