@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Email Configuration (Resend)
 
-The platform uses [Resend](https://resend.com) for transactional emails.
+The platform uses [Resend](https://resend.com) for transactional emails with beautifully branded templates.
 
 ### Setup
 
@@ -30,40 +30,69 @@ The platform uses [Resend](https://resend.com) for transactional emails.
 
 ### Email Templates
 
-The platform includes the following email templates:
+All emails feature the Splash Air brand with professional styling:
 
-1. **Job Scheduled** - Sent to customer when a job is scheduled
-2. **Job Completed** - Sent to customer when work is done
-3. **Portal Invite** - Sent to customers with portal access credentials
-4. **Tech Assignment** - Sent to technicians when assigned to a job
+| Template | Trigger | Recipient |
+|----------|---------|-----------|
+| **Job Scheduled** | When admin creates a new job | Customer |
+| **Job Completed** | When technician marks job complete | Customer |
+| **Status Update** | When job status changes | Customer |
+| **Portal Invite** | When admin enables portal access | Customer |
+| **Tech Assignment** | When admin assigns technician | Technician |
+| **User Invite** | When admin creates new user | New User |
+
+### Email Features
+
+- ✅ Professional branded design with Splash Air logo
+- ✅ Responsive layout for mobile/desktop
+- ✅ All job details clearly formatted
+- ✅ Direct links to portal and tracking
+- ✅ Contact information included
+- ✅ Technician details with phone numbers
 
 ### API Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
-| `/api/email/job-scheduled` | POST | Send job scheduled notification | Admin |
-| `/api/email/job-completed` | POST | Send job completion notification | Admin/Tech |
-| `/api/email/portal-invite` | POST | Send portal invite to customer | Admin |
-| `/api/email/tech-assignment` | POST | Notify tech of new assignment | Admin |
+| `/api/email/job-scheduled` | POST | Job scheduled notification | Admin |
+| `/api/email/job-completed` | POST | Job completion report | Admin/Tech |
+| `/api/email/status-update` | POST | Status change notification | Admin/Tech |
+| `/api/email/portal-invite` | POST | Portal access invitation | Admin |
+| `/api/email/tech-assignment` | POST | New assignment notification | Admin |
+| `/api/email/user-invite` | POST | New user credentials | Admin |
 
-### Example API Usage
+### Client-Side Usage
+
+Import the email client helper:
 
 ```typescript
+import { 
+  sendJobScheduledEmail,
+  sendJobCompletedEmail,
+  sendPortalInviteEmail,
+  formatEmailDate,
+  formatEmailTime 
+} from '@/app/lib/email/client';
+
 // Send job scheduled email
-const response = await fetch('/api/email/job-scheduled', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    to: 'customer@example.com',
-    customerName: 'ABC Company',
-    jobTitle: 'AC Installation',
-    jobDate: '2024-03-28',
-    jobTime: '09:00',
-    jobType: 'installation',
-    technicianName: 'John Doe',
-    jobId: 'JOB-001',
-  }),
+const result = await sendJobScheduledEmail({
+  to: customer.email,
+  customerName: customer.name,
+  jobTitle: job.title,
+  jobDate: formatEmailDate(job.date),
+  jobTime: formatEmailTime(job.time),
+  jobType: job.type,
+  jobAddress: getCustomerAddress(customer),
+  technicianName: tech.name,
+  technicianPhone: tech.phone,
+  jobId: job.id,
 });
+
+if (result.success) {
+  console.log('Email sent successfully');
+} else {
+  console.error('Email failed:', result.error);
+}
 ```
 
 ---
