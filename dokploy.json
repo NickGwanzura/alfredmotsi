@@ -1,7 +1,7 @@
 {
   "name": "splash-air-app",
   "version": "1.0.0",
-  "description": "Next.js application deployment configuration for Dokploy",
+  "description": "Next.js application with PostgreSQL for Dokploy",
   "type": "docker-compose",
   "dockerComposeFile": "docker-compose.yml",
   "build": {
@@ -22,6 +22,9 @@
     "retries": 3
   },
   "env": {
-    "NODE_ENV": "production"
-  }
+    "NODE_ENV": "production",
+    "DATABASE_URL": "${DATABASE_URL}"
+  },
+  "volumes": [],
+  "dependsOn": ["postgresql"]
 }

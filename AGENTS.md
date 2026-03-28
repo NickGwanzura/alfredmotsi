@@ -17,7 +17,28 @@ This application is configured for deployment on [Dokploy](https://dokploy.com/)
 ### Prerequisites
 
 - A server with Dokploy installed
+- PostgreSQL database created in Dokploy
 - Domain configured (optional but recommended)
+
+### PostgreSQL Database Setup
+
+1. **Create Database in Dokploy:**
+   - Go to "Databases" → "Create Database"
+   - Type: PostgreSQL
+   - Name: `splash-air-db`
+   - Database: `postgres`
+   - User: `postgres`
+   - Password: auto-generated
+
+2. **Copy Internal Connection URL:**
+   - Example: `postgresql://postgres:sw8tyr3sx2ghdh2k@splash-splash-air-crm-xghzwi:5432/postgres`
+   - This goes in your app Environment Variables as `DATABASE_URL`
+
+3. **Run Migrations:**
+   After first deploy, run migrations via Dokploy terminal:
+   ```bash
+   npx prisma migrate deploy
+   ```
 
 ### Deployment Steps
 

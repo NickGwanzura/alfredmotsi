@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  tech
+  client
+}
+
+enum TechStatus {
+  available
+  on_site   @map("on-site")
+  in_transit @map("in-transit")
+}
+
+enum JobType {
+  installation
+  maintenance
+  repair
+  sales
+  inspection
+  callout
+}
+
+enum JobStatus {
+  scheduled
+  in_progress @map("in-progress")
+  on_site     @map("on-site")
+  completed
+  cancelled
+  pending_parts @map("pending-parts")
+  unallocated
+  pending_booking @map("pending-booking")
+}
+
+enum JobPriority {
+  urgent
+  high
+  medium
+  low
+}
+
+enum IssueType {
+  install
+  repair
+  service
+  quote
+}
+
+enum UnitType {
+  Split_System   @map("Split System")
+  Ducted
+  Package_Unit   @map("Package Unit")
+  Multi_Head     @map("Multi-Head")
+  Cassette
+  VRV_VRF        @map("VRV/VRF")
+  Refrigeration_System @map("Refrigeration System")
+  Chiller
+  Heat_Pump      @map("Heat Pump")
+  Precision_Cooling @map("Precision Cooling")
+}
+
+enum RefrigerantType {
+  R_32  @map("R-32")
+  R_410A @map("R-410A")
+  R_22   @map("R-22")
+  R_134a @map("R-134a")
+  R_407C @map("R-407C")
+  R_600A @map("R-600A")
+  R_290  @map("R-290")
+}
+
+enum SystemStatus {
+  optimal
+  sub_optimal @map("sub-optimal")
+  critical
+}
+
+enum AlertType {
+  HIGH_CURRENT
+  LOW_VOLTAGE
+  HIGH_TEMP
+  PRESSURE_LEAK
+}
+
+enum JobSource {
+  admin
+  portal
+}
+
+enum CRMType {
+  call
+  visit
+  complaint
+  email
+  quote
+}
+
+enum CRMOutcome {
+  positive
+  negative
+  pending
+  resolved
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  role      UserRole
+  email     String   @unique
+  pin       String?
+  phone     String?
+  specialty String?
+  status    TechStatus?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assignedJobs    Job[] @relation("AssignedJobs")
+  coAssignedJobs  Job[] @relation("CoAssignedJobs")
+  gasUsageRecords GasUsageRecord[]
+  crmRecords      CRMRecord[]
+
+  @@map("users")
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  address       String
+  siteAddress   String?  @map("site_address")
+  phone         String
+  whatsapp      String?
+  email         String
+  portalCode    String?  @unique @map("portal_code")
+  portalEnabled Boolean  @default(false) @map("portal_enabled")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  jobs       Job[]
+  crmRecords CRMRecord[]
+
+  @@map("customers")
+}
+
+model Job {
+  id          String     @id @default(cuid())
+  source      JobSource
+  customerId  String     @map("customer_id")
+  title       String
+  type        JobType
+  unitType    UnitType   @map("unit_type")
+  issue       IssueType
+  priority    JobPriority
+  date        String
+  time        String
+  status      JobStatus
+  clockIn     String?    @map("clock_in")
+  clockOut    String?    @map("clock_out")
+  description String
+  photos      String[]
+  signature   String?
+  jobCardRef  String     @unique @map("job_card_ref")
+  alerts      AlertType[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  technicians   User[] @relation("AssignedJobs")
+  coTechnicians User[] @relation("CoAssignedJobs")
+  
+  diagnostics   Diagnostics?
+  comments      Comment[]
+  history       HistoryEntry[]
+  recurring     RecurringSchedule?
+  gasUsageRecords GasUsageRecord[]
+
+  @@map("jobs")
+}
+
+model Diagnostics {
+  id                   String          @id @default(cuid())
+  jobId                String          @unique @map("job_id")
+  voltage              String?
+  current              String?
+  avgTemp              String?         @map("avg_temp")
+  maxTemp              String?         @map("max_temp")
+  suction              String?
+  discharge            String?
+  refrigerantType      RefrigerantType? @map("refrigerant_type")
+  refrigerantRecovered Float?          @map("refrigerant_recovered")
+  refrigerantUsed      Float?          @map("refrigerant_used")
+  refrigerantReused    Float?          @map("refrigerant_reused")
+  status               SystemStatus?
+  notes                String?
+  deltaT               String?         @map("delta_t")
+  brand                String?
+  serial               String?
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("diagnostics")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  author    String
+  text      String
+  time      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model HistoryEntry {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  date      String
+  note      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("history_entries")
+}
+
+model RecurringSchedule {
+  id       String @id @default(cuid())
+  jobId    String @unique @map("job_id")
+  interval Int
+  unit     String @default("months")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_schedules")
+}
+
+model GasStockItem {
+  id           String   @id @default(cuid())
+  gasType      String   @map("gas_type")
+  brand        String
+  quantity     Float
+  remaining    Float
+  unit         String
+  supplier     String
+  supplierRef  String   @map("supplier_ref")
+  addedBy      String   @map("added_by")
+  date         String
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  usageRecords GasUsageRecord[]
+
+  @@map("gas_stock")
+}
+
+model GasUsageRecord {
+  id           String   @id @default(cuid())
+  stockId      String   @map("stock_id")
+  gasType      String   @map("gas_type")
+  quantityUsed Float    @map("quantity_used")
+  usedBy       String   @map("used_by")
+  jobId        String   @map("job_id")
+  customer     String
+  date         String
+  time         String
+  purpose      String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  stockItem GasStockItem @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [usedBy], references: [id], onDelete: Cascade)
+  job       Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("gas_usage")
+}
+
+model CRMRecord {
+  id           String      @id @default(cuid())
+  customerId   String      @map("customer_id")
+  type         CRMType
+  subject      String
+  body         String
+  date         String
+  time         String
+  by           String
+  followUp     String?     @map("follow_up")
+  followUpDone Boolean     @default(false) @map("follow_up_done")
+  outcome      CRMOutcome
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [by], references: [id], onDelete: Cascade)
+
+  @@map("crm_records")
+}
