@@ -3,28 +3,14 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/db";
 
-// Extend session types
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      role: string;
-      image?: string | null;
-    };
-  }
-
-  interface User {
-    role: string;
-  }
+// Runtime env check - fail fast with clear message
+if (!process.env.NEXTAUTH_SECRET) {
+  console.error("❌ CRITICAL: NEXTAUTH_SECRET is not set!");
+  console.error("   Generate one with: openssl rand -base64 32");
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-    role?: string;
-  }
+if (!process.env.NEXTAUTH_URL) {
+  console.warn("⚠️ NEXTAUTH_URL is not set. Using default.");
 }
 
 export const authOptions: NextAuthOptions = {
@@ -36,24 +22,39 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("[AUTH] Authorize called with email:", credentials?.email);
+        
         try {
           if (!credentials?.email || !credentials?.password) {
-            throw new Error("Email and password are required");
+            console.log("[AUTH] Missing credentials");
+            return null; // Return null, don't throw
           }
 
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
+          console.log("[AUTH] Looking up user in database...");
+          
+          let user;
+          try {
+            user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+          } catch (dbError) {
+            console.error("[AUTH] Database connection error:", dbError);
+            return null;
+          }
 
           if (!user) {
-            throw new Error("Invalid email or password");
+            console.log("[AUTH] User not found:", credentials.email);
+            return null;
           }
+
+          console.log("[AUTH] User found, validating password...");
 
           // Validate password
           let isValidPassword = false;
           
           if (!user.password) {
-            throw new Error("Account has no password set");
+            console.log("[AUTH] User has no password set");
+            return null;
           }
           
           if (user.password.startsWith('$2')) {
@@ -65,8 +66,11 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!isValidPassword) {
-            throw new Error("Invalid email or password");
+            console.log("[AUTH] Invalid password for user:", credentials.email);
+            return null;
           }
+
+          console.log("[AUTH] Authentication successful:", user.email);
 
           return {
             id: user.id,
@@ -76,8 +80,8 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
           };
         } catch (error) {
-          console.error("Auth error:", error);
-          throw error;
+          console.error("[AUTH] Unexpected error in authorize:", error);
+          return null; // Always return null on error, never throw
         }
       },
     }),
@@ -90,19 +94,27 @@ export const authOptions: NextAuthOptions = {
     maxAge: 8 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile, isNewUser }) {
+      console.log("[AUTH] JWT callback - user:", user?.email || "none");
+      
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = (user as any).role;
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token) {
+    async session({ session, token, user }) {
+      console.log("[AUTH] Session callback - token.id:", token?.id);
+      
+      if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        (session.user as any).role = token.role as string;
       }
       return session;
+    },
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log("[AUTH] SignIn callback - user:", user?.email || "none");
+      return true;
     },
   },
   pages: {
@@ -110,5 +122,16 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+  debug: process.env.NODE_ENV === "development" || process.env.NEXTAUTH_DEBUG === "true",
+  logger: {
+    error: (code, metadata) => {
+      console.error("[NEXTAUTH ERROR]", code, metadata);
+    },
+    warn: (code) => {
+      console.warn("[NEXTAUTH WARN]", code);
+    },
+    debug: (code, metadata) => {
+      console.log("[NEXTAUTH DEBUG]", code, metadata);
+    },
+  },
 };
