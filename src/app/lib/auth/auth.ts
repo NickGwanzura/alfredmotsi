@@ -4,7 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Get session on the server
 export async function auth() {
-  return await getServerSession(authOptions);
+  try {
+    return await getServerSession(authOptions);
+  } catch (error) {
+    console.error("Failed to get session:", error);
+    return null;
+  }
 }
 
 // Middleware helper for route protection
@@ -12,23 +17,31 @@ export async function requireAuth(
   req: NextRequest,
   allowedRoles?: string[]
 ) {
-  const session = await auth();
+  try {
+    const session = await auth();
 
-  if (!session) {
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    if (allowedRoles && !allowedRoles.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
+    return null; // No error, user is authorized
+  } catch (error) {
+    console.error("Auth check error:", error);
     return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
+      { error: "Authentication error" },
+      { status: 500 }
     );
   }
-
-  if (allowedRoles && !allowedRoles.includes(session.user.role)) {
-    return NextResponse.json(
-      { error: "Forbidden" },
-      { status: 403 }
-    );
-  }
-
-  return null; // No error, user is authorized
 }
 
 // Check if user is admin

@@ -40,26 +40,42 @@ export async function sendJobScheduledEmail({
   jobId,
   portalUrl,
 }: SendJobScheduledEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendJobScheduledEmail] Starting with params:', { to, customerName, jobTitle, jobId });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Job scheduled email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !customerName || !jobTitle || !jobDate || !jobTime || !jobType || !jobAddress || !jobId) {
+    console.error('[sendJobScheduledEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      JobScheduledEmail({
-        customerName,
-        jobTitle,
-        jobDate,
-        jobTime,
-        jobType,
-        jobAddress,
-        technicianName: technicianName ?? 'Technician',
-        technicianPhone,
-        jobId,
-        portalUrl,
-      })
-    );
+    const safeTechnicianName = technicianName?.trim() || 'Technician';
+    const safeTechnicianPhone = technicianPhone?.trim() || 'Not provided';
+    const safePortalUrl = portalUrl?.trim() || '';
+
+    const emailProps = {
+      customerName: customerName.trim(),
+      jobTitle: jobTitle.trim(),
+      jobDate: jobDate.trim(),
+      jobTime: jobTime.trim(),
+      jobType: jobType.trim(),
+      jobAddress: jobAddress.trim(),
+      technicianName: safeTechnicianName,
+      technicianPhone: safeTechnicianPhone,
+      jobId: jobId.trim(),
+      portalUrl: safePortalUrl,
+    };
+
+    console.log('[sendJobScheduledEmail] Rendering email with props:', emailProps);
+
+    const html = await render(JobScheduledEmail(emailProps));
+
+    console.log('[sendJobScheduledEmail] Sending via Resend to:', to);
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -104,24 +120,34 @@ export async function sendJobCompletedEmail({
   nextServiceDate,
   jobCardUrl,
 }: SendJobCompletedEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendJobCompletedEmail] Starting with params:', { to, customerName, jobTitle });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Job completed email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !customerName || !jobTitle || !jobDate || !technicianName || !workDescription) {
+    console.error('[sendJobCompletedEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      JobCompletedEmail({
-        customerName,
-        jobTitle,
-        jobDate,
-        technicianName,
-        workDescription,
-        recommendations,
-        nextServiceDate,
-        jobCardUrl,
-      })
-    );
+    const emailProps = {
+      customerName: customerName.trim(),
+      jobTitle: jobTitle.trim(),
+      jobDate: jobDate.trim(),
+      technicianName: technicianName.trim(),
+      workDescription: workDescription.trim(),
+      recommendations: recommendations?.trim() || undefined,
+      nextServiceDate: nextServiceDate?.trim() || undefined,
+      jobCardUrl: jobCardUrl?.trim() || undefined,
+    };
+
+    console.log('[sendJobCompletedEmail] Rendering email');
+
+    const html = await render(JobCompletedEmail(emailProps));
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -166,24 +192,34 @@ export async function sendStatusUpdateEmail({
   updateTime,
   notes,
 }: SendStatusUpdateEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendStatusUpdateEmail] Starting with params:', { to, customerName, jobTitle, jobId });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Status update email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !customerName || !jobTitle || !jobId || !oldStatus || !newStatus || !updatedBy || !updateTime) {
+    console.error('[sendStatusUpdateEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      StatusUpdateEmail({
-        customerName,
-        jobTitle,
-        jobId,
-        oldStatus,
-        newStatus,
-        updatedBy,
-        updateTime,
-        notes,
-      })
-    );
+    const emailProps = {
+      customerName: customerName.trim(),
+      jobTitle: jobTitle.trim(),
+      jobId: jobId.trim(),
+      oldStatus: oldStatus.trim(),
+      newStatus: newStatus.trim(),
+      updatedBy: updatedBy.trim(),
+      updateTime: updateTime.trim(),
+      notes: notes?.trim() || undefined,
+    };
+
+    console.log('[sendStatusUpdateEmail] Rendering email');
+
+    const html = await render(StatusUpdateEmail(emailProps));
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -222,20 +258,30 @@ export async function sendPortalInviteEmail({
   portalCode,
   loginUrl = 'https://splashair.co.za/login',
 }: SendPortalInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendPortalInviteEmail] Starting with params:', { to, customerName });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Portal invite email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !customerName || !portalCode) {
+    console.error('[sendPortalInviteEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      PortalInviteEmail({
-        customerName,
-        portalCode,
-        email: to,
-        loginUrl,
-      })
-    );
+    const emailProps = {
+      customerName: customerName.trim(),
+      portalCode: portalCode.trim(),
+      email: to.trim(),
+      loginUrl: loginUrl.trim(),
+    };
+
+    console.log('[sendPortalInviteEmail] Rendering email');
+
+    const html = await render(PortalInviteEmail(emailProps));
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -286,25 +332,35 @@ export async function sendTechAssignmentEmail({
   customerPhone,
   jobId,
 }: SendTechAssignmentEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendTechAssignmentEmail] Starting with params:', { to, technicianName, jobTitle, jobId });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Tech assignment email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !technicianName || !customerName || !jobTitle || !jobDate || !jobTime || !jobAddress || !jobDescription || !jobId) {
+    console.error('[sendTechAssignmentEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      TechAssignmentEmail({
-        technicianName,
-        customerName,
-        jobTitle,
-        jobDate,
-        jobTime,
-        jobAddress,
-        jobDescription,
-        customerPhone,
-        jobId,
-      })
-    );
+    const emailProps = {
+      technicianName: technicianName.trim(),
+      customerName: customerName.trim(),
+      jobTitle: jobTitle.trim(),
+      jobDate: jobDate.trim(),
+      jobTime: jobTime.trim(),
+      jobAddress: jobAddress.trim(),
+      jobDescription: jobDescription.trim(),
+      customerPhone: customerPhone?.trim() || 'Not provided',
+      jobId: jobId.trim(),
+    };
+
+    console.log('[sendTechAssignmentEmail] Rendering email with props:', emailProps);
+
+    const html = await render(TechAssignmentEmail(emailProps));
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -345,21 +401,31 @@ export async function sendUserInviteEmail({
   role,
   loginUrl = 'https://splashair.co.za/login',
 }: SendUserInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendUserInviteEmail] Starting with params:', { to, userName, role });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] User invite email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
   }
 
+  // Validate required fields
+  if (!to || !userName || !tempPassword || !role) {
+    console.error('[sendUserInviteEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
+  }
+
   try {
-    const html = await render(
-      UserInviteEmail({
-        userName,
-        userEmail: to,
-        tempPassword,
-        role,
-        loginUrl,
-      })
-    );
+    const emailProps = {
+      userName: userName.trim(),
+      userEmail: to.trim(),
+      tempPassword: tempPassword.trim(),
+      role: role.trim(),
+      loginUrl: loginUrl.trim(),
+    };
+
+    console.log('[sendUserInviteEmail] Rendering email');
+
+    const html = await render(UserInviteEmail(emailProps));
 
     const { data, error } = await resend!.emails.send({
       from: FROM_EMAIL,
@@ -398,9 +464,17 @@ export async function sendCustomEmail({
   html,
   text,
 }: SendCustomEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  console.log('[sendCustomEmail] Starting with params:', { to: Array.isArray(to) ? to.length : to, subject });
+  
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Custom email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
+  }
+
+  // Validate required fields
+  if (!to || !subject || !html) {
+    console.error('[sendCustomEmail] Missing required fields');
+    return { success: false, error: 'Missing required fields' };
   }
 
   try {
