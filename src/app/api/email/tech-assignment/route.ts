@@ -25,16 +25,18 @@ export async function POST(request: NextRequest) {
       jobTime,
       jobAddress,
       jobDescription,
+      jobId,
+      customerPhone,
     } = body;
 
-    if (!to || !technicianName || !customerName || !jobTitle || !jobDate || !jobTime || !jobAddress || !jobDescription) {
+    if (!to || !technicianName || !customerName || !jobTitle || !jobDate || !jobTime || !jobAddress || !jobDescription || !jobId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    const result = await sendTechAssignmentEmail({
+    const payload = {
       to,
       technicianName,
       customerName,
@@ -43,7 +45,13 @@ export async function POST(request: NextRequest) {
       jobTime,
       jobAddress,
       jobDescription,
-    });
+      jobId,
+      customerPhone,
+    };
+
+    console.log('[Tech Assignment Email] Sending payload:', payload);
+
+    const result = await sendTechAssignmentEmail(payload);
 
     if (!result.success) {
       return NextResponse.json(
