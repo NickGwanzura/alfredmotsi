@@ -13,6 +13,9 @@ if [ "$SEED_DATABASE" = "true" ]; then
   npx prisma db seed
 fi
 
-# Start the application
-echo "✅ Starting Next.js application..."
+# Set defaults
+PORT=${PORT:-3000}
+HOSTNAME=${HOSTNAME:-0.0.0.0}
+
+echo "✅ Starting Next.js application on $HOSTNAME:$PORT..."
 exec node server.js
