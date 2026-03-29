@@ -3,7 +3,21 @@ import { auth } from '@/app/lib/auth/auth';
 import { sendJobScheduledEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
 
-export async function POST(request: NextRequest) {
+interface JobScheduledRequest {
+  to: string;
+  customerName: string;
+  jobTitle: string;
+  jobDate: string;
+  jobTime: string;
+  jobType: string;
+  jobAddress: string;
+  technicianName?: string;
+  technicianPhone?: string;
+  jobId: string;
+  portalUrl?: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -15,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as JobScheduledRequest;
     const {
       to,
       customerName,
@@ -59,10 +73,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: result.data });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in job-scheduled email route:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: String(error) },
       { status: 500 }
     );
   }

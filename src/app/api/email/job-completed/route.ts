@@ -3,7 +3,19 @@ import { auth } from '@/app/lib/auth/auth';
 import { sendJobCompletedEmail } from '@/app/lib/email/send';
 import { isAdmin, isTech } from '@/app/lib/auth/auth';
 
-export async function POST(request: NextRequest) {
+interface JobCompletedRequest {
+  to: string;
+  customerName: string;
+  jobTitle: string;
+  jobDate: string;
+  technicianName: string;
+  workDescription: string;
+  recommendations?: string;
+  nextServiceDate?: string;
+  jobCardUrl?: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -15,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as JobCompletedRequest;
     const {
       to,
       customerName,
@@ -23,7 +35,9 @@ export async function POST(request: NextRequest) {
       jobDate,
       technicianName,
       workDescription,
+      recommendations,
       nextServiceDate,
+      jobCardUrl,
     } = body;
 
     if (!to || !customerName || !jobTitle || !jobDate || !technicianName || !workDescription) {
@@ -40,7 +54,9 @@ export async function POST(request: NextRequest) {
       jobDate,
       technicianName,
       workDescription,
+      recommendations,
       nextServiceDate,
+      jobCardUrl,
     });
 
     if (!result.success) {
@@ -51,10 +67,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: result.data });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in job-completed email route:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: String(error) },
       { status: 500 }
     );
   }

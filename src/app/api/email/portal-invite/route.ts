@@ -3,7 +3,14 @@ import { auth } from '@/app/lib/auth/auth';
 import { sendPortalInviteEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
 
-export async function POST(request: NextRequest) {
+interface PortalInviteRequest {
+  to: string;
+  customerName: string;
+  portalCode: string;
+  loginUrl?: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -15,8 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { to, customerName, portalCode } = body;
+    const body = (await request.json()) as PortalInviteRequest;
+    const { to, customerName, portalCode, loginUrl } = body;
 
     if (!to || !customerName || !portalCode) {
       return NextResponse.json(
@@ -29,6 +36,7 @@ export async function POST(request: NextRequest) {
       to,
       customerName,
       portalCode,
+      loginUrl,
     });
 
     if (!result.success) {
@@ -39,10 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: result.data });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in portal-invite email route:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: String(error) },
       { status: 500 }
     );
   }

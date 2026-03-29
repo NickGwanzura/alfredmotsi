@@ -3,7 +3,17 @@ import { auth } from '@/app/lib/auth/auth';
 import { sendStatusUpdateEmail } from '@/app/lib/email/send';
 import { isAdmin, isTech } from '@/app/lib/auth/auth';
 
-export async function POST(request: NextRequest) {
+interface StatusUpdateRequest {
+  to: string;
+  customerName: string;
+  jobTitle: string;
+  jobId: string;
+  oldStatus: string;
+  newStatus: string;
+  notes?: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -15,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as StatusUpdateRequest;
     const {
       to,
       customerName,
@@ -40,7 +50,7 @@ export async function POST(request: NextRequest) {
       jobId,
       oldStatus,
       newStatus,
-      updatedBy: session.user.name || 'System',
+      updatedBy: session.user.name ?? 'System',
       updateTime: new Date().toLocaleString('en-ZA'),
       notes,
     });
@@ -53,10 +63,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: result.data });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in status-update email route:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: String(error) },
       { status: 500 }
     );
   }

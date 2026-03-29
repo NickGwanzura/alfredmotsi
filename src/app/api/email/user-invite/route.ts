@@ -3,7 +3,15 @@ import { auth } from '@/app/lib/auth/auth';
 import { sendUserInviteEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
 
-export async function POST(request: NextRequest) {
+interface UserInviteRequest {
+  to: string;
+  userName: string;
+  tempPassword: string;
+  role: string;
+  loginUrl?: string;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
     
@@ -15,8 +23,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { to, userName, tempPassword, role } = body;
+    const body = (await request.json()) as UserInviteRequest;
+    const { to, userName, tempPassword, role, loginUrl } = body;
 
     if (!to || !userName || !tempPassword || !role) {
       return NextResponse.json(
@@ -30,6 +38,7 @@ export async function POST(request: NextRequest) {
       userName,
       tempPassword,
       role,
+      loginUrl,
     });
 
     if (!result.success) {
@@ -40,10 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: result.data });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in user-invite email route:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: String(error) },
       { status: 500 }
     );
   }

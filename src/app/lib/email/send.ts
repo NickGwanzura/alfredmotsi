@@ -21,7 +21,7 @@ interface SendJobScheduledEmailParams {
   jobTime: string;
   jobType: string;
   jobAddress: string;
-  technicianName: string;
+  technicianName?: string;
   technicianPhone?: string;
   jobId: string;
   portalUrl?: string;
@@ -39,7 +39,7 @@ export async function sendJobScheduledEmail({
   technicianPhone,
   jobId,
   portalUrl,
-}: SendJobScheduledEmailParams) {
+}: SendJobScheduledEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Job scheduled email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -75,9 +75,9 @@ export async function sendJobScheduledEmail({
 
     console.log('✅ Job scheduled email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending job scheduled email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -103,7 +103,7 @@ export async function sendJobCompletedEmail({
   recommendations,
   nextServiceDate,
   jobCardUrl,
-}: SendJobCompletedEmailParams) {
+}: SendJobCompletedEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Job completed email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -137,9 +137,9 @@ export async function sendJobCompletedEmail({
 
     console.log('✅ Job completed email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending job completed email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -165,7 +165,7 @@ export async function sendStatusUpdateEmail({
   updatedBy,
   updateTime,
   notes,
-}: SendStatusUpdateEmailParams) {
+}: SendStatusUpdateEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Status update email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -199,9 +199,9 @@ export async function sendStatusUpdateEmail({
 
     console.log('✅ Status update email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending status update email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -221,7 +221,7 @@ export async function sendPortalInviteEmail({
   customerName,
   portalCode,
   loginUrl = 'https://splashair.co.za/login',
-}: SendPortalInviteEmailParams) {
+}: SendPortalInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Portal invite email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -251,9 +251,9 @@ export async function sendPortalInviteEmail({
 
     console.log('✅ Portal invite email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending portal invite email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -285,7 +285,7 @@ export async function sendTechAssignmentEmail({
   jobDescription,
   customerPhone,
   jobId,
-}: SendTechAssignmentEmailParams) {
+}: SendTechAssignmentEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Tech assignment email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -320,9 +320,9 @@ export async function sendTechAssignmentEmail({
 
     console.log('✅ Tech assignment email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending tech assignment email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -344,7 +344,7 @@ export async function sendUserInviteEmail({
   tempPassword,
   role,
   loginUrl = 'https://splashair.co.za/login',
-}: SendUserInviteEmailParams) {
+}: SendUserInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] User invite email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -375,9 +375,9 @@ export async function sendUserInviteEmail({
 
     console.log('✅ User invite email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending user invite email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
 
@@ -397,7 +397,7 @@ export async function sendCustomEmail({
   subject,
   html,
   text,
-}: SendCustomEmailParams) {
+}: SendCustomEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Custom email would be sent to:', to);
     return { success: false, error: 'Email not configured' };
@@ -419,8 +419,8 @@ export async function sendCustomEmail({
 
     console.log('✅ Custom email sent to:', to);
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Error sending custom email:', error);
-    return { success: false, error };
+    return { success: false, error: String(error) };
   }
 }
