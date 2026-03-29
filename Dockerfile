@@ -28,13 +28,13 @@ WORKDIR /app
 # Copy node_modules WITH generated Prisma client from deps
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy prisma schema (in case of any changes)
+# Copy prisma schema
 COPY prisma ./prisma
 
 # Copy rest of the app
 COPY . .
 
-# Ensure Prisma Client is generated (redundant but safe)
+# Regenerate Prisma Client to be safe
 RUN npx prisma generate
 
 # Build the Next.js app
@@ -68,14 +68,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy Prisma schema for runtime
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
-# Copy package.json for scripts
+# Copy package.json
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Copy node_modules WITH Prisma generated client
+# Copy node_modules (including .prisma)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy startup scripts
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# Generate Prisma Client in runner stage (ensure it's available)
+RUN npx prisma generate
 
 # Make startup script executable
 RUN chmod +x ./scripts/start.sh

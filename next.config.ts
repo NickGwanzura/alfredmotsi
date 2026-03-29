@@ -4,21 +4,14 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
   
+  // Externalize Prisma to prevent bundling issues
+  serverExternalPackages: ['@prisma/client', '.prisma/client'],
+  
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
   },
-  
-  // Optional: Configure image optimization for external images
-  // images: {
-  //   remotePatterns: [
-  //     {
-  //       protocol: 'https',
-  //       hostname: 'example.com',
-  //     },
-  //   ],
-  // },
 };
 
 export default nextConfig;
