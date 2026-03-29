@@ -13,8 +13,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
+# Copy Prisma schema BEFORE npm install (postinstall needs it)
+COPY prisma ./prisma
+
 # Install dependencies (postinstall will run prisma generate)
-# This generates Prisma Client in node_modules/.prisma
 RUN npm ci
 
 # ============================================
@@ -26,13 +28,13 @@ WORKDIR /app
 # Copy node_modules WITH generated Prisma client from deps
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy prisma schema for any additional generation
+# Copy prisma schema (in case of any changes)
 COPY prisma ./prisma
 
 # Copy rest of the app
 COPY . .
 
-# Regenerate Prisma client (ensures it's current with schema)
+# Ensure Prisma Client is generated (redundant but safe)
 RUN npx prisma generate
 
 # Build the Next.js app
@@ -63,13 +65,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Copy static files
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema for runtime generation fallback
+# Copy Prisma schema for runtime
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 
 # Copy package.json for scripts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Copy node_modules WITH Prisma generated client from builder
+# Copy node_modules WITH Prisma generated client
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Copy startup scripts
