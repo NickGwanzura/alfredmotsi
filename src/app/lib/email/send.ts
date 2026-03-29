@@ -54,7 +54,7 @@ export async function sendJobScheduledEmail({
         jobTime,
         jobType,
         jobAddress,
-        technicianName,
+        technicianName: technicianName ?? 'Technician',
         technicianPhone,
         jobId,
         portalUrl,

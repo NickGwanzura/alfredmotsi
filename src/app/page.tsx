@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from "next-auth/react";
-import { Job, Customer, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
+import { Job, Customer, User, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
 import { SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
 import { Avatar } from '@/app/components/ui';
 import Login from '@/app/components/Login';
@@ -77,7 +77,7 @@ export default function Home() {
     signOut({ callbackUrl: "/" });
   };
 
-  const techs = [];
+  const techs: User[] = [];
 
   const adminNav: NavItem[] = [
     { id: "home", label: "Dashboard", icon: "⊞" },
