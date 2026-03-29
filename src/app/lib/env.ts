@@ -1,9 +1,9 @@
 /**
  * Environment variable validation
- * Run at startup to catch missing env vars early
+ * SAFE - never throws, only warns
  */
 
-export function validateEnv(): void {
+export function validateEnv(): { valid: boolean; missing: string[]; errors: string[] } {
   const required = [
     'DATABASE_URL',
     'NEXTAUTH_SECRET',
@@ -11,6 +11,7 @@ export function validateEnv(): void {
   ];
 
   const missing: string[] = [];
+  const errors: string[] = [];
 
   for (const env of required) {
     if (!process.env[env]) {
@@ -19,20 +20,40 @@ export function validateEnv(): void {
   }
 
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables:\n${missing.map(e => `  - ${e}`).join('\n')}`
-    );
+    errors.push(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  // Validate DATABASE_URL format
+  // Validate DATABASE_URL format (if present)
   const dbUrl = process.env.DATABASE_URL;
-  if (dbUrl && !dbUrl.startsWith('postgresql://')) {
-    throw new Error('DATABASE_URL must start with postgresql://');
+  if (dbUrl && !dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+    errors.push('DATABASE_URL must start with postgresql:// or postgres://');
   }
 
-  console.log('✅ Environment variables validated');
+  const valid = errors.length === 0;
+  
+  if (valid) {
+    console.log('✅ Environment variables validated');
+  } else {
+    console.warn('⚠️ Environment validation warnings:', errors);
+  }
+
+  return { valid, missing, errors };
 }
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
+}
+
+// Safe check - never throws
+export function checkRequiredEnv(): void {
+  const { valid, errors } = validateEnv();
+  if (!valid) {
+    console.error('=================================');
+    console.error('⚠️ MISSING ENVIRONMENT VARIABLES');
+    console.error('=================================');
+    errors.forEach(e => console.error(`  ❌ ${e}`));
+    console.error('=================================');
+    console.error('The app will start but may not function correctly.');
+    console.error('=================================');
+  }
 }

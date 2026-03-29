@@ -1,4 +1,4 @@
-import { resend, FROM_EMAIL, isEmailEnabled } from './resend';
+import { getResend, FROM_EMAIL, isEmailEnabled } from './resend';
 import { render } from '@react-email/components';
 import {
   JobScheduledEmail,
@@ -77,7 +77,12 @@ export async function sendJobScheduledEmail({
 
     console.log('[sendJobScheduledEmail] Sending via Resend to:', to);
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: `Service Appointment Confirmed - ${jobTitle}`,
@@ -149,7 +154,12 @@ export async function sendJobCompletedEmail({
 
     const html = await render(JobCompletedEmail(emailProps));
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: `Job Completed - ${jobTitle}`,
@@ -221,7 +231,12 @@ export async function sendStatusUpdateEmail({
 
     const html = await render(StatusUpdateEmail(emailProps));
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: `Job Status Update - ${jobTitle}`,
@@ -283,7 +298,12 @@ export async function sendPortalInviteEmail({
 
     const html = await render(PortalInviteEmail(emailProps));
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: 'Your Splash Air Client Portal Access',
@@ -362,7 +382,12 @@ export async function sendTechAssignmentEmail({
 
     const html = await render(TechAssignmentEmail(emailProps));
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: `New Job Assignment - ${jobTitle}`,
@@ -427,7 +452,12 @@ export async function sendUserInviteEmail({
 
     const html = await render(UserInviteEmail(emailProps));
 
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to,
       subject: `Your Splash Air ${role.charAt(0).toUpperCase() + role.slice(1)} Account`,
@@ -478,7 +508,12 @@ export async function sendCustomEmail({
   }
 
   try {
-    const { data, error } = await resend!.emails.send({
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: Array.isArray(to) ? to : [to],
       subject,
