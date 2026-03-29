@@ -6,13 +6,28 @@
 echo "========================================="
 echo "🚀 Starting Splash Air CRM..."
 echo "========================================="
+echo "📂 Current directory: $(pwd)"
+echo "📂 Contents:"
+ls -la 2>&1
+
+# Check for server.js
+echo ""
+echo "🔍 Checking for server.js..."
+if [ -f "server.js" ]; then
+  echo "✅ server.js found"
+  head -5 server.js 2>&1
+else
+  echo "❌ server.js NOT FOUND"
+  echo "📂 .next directory:"
+  ls -la .next/ 2>&1 || echo "No .next directory"
+fi
 
 # Check if Prisma Client is generated
 if [ ! -d "node_modules/.prisma/client" ]; then
+  echo ""
   echo "⚠️ Prisma Client not found in node_modules/.prisma/client"
   echo "📦 Generating Prisma Client..."
   
-  # Generate Prisma Client as fallback
   npx prisma generate 2>&1
   
   if [ $? -ne 0 ]; then
@@ -23,10 +38,12 @@ if [ ! -d "node_modules/.prisma/client" ]; then
   
   echo "✅ Prisma Client generated successfully"
 else
+  echo ""
   echo "✅ Prisma Client found in node_modules/.prisma/client"
 fi
 
 # Verify Prisma Client can be imported
+echo ""
 echo "🔍 Verifying Prisma Client..."
 node -e "
 const { PrismaClient } = require('@prisma/client');
@@ -42,6 +59,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run database migrations with retry logic
+echo ""
 echo "📦 Running database migrations..."
 MAX_RETRIES=5
 RETRY_COUNT=0
@@ -67,6 +85,7 @@ fi
 
 # Optional: Run seed if SEED_DATABASE is set
 if [ "$SEED_DATABASE" = "true" ]; then
+  echo ""
   echo "🌱 Seeding database..."
   npx prisma db seed 2>&1 || echo "⚠️ Seeding failed, continuing..."
 fi
@@ -75,12 +94,21 @@ fi
 PORT=${PORT:-3000}
 HOSTNAME=${HOSTNAME:-0.0.0.0}
 
+echo ""
 echo "========================================="
 echo "✅ Starting Next.js application"
 echo "   Port: $PORT"
 echo "   Host: $HOSTNAME"
 echo "   Node: $(node -v)"
 echo "========================================="
+
+# Check server.js one more time before starting
+if [ ! -f "server.js" ]; then
+  echo "❌ CRITICAL: server.js not found!"
+  echo "   The build may have failed."
+  echo "   Expected: ./server.js"
+  exit 1
+fi
 
 # Start the application
 exec node server.js

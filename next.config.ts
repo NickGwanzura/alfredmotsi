@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  
+  // Ensure all pages are generated
+  // This ensures static pages are available in standalone
+  distDir: '.next',
 };
 
 export default nextConfig;
