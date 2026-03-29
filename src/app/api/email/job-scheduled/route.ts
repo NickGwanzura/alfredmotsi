@@ -23,11 +23,14 @@ export async function POST(request: NextRequest) {
       jobDate,
       jobTime,
       jobType,
+      jobAddress,
       technicianName,
+      technicianPhone,
       jobId,
+      portalUrl,
     } = body;
 
-    if (!to || !customerName || !jobTitle || !jobDate || !jobTime || !jobType || !jobId) {
+    if (!to || !customerName || !jobTitle || !jobDate || !jobTime || !jobType || !jobAddress || !jobId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -41,8 +44,11 @@ export async function POST(request: NextRequest) {
       jobDate,
       jobTime,
       jobType,
+      jobAddress,
       technicianName,
+      technicianPhone,
       jobId,
+      portalUrl,
     });
 
     if (!result.success) {
