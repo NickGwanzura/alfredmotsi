@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
-import { sendJobCompletionEmail } from '@/app/lib/email/send';
+import { sendJobCompletedEmail } from '@/app/lib/email/send';
 import { isAdmin, isTech } from '@/app/lib/auth/auth';
 
 export async function POST(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await sendJobCompletionEmail({
+    const result = await sendJobCompletedEmail({
       to,
       customerName,
       jobTitle,

@@ -1,15 +1,10 @@
 import { User, Customer, Job, GasStockItem, GasUsageRecord, CRMRecord } from '@/app/types';
 
-export // Production Admin Credentials
-export const ADMIN_EMAIL = "alfred@splashaironline.co.zw";
+// Production Admin Credentials
+export const ADMIN_EMAIL = "alfred@splashaironline.co.za";
 
-// Empty arrays for production - data will be created through the UI
+// Demo data for development
 export const SEED_USERS: User[] = [];
-export const SEED_CUSTOMERS: Customer[] = [];
-export const SEED_JOBS: Job[] = [];
-export const SEED_GAS_STOCK: GasStockItem[] = [];
-export const SEED_GAS_USAGE: GasUsageRecord[] = [];
-export const SEED_CRM: CRMRecord[] = [];
 
 export const SEED_CUSTOMERS: Customer[] = [
   { id: "C001", name: "Sandton City Office Park", address: "5 Alice Lane, Sandton, JHB", siteAddress: "5 Alice Lane, Sandton, JHB", phone: "011 881 2000", whatsapp: "27118812000", email: "facilities@sandtoncity.co.za", portalCode: "SC2024", portalEnabled: true },
