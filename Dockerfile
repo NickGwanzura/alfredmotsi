@@ -1,73 +1,49 @@
-# Multi-stage build for Next.js app with Prisma
-FROM node:20-alpine AS base
+# Build stage
+FROM node:20-alpine AS builder
 
-# Install system dependencies
 RUN apk add --no-cache libc6-compat openssl
 
-# ============================================
-# Dependencies stage
-# ============================================
-FROM base AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY prisma ./prisma
-RUN npm ci
-
-# ============================================
-# Builder stage
-# ============================================
-FROM base AS builder
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY prisma ./prisma
+# Copy all files
 COPY . .
 
-# Build
-RUN npx prisma generate
+# Install dependencies
+RUN npm ci
+
+# Build the app
 RUN npm run build
 
-# Verify build output
-RUN ls -la .next/standalone/ 2>&1 || echo "Standalone build check"
-RUN ls -la .next/static/ 2>&1 || echo "Static files check"
+# Production stage
+FROM node:20-alpine AS runner
 
-# ============================================
-# Production runner stage
-# ============================================
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
 RUN apk add --no-cache openssl
 
-# Create non-root user
+WORKDIR /app
+
+# Create user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy standalone build - using different approach
-# Copy entire .next directory first
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+# Copy the ENTIRE standalone output (this contains everything needed)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 
-# Copy the standalone server.js to root
-RUN cp .next/standalone/server.js ./server.js 2>/dev/null || echo "server.js copy check"
+# Copy static files to correct location
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-
-# Copy prisma files
+# Copy prisma for migrations
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Copy scripts
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
-
-# Generate Prisma Client in runner
-RUN npx prisma generate
-
 RUN chmod +x ./scripts/start.sh
+
 USER nextjs
 
 EXPOSE 3000
+
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
 
 CMD ["./scripts/start.sh"]
