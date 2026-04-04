@@ -24,7 +24,11 @@ echo ""
 
 # Run migrations
 echo "📦 Running database migrations..."
-npx prisma migrate deploy 2>&1 || echo "⚠️ Migrations may have failed, continuing..."
+if [ -x "./node_modules/.bin/prisma" ]; then
+  ./node_modules/.bin/prisma migrate deploy 2>&1 || echo "⚠️ Migrations may have failed, continuing..."
+else
+  echo "⚠️ Prisma CLI not found in image, skipping migrations"
+fi
 echo ""
 
 # Start

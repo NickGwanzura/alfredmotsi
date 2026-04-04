@@ -31,6 +31,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 # Copy static files to correct location
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy Prisma CLI bits so migrations can run without npx downloading a new version
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+
 # Copy prisma for migrations
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut } from "@/app/lib/auth/auth-provider";
 import { Job, Customer, User, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
 import { SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
 import { Avatar } from '@/app/components/ui';
-import Login from '@/app/components/Login';
+// import Login from '@/app/components/Login'; // Disabled for dev - auth bypassed
 import AdminDashboard from '@/app/components/AdminDashboard';
 import CalendarView from '@/app/components/CalendarView';
 import JobsTable from '@/app/components/JobsTable';
@@ -53,11 +53,7 @@ export default function Home() {
     );
   }
 
-  if (!session) {
-    return <Login onLogin={() => {}} />;
-  }
-
-  const user = session.user;
+  const user = session!.user;
   const isAdmin = user.role === "admin";
   const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;

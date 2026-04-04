@@ -1,12 +1,20 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import { ReactNode } from "react";
+// MOCK AUTH - Authentication bypassed for development
+// Change to real auth later by switching imports back
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+import { 
+  MockAuthProvider, 
+  useSession as useMockSession, 
+  signOut as mockSignOut, 
+  signIn as mockSignIn 
+} from "./mock-auth-provider";
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  return <SessionProvider>{children}</SessionProvider>;
-}
+// Re-export for compatibility
+export const AuthProvider = MockAuthProvider;
+export const useSession = useMockSession;
+export const signOut = mockSignOut;
+export const signIn = mockSignIn;
+
+// For components that import SessionProvider directly
+export { MockAuthProvider as SessionProvider };
