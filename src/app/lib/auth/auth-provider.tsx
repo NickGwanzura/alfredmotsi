@@ -13,7 +13,9 @@ import {
 // Re-export for compatibility
 export const AuthProvider = MockAuthProvider;
 export const useSession = useMockSession;
-export const signOut = mockSignOut;
+export function signOut(options?: { callbackUrl?: string }) {
+  return mockSignOut(options);
+}
 export const signIn = mockSignIn;
 
 // For components that import SessionProvider directly
