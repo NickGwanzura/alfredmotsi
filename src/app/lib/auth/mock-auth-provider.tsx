@@ -20,9 +20,13 @@ export function useSession() {
   return useContext(MockSessionContext);
 }
 
-export function signOut() {
+interface SignOutOptions {
+  callbackUrl?: string;
+}
+
+export function signOut(options?: SignOutOptions) {
   // No-op in mock mode
-  return Promise.resolve({ url: "/" });
+  return Promise.resolve({ url: options?.callbackUrl || "/" });
 }
 
 export function signIn() {
