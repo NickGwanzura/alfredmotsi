@@ -14,9 +14,11 @@ import GasStock from '@/app/components/GasStock';
 import GasUsage from '@/app/components/GasUsage';
 import CRM from '@/app/components/CRM';
 import ODSReport from '@/app/components/ODSReport';
+import Login from '@/app/components/Login';
 import AddJobModal from '@/app/components/AddJobModal';
 import JobCardModal from '@/app/components/JobCardModal';
 import JobCardPrint from '@/app/components/JobCardPrint';
+import UserManagement from '@/app/components/UserManagement';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -40,11 +42,11 @@ export default function Home() {
 
   if (!isClient || status === "loading") {
     return (
-      <div style={{ 
-        minHeight: "100vh", 
-        background: "#f4f4f4", 
-        display: "flex", 
-        alignItems: "center", 
+      <div style={{
+        minHeight: "100vh",
+        background: "#f4f4f4",
+        display: "flex",
+        alignItems: "center",
         justifyContent: "center",
         color: "#161616"
       }}>
@@ -53,7 +55,11 @@ export default function Home() {
     );
   }
 
-  const user = session!.user;
+  if (status === "unauthenticated" || !session) {
+    return <Login />;
+  }
+
+  const user = session.user;
   const isAdmin = user.role === "admin";
   const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
@@ -84,6 +90,7 @@ export default function Home() {
     { id: "gas-usage", label: "Gas Usage", icon: "◈" },
     { id: "crm", label: "CRM", icon: "◎" },
     { id: "ods-report", label: "ODS Report", icon: "⚑" },
+    { id: "users", label: "Users", icon: "◫" },
   ];
 
   const techNav: NavItem[] = [
@@ -275,10 +282,14 @@ export default function Home() {
           )}
           
           {!showAddJob && page === "ods-report" && isAdmin && (
-            <ODSReport 
+            <ODSReport
               jobs={jobs}
               customers={customers}
             />
+          )}
+
+          {!showAddJob && page === "users" && isAdmin && (
+            <UserManagement currentUserId={user.id!} />
           )}
         </div>
       </main>

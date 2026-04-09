@@ -169,7 +169,7 @@ export interface PriorityTagConfig {
   txt: string;
 }
 
-export type PageId = 'home' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report';
+export type PageId = 'home' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users';
 
 export interface NavItem {
   id: PageId;
