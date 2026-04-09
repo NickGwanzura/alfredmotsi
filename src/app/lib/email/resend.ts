@@ -15,10 +15,9 @@ export function getResend(): Resend | null {
   return resendInstance;
 }
 
-// Backwards compatibility - but lazy
-export const resend = process.env.RESEND_API_KEY 
-  ? getResend()
-  : null;
+// Use getResend() directly instead of this export
+/** @deprecated Use getResend() instead */
+export const resend = getResend;
 
 export const FROM_EMAIL = process.env.FROM_EMAIL || 'Splash Air <noreply@splashair.co.za>';
 

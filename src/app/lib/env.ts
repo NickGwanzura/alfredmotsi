@@ -4,11 +4,7 @@
  */
 
 export function validateEnv(): { valid: boolean; missing: string[]; errors: string[] } {
-  const required = [
-    'DATABASE_URL',
-    'NEXTAUTH_SECRET',
-    'NEXTAUTH_URL',
-  ];
+  const required = ['DATABASE_URL'];
 
   const missing: string[] = [];
   const errors: string[] = [];
@@ -17,6 +13,11 @@ export function validateEnv(): { valid: boolean; missing: string[]; errors: stri
     if (!process.env[env]) {
       missing.push(env);
     }
+  }
+
+  // Accept either AUTH_SECRET (NextAuth v5) or NEXTAUTH_SECRET (v4 compat)
+  if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+    missing.push('AUTH_SECRET');
   }
 
   if (missing.length > 0) {
