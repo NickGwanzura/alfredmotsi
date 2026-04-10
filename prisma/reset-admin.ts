@@ -23,14 +23,14 @@ async function main() {
     where: { email: ADMIN_EMAIL },
     update: {
       password: hashedPassword,
-      passwordChanged: false,
+      passwordChanged: true, // Reset to true so they don't get stuck in loop
     },
     create: {
-      id: "admin1",
       name: "Alfred Motsi",
       role: UserRole.admin,
       email: ADMIN_EMAIL,
       password: hashedPassword,
+      passwordChanged: true,
       phone: "",
     },
   });
@@ -39,14 +39,14 @@ async function main() {
     where: { email: SUPERADMIN_EMAIL },
     update: {
       password: hashedSuperadminPassword,
-      passwordChanged: false,
+      passwordChanged: true, // Reset to true so they don't get stuck in loop
     },
     create: {
-      id: "admin2",
       name: "Nicholas Gwanzura",
       role: UserRole.admin,
       email: SUPERADMIN_EMAIL,
       password: hashedSuperadminPassword,
+      passwordChanged: true,
       phone: "",
     },
   });

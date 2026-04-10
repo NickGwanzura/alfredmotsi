@@ -54,6 +54,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       email,
       role,
       password: hashedPassword,
+      passwordChanged: false, // New users must change their temp password
       phone: phone || null,
       specialty: specialty || null,
       status: role === 'tech' ? 'available' : null,

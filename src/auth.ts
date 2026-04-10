@@ -53,12 +53,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 8 * 60 * 60, // 8 hours
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      // On login, set user data
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.passwordChanged = (user as any).passwordChanged;
       }
+      
+      // When session is updated (triggered by update()), fetch fresh data from DB
+      if (trigger === "update" && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, passwordChanged: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.passwordChanged = dbUser.passwordChanged;
+            console.log("[AUTH] JWT refreshed from DB - passwordChanged:", dbUser.passwordChanged);
+          }
+        } catch (error) {
+          console.error("[AUTH] Error refreshing JWT:", error);
+        }
+      }
+      
       return token;
     },
     session({ session, token }) {

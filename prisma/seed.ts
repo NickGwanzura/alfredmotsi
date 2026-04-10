@@ -25,6 +25,14 @@ async function main() {
 
   if (existingAdmin1) {
     console.log('✅ Admin 1 already exists:', ADMIN_EMAIL);
+    // Update passwordChanged to true if not set
+    if (!existingAdmin1.passwordChanged) {
+      await prisma.user.update({
+        where: { email: ADMIN_EMAIL },
+        data: { passwordChanged: true },
+      });
+      console.log('   Updated passwordChanged to true');
+    }
   } else {
     await prisma.user.create({
       data: {
@@ -32,6 +40,7 @@ async function main() {
         role: UserRole.admin,
         email: ADMIN_EMAIL,
         password: hashedPassword,
+        passwordChanged: true, // Seeded admins don't need to change password
         phone: "",
       },
     });
@@ -45,6 +54,14 @@ async function main() {
 
   if (existingAdmin2) {
     console.log('✅ Admin 2 already exists:', SUPERADMIN_EMAIL);
+    // Update passwordChanged to true if not set
+    if (!existingAdmin2.passwordChanged) {
+      await prisma.user.update({
+        where: { email: SUPERADMIN_EMAIL },
+        data: { passwordChanged: true },
+      });
+      console.log('   Updated passwordChanged to true');
+    }
   } else {
     await prisma.user.create({
       data: {
@@ -52,6 +69,7 @@ async function main() {
         role: UserRole.admin,
         email: SUPERADMIN_EMAIL,
         password: hashedSuperadminPassword,
+        passwordChanged: true, // Seeded admins don't need to change password
         phone: "",
       },
     });
