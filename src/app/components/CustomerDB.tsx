@@ -85,8 +85,6 @@ export default function CustomerDB({
                 email: '',
                 portalCode: '',
                 portalEnabled: false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
               };
               onAddCustomer(emptyCustomer);
             }}

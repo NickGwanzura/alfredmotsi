@@ -93,8 +93,6 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
                 followUp: '',
                 followUpDone: false,
                 outcome: 'pending',
-                createdAt: now.toISOString(),
-                updatedAt: now.toISOString(),
               };
               onAdd(emptyRecord);
             }}
