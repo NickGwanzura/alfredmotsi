@@ -47,7 +47,7 @@ const initialGasUsage: GasUsageRecord[] = [];
 const initialCrmRecords: CRMRecord[] = [];
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -483,7 +483,10 @@ export default function Home() {
         <PasswordChangeModal
           isOpen={true}
           isTempPassword={true}
-          onSuccess={() => window.location.reload()}
+          onSuccess={async () => {
+            // Update session to reflect passwordChanged = true
+            await update();
+          }}
           onLogout={handleLogout}
         />
       )}
