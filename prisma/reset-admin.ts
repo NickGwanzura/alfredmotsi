@@ -12,16 +12,19 @@ const SUPERADMIN_EMAIL = "nicholas.gwanzura@outlook.com";
 const SUPERADMIN_PASSWORD = "Zubi_2026$";
 
 async function main() {
-  console.log('🌱 Starting production database seed...');
+  console.log('🔧 Resetting admin passwords...');
 
   // Hash passwords
   const hashedPassword = await hashPassword(ADMIN_PASSWORD);
   const hashedSuperadminPassword = await hashPassword(SUPERADMIN_PASSWORD);
 
-  // Create or update Admin Users (idempotent - won't delete existing data)
+  // Reset Admin Users (force update passwords)
   const admin1 = await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: {}, // Don't update if exists
+    update: {
+      password: hashedPassword,
+      passwordChanged: false,
+    },
     create: {
       id: "admin1",
       name: "Alfred Motsi",
@@ -34,7 +37,10 @@ async function main() {
 
   const admin2 = await prisma.user.upsert({
     where: { email: SUPERADMIN_EMAIL },
-    update: {}, // Don't update if exists
+    update: {
+      password: hashedSuperadminPassword,
+      passwordChanged: false,
+    },
     create: {
       id: "admin2",
       name: "Nicholas Gwanzura",
@@ -45,21 +51,14 @@ async function main() {
     },
   });
 
-  console.log('✅ Admin users ready:');
-  console.log(`   ${admin1.email} (created: ${admin1.createdAt === admin1.updatedAt ? 'yes' : 'already existed'})`);
-  console.log(`   ${admin2.email} (created: ${admin2.createdAt === admin2.updatedAt ? 'yes' : 'already existed'})`);
-  console.log('   Platform is ready for production!');
-  console.log('\n🎉 Production database seed completed!');
-  console.log('\n📋 Next steps:');
-  console.log('   1. Log in with the admin credentials');
-  console.log('   2. Add technicians from the dashboard');
-  console.log('   3. Add customers from the CRM');
-  console.log('   4. Start creating jobs');
+  console.log('✅ Admin passwords reset successfully!');
+  console.log(`   ${admin1.email}`);
+  console.log(`   ${admin2.email}`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e);
+    console.error('❌ Reset failed:', e);
     process.exit(1);
   })
   .finally(async () => {
