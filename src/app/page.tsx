@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from "@/app/lib/auth/auth-provider";
-import { Job, Customer, User, GasStockItem, GasUsageRecord, CRMRecord, PageId, NavItem } from '@/app/types';
-import { SEED_CUSTOMERS, SEED_JOBS, SEED_GAS_STOCK, SEED_GAS_USAGE, SEED_CRM } from '@/app/data/seed';
+import { Job, Customer, User, GasStockItem, GasUsageRecord, CRMRecord, PageId } from '@/app/types';
 import { Avatar } from '@/app/components/ui';
-// import Login from '@/app/components/Login'; // Disabled for dev - auth bypassed
 import AdminDashboard from '@/app/components/AdminDashboard';
 import CalendarView from '@/app/components/CalendarView';
 import JobsTable from '@/app/components/JobsTable';
@@ -19,16 +17,47 @@ import AddJobModal from '@/app/components/AddJobModal';
 import JobCardModal from '@/app/components/JobCardModal';
 import JobCardPrint from '@/app/components/JobCardPrint';
 import UserManagement from '@/app/components/UserManagement';
+import PasswordChangeModal from '@/app/components/PasswordChangeModal';
+
+// Carbon Icons
+import {
+  Dashboard,
+  Calendar,
+  Table,
+  User as UserIcon,
+  ContainerServices,
+  ChartLine,
+  FlagFilled,
+  UserMultiple,
+  Add,
+  Logout,
+} from '@carbon/icons-react';
+
+interface NavItem {
+  id: PageId;
+  label: string;
+  Icon: React.ComponentType<{ size?: number }>;
+}
+
+// Empty initial state - data will be fetched from API
+const initialJobs: Job[] = [];
+const initialCustomers: Customer[] = [];
+const initialGasStock: GasStockItem[] = [];
+const initialGasUsage: GasUsageRecord[] = [];
+const initialCrmRecords: CRMRecord[] = [];
 
 export default function Home() {
   const { data: session, status } = useSession();
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [jobs, setJobs] = useState<Job[]>(SEED_JOBS);
-  const [customers] = useState<Customer[]>(SEED_CUSTOMERS);
-  const [gasStock, setGasStock] = useState<GasStockItem[]>(SEED_GAS_STOCK);
-  const [gasUsage, setGasUsage] = useState<GasUsageRecord[]>(SEED_GAS_USAGE);
-  const [crmRecords, setCrmRecords] = useState<CRMRecord[]>(SEED_CRM);
+  // Data state - fetched from API in production
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [gasStock, setGasStock] = useState<GasStockItem[]>(initialGasStock);
+  const [gasUsage, setGasUsage] = useState<GasUsageRecord[]>(initialGasUsage);
+  const [crmRecords, setCrmRecords] = useState<CRMRecord[]>(initialCrmRecords);
+  const [techs, setTechs] = useState<User[]>([]);
   
   const [page, setPage] = useState<PageId>("home");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -38,19 +67,88 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    
+    // Fetch data from API in production
+    if (status === "authenticated") {
+      fetchData();
+    }
+  }, [status]);
+
+  // Fetch all data from API
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch jobs
+      const jobsRes = await fetch('/api/jobs');
+      if (jobsRes.ok) {
+        const jobsData = await jobsRes.json();
+        setJobs(jobsData);
+      }
+      
+      // Fetch customers
+      const customersRes = await fetch('/api/customers');
+      if (customersRes.ok) {
+        const customersData = await customersRes.json();
+        setCustomers(customersData);
+      }
+      
+      // Fetch technicians
+      const techsRes = await fetch('/api/users?role=tech');
+      if (techsRes.ok) {
+        const techsData = await techsRes.json();
+        setTechs(techsData);
+      }
+      
+      // Fetch gas stock
+      const gasStockRes = await fetch('/api/gas-stock');
+      if (gasStockRes.ok) {
+        const gasStockData = await gasStockRes.json();
+        setGasStock(gasStockData);
+      }
+      
+      // Fetch gas usage
+      const gasUsageRes = await fetch('/api/gas-usage');
+      if (gasUsageRes.ok) {
+        const gasUsageData = await gasUsageRes.json();
+        setGasUsage(gasUsageData);
+      }
+      
+      // Fetch CRM records
+      const crmRes = await fetch('/api/crm');
+      if (crmRes.ok) {
+        const crmData = await crmRes.json();
+        setCrmRecords(crmData);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isClient || status === "loading") {
     return (
       <div style={{
         minHeight: "100vh",
-        background: "#f4f4f4",
+        background: "var(--cds-background)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "#161616"
+        color: "var(--cds-text-primary)"
       }}>
-        Loading...
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            border: '3px solid var(--cds-border-subtle)',
+            borderTopColor: 'var(--cds-interactive)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
@@ -60,43 +158,67 @@ export default function Home() {
   }
 
   const user = session.user;
+  console.log("[PAGE] User role:", user.role, "isAdmin check:", user.role === "admin");
   const isAdmin = user.role === "admin";
   const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
 
-  const updateJob = (updatedJob: Job) => {
-    setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
-    setSelectedJob(updatedJob);
+  const updateJob = async (updatedJob: Job) => {
+    try {
+      const res = await fetch(`/api/jobs/${updatedJob.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedJob),
+      });
+      
+      if (res.ok) {
+        setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
+        setSelectedJob(updatedJob);
+      }
+    } catch (error) {
+      console.error('Error updating job:', error);
+    }
   };
 
-  const addJob = (newJob: Job) => {
-    setJobs(prev => [...prev, newJob]);
-    setShowAddJob(false);
-    setPage("jobs");
+  const addJob = async (newJob: Job) => {
+    try {
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newJob),
+      });
+      
+      if (res.ok) {
+        const createdJob = await res.json();
+        setJobs(prev => [...prev, createdJob]);
+        setShowAddJob(false);
+        setPage("jobs");
+      }
+    } catch (error) {
+      console.error('Error creating job:', error);
+    }
   };
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/" });
   };
 
-  const techs: User[] = [];
-
   const adminNav: NavItem[] = [
-    { id: "home", label: "Dashboard", icon: "⊞" },
-    { id: "calendar", label: "Calendar", icon: "⊟" },
-    { id: "jobs", label: "Jobs", icon: "⊡" },
-    { id: "customers", label: "Customers", icon: "⬡" },
-    { id: "gas-stock", label: "Gas Stock", icon: "◉" },
-    { id: "gas-usage", label: "Gas Usage", icon: "◈" },
-    { id: "crm", label: "CRM", icon: "◎" },
-    { id: "ods-report", label: "ODS Report", icon: "⚑" },
-    { id: "users", label: "Users", icon: "◫" },
+    { id: "home", label: "Dashboard", Icon: Dashboard },
+    { id: "calendar", label: "Calendar", Icon: Calendar },
+    { id: "jobs", label: "Jobs", Icon: Table },
+    { id: "customers", label: "Customers", Icon: UserIcon },
+    { id: "gas-stock", label: "Gas Stock", Icon: ContainerServices },
+    { id: "gas-usage", label: "Gas Usage", Icon: ChartLine },
+    { id: "crm", label: "CRM", Icon: ChartLine },
+    { id: "ods-report", label: "ODS Report", Icon: FlagFilled },
+    { id: "users", label: "Users", Icon: UserMultiple },
   ];
 
   const techNav: NavItem[] = [
-    { id: "home", label: "My Schedule", icon: "⊞" },
-    { id: "calendar", label: "Calendar", icon: "⊟" },
-    { id: "jobs", label: "My Jobs", icon: "⊡" },
+    { id: "home", label: "My Schedule", Icon: Dashboard },
+    { id: "calendar", label: "Calendar", Icon: Calendar },
+    { id: "jobs", label: "My Jobs", Icon: Table },
   ];
 
   const nav = isAdmin ? adminNav : techNav;
@@ -109,9 +231,21 @@ export default function Home() {
         <a className="hdr-name">Splash Air <span>/ Service Platform v10</span></a>
         <div style={{ flex: 1 }} />
         
+        {/* Role indicator for debugging */}
+        <span style={{ 
+          background: isAdmin ? "var(--cds-support-success)" : "var(--cds-support-info)", 
+          color: "#fff", 
+          fontSize: "11px", 
+          fontWeight: 700, 
+          padding: "2px 8px", 
+          marginRight: "8px"
+        }}>
+          {user.role?.toUpperCase() || "NO ROLE"}
+        </span>
+        
         {unallocatedCount > 0 && isAdmin && (
           <span style={{ 
-            background: "#b28600", 
+            background: "var(--cds-support-warning)", 
             color: "#fff", 
             fontSize: "11px", 
             fontWeight: 700, 
@@ -124,7 +258,7 @@ export default function Home() {
         
         {alertCount > 0 && (
           <span style={{ 
-            background: "#da1e28", 
+            background: "var(--cds-support-error)", 
             color: "#fff", 
             fontSize: "11px", 
             fontWeight: 700, 
@@ -140,11 +274,11 @@ export default function Home() {
           alignItems: "center", 
           gap: "12px", 
           paddingLeft: "16px", 
-          borderLeft: "1px solid var(--bs1)" 
+          borderLeft: "1px solid var(--cds-border-subtle)" 
         }}>
           <Avatar name={user.name || "User"} size={24} color={isAdmin ? "#6929c4" : "#0f62fe"} />
           <div>
-            <p style={{ fontSize: "11px", color: "var(--tp)", fontWeight: 500 }}>{user.name}</p>
+            <p style={{ fontSize: "11px", color: "var(--cds-text-secondary)", fontWeight: 500 }}>{user.name}</p>
             <p style={{ fontSize: "11px", color: isAdmin ? "#6929c4" : "#0f62fe" }}>
               {isAdmin ? "Administrator" : "Technician"}
             </p>
@@ -162,10 +296,12 @@ export default function Home() {
               className={`snav-item ${page === n.id ? "active" : ""}`} 
               onClick={() => { setPage(n.id); setShowAddJob(false); }}
             >
-              <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>{n.icon}</span>
+              <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <n.Icon size={18} />
+              </span>
               <span style={{ flex: 1 }}>{n.label}</span>
               {n.id === "home" && alertCount > 0 && (
-                <span style={{ background: "#da1e28", color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 5px" }}>
+                <span style={{ background: "var(--cds-support-error)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 5px" }}>
                   {alertCount}
                 </span>
               )}
@@ -178,10 +314,12 @@ export default function Home() {
               <p className="snav-sec">Actions</p>
               <div 
                 className="snav-item" 
-                style={{ color: "#0f62fe", fontWeight: 600 }} 
+                style={{ color: "var(--cds-interactive)", fontWeight: 600 }} 
                 onClick={() => { setShowAddJob(true); }}
               >
-                <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>+</span>
+                <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Add size={18} />
+                </span>
                 Schedule Job
               </div>
             </>
@@ -189,14 +327,15 @@ export default function Home() {
         </div>
         
         <div className="snav-foot">
-          <p style={{ fontSize: "11px", color: "var(--ts)", marginBottom: "8px" }}>
+          <p style={{ fontSize: "11px", color: "var(--cds-text-secondary)", marginBottom: "8px" }}>
             Session started {loginTime.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
           </p>
           <button 
             className="btn btn-g btn-sm" 
-            style={{ width: "100%", justifyContent: "center" }} 
+            style={{ width: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
             onClick={handleLogout}
           >
+            <Logout size={14} />
             Sign out
           </button>
         </div>
@@ -205,91 +344,113 @@ export default function Home() {
       {/* Main Content */}
       <main className="content">
         <div className="page">
-          {showAddJob && isAdmin && (
-            <AddJobModal 
-              techs={techs} 
-              customers={customers} 
-              jobs={jobs} 
-              onSave={addJob} 
-              onClose={() => { setShowAddJob(false); }} 
-            />
-          )}
-          
-          {!showAddJob && page === "home" && isAdmin && (
-            <AdminDashboard 
-              jobs={jobs} 
-              techs={techs} 
-              customers={customers} 
-              onJobClick={setSelectedJob} 
-            />
-          )}
-          
-          {!showAddJob && page === "home" && !isAdmin && (
-            <CalendarView 
-              jobs={jobs} 
-              techs={techs} 
-              customers={customers} 
-              currentUser={user as any} 
-              onJobClick={setSelectedJob} 
-            />
-          )}
-          
-          {!showAddJob && page === "calendar" && (
-            <CalendarView 
-              jobs={jobs} 
-              techs={techs} 
-              customers={customers} 
-              currentUser={user as any} 
-              onJobClick={setSelectedJob} 
-            />
-          )}
-          
-          {!showAddJob && page === "jobs" && (
-            <JobsTable 
-              jobs={jobs} 
-              techs={techs} 
-              customers={customers} 
-              currentUser={user as any} 
-              onJobClick={setSelectedJob} 
-            />
-          )}
-          
-          {!showAddJob && page === "customers" && isAdmin && (
-            <CustomerDB 
-              customers={customers} 
-              jobs={jobs} 
-              onJobClick={setSelectedJob} 
-            />
-          )}
-          
-          {!showAddJob && page === "gas-stock" && isAdmin && (
-            <GasStock 
-              stock={gasStock} 
-            />
-          )}
-          
-          {!showAddJob && page === "gas-usage" && isAdmin && (
-            <GasUsage 
-              usage={gasUsage} 
-            />
-          )}
-          
-          {!showAddJob && page === "crm" && isAdmin && (
-            <CRM 
-              records={crmRecords}
-              customers={customers}
-            />
-          )}
-          
-          {!showAddJob && page === "ods-report" && isAdmin && (
-            <ODSReport
-              jobs={jobs}
-              customers={customers}
-            />
-          )}
+          {isLoading ? (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              height: '50vh',
+              flexDirection: 'column',
+              gap: 16
+            }}>
+              <div className="loading-spinner" style={{
+                width: 40,
+                height: 40,
+                border: '3px solid var(--cds-border-subtle)',
+                borderTopColor: 'var(--cds-interactive)',
+                borderRadius: '50%',
+              }} />
+              <p style={{ color: 'var(--cds-text-secondary)' }}>Loading data...</p>
+            </div>
+          ) : (
+            <>
+              {showAddJob && isAdmin && (
+                <AddJobModal 
+                  techs={techs} 
+                  customers={customers} 
+                  jobs={jobs} 
+                  onSave={addJob} 
+                  onClose={() => { setShowAddJob(false); }} 
+                />
+              )}
+              
+              {!showAddJob && page === "home" && isAdmin && (
+                <AdminDashboard 
+                  jobs={jobs} 
+                  techs={techs} 
+                  customers={customers} 
+                  onJobClick={setSelectedJob} 
+                />
+              )}
+              
+              {!showAddJob && page === "home" && !isAdmin && (
+                <CalendarView 
+                  jobs={jobs} 
+                  techs={techs} 
+                  customers={customers} 
+                  currentUser={user as any} 
+                  onJobClick={setSelectedJob} 
+                />
+              )}
+              
+              {!showAddJob && page === "calendar" && (
+                <CalendarView 
+                  jobs={jobs} 
+                  techs={techs} 
+                  customers={customers} 
+                  currentUser={user as any} 
+                  onJobClick={setSelectedJob} 
+                />
+              )}
+              
+              {!showAddJob && page === "jobs" && (
+                <JobsTable 
+                  jobs={jobs} 
+                  techs={techs} 
+                  customers={customers} 
+                  currentUser={user as any} 
+                  onJobClick={setSelectedJob} 
+                />
+              )}
+              
+              {!showAddJob && page === "customers" && isAdmin && (
+                <CustomerDB 
+                  customers={customers} 
+                  jobs={jobs} 
+                  onJobClick={setSelectedJob} 
+                />
+              )}
+              
+              {!showAddJob && page === "gas-stock" && isAdmin && (
+                <GasStock 
+                  stock={gasStock} 
+                />
+              )}
+              
+              {!showAddJob && page === "gas-usage" && isAdmin && (
+                <GasUsage 
+                  usage={gasUsage} 
+                />
+              )}
+              
+              {!showAddJob && page === "crm" && isAdmin && (
+                <CRM 
+                  records={crmRecords}
+                  customers={customers}
+                />
+              )}
+              
+              {!showAddJob && page === "ods-report" && isAdmin && (
+                <ODSReport
+                  jobs={jobs}
+                  customers={customers}
+                />
+              )}
 
-          {!showAddJob && page === "users" && isAdmin && (
-            <UserManagement currentUserId={user.id!} />
+              {!showAddJob && page === "users" && isAdmin && (
+                <UserManagement currentUserId={user.id!} />
+              )}
+            </>
           )}
         </div>
       </main>
@@ -313,6 +474,17 @@ export default function Home() {
           customer={customers.find(c => c.id === printJob.customerId)}
           technician={techs.find(t => printJob.techIds.includes(t.id))}
           onClose={() => setPrintJob(null)}
+        />
+      )}
+
+      {/* Password Change Modal - Forces password change on first login */}
+      {/* Only show if passwordChanged is explicitly false (not undefined for existing sessions) */}
+      {user.passwordChanged === false && (
+        <PasswordChangeModal
+          isOpen={true}
+          isTempPassword={true}
+          onSuccess={() => window.location.reload()}
+          onLogout={handleLogout}
         />
       )}
     </div>

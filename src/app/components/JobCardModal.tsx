@@ -18,6 +18,7 @@ import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/co
 import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg } from '@/app/lib/utils';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
+import { Close, PlayFilled, StopFilled, Printer, Camera } from '@carbon/icons-react';
 
 interface JobCardModalProps {
   job: Job;
@@ -180,7 +181,14 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
               )}
             </div>
           </div>
-          <button className="x-btn" onClick={onClose}>✕</button>
+          <button 
+            className="x-btn" 
+            onClick={onClose}
+            aria-label="Close modal"
+            title="Close"
+          >
+            <Close size={20} />
+          </button>
         </div>
 
         {/* Time Tracking Bar */}
@@ -199,15 +207,22 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
               <button 
                 className="btn btn-ok btn-sm" 
                 onClick={handleClockIn}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
               >
-                ▶ Clock In
+                <PlayFilled size={14} />
+                Clock In
               </button>
             ) : (
               <span className="mono" style={{ color: "var(--ss)" }}>IN {clockIn}</span>
             )}
             {clockIn && !clockOut ? (
-              <button className="btn btn-d btn-sm" onClick={handleClockOut}>
-                ◼ Clock Out
+              <button 
+                className="btn btn-d btn-sm" 
+                onClick={handleClockOut}
+                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <StopFilled size={14} />
+                Clock Out
               </button>
             ) : clockOut && (
               <span className="mono" style={{ color: "var(--se)" }}>OUT {clockOut}</span>
@@ -386,7 +401,14 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
                         onChange={e => setD("serial", e.target.value)} 
                         style={{ flex: 1 }} 
                       />
-                      <button className="btn btn-s btn-sm" style={{ flexShrink: 0 }}>⊡</button>
+                      <button 
+                        className="btn btn-s btn-sm" 
+                        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label="Scan barcode"
+                        title="Scan"
+                      >
+                        <Camera size={14} />
+                      </button>
                     </div>
                   </FormItem>
                 </div>
@@ -548,7 +570,7 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
                         padding: 4 
                       }}
                     >
-                      ⊡ {p}
+                      📷 {p}
                     </div>
                   ))}
                 </div>

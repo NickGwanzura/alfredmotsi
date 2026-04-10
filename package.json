@@ -18,6 +18,9 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@carbon/icons-react": "^11.78.0",
+    "@carbon/react": "^1.105.0",
+    "@carbon/styles": "^1.104.0",
     "@prisma/client": "^5.22.0",
     "@react-email/components": "^1.0.10",
     "bcryptjs": "^3.0.3",

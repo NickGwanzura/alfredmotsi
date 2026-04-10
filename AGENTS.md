@@ -10,7 +10,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Production Admin Credentials
 
-- **Email:** alfred@splashaironline.co.zw
+- **Email:** alfred@splashaircrmzw.site
 - **Password:** #631168609K86zw
 
 ## Email Configuration (Resend)
@@ -20,12 +20,12 @@ The platform uses [Resend](https://resend.com) for transactional emails with bea
 ### Setup
 
 1. **Create Resend Account:** https://resend.com
-2. **Add and verify your domain** (e.g., splashair.co.za)
+2. **Add and verify your domain** (e.g., splashair)
 3. **Generate an API key**
 4. **Add to environment variables:**
    ```
    RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   FROM_EMAIL=Splash Air <noreply@splashair.co.za>
+   FROM_EMAIL=Splash Air <noreply@splashaircrmzw.site>
    ```
 
 ### Email Templates
@@ -132,7 +132,7 @@ DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@YOUR_DB_HOST:5432/postgres
 NEXTAUTH_SECRET=your-generated-secret-key
 NEXTAUTH_URL=https://your-domain.com
 RESEND_API_KEY=your-resend-api-key
-FROM_EMAIL=Splash Air <noreply@splashair.co.za>
+FROM_EMAIL=Splash Air <noreply@splashaircrmzw.site>
 NODE_ENV=production
 ```
 

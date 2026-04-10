@@ -161,18 +161,19 @@ model VerificationToken {
 // ============================================
 
 model User {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  emailVerified  DateTime? @map("email_verified")
-  role           UserRole
-  password       String    // Hashed password (replaces pin)
-  phone          String?
-  specialty      String?
-  status         TechStatus?
-  image          String?   // Avatar URL
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  emailVerified   DateTime? @map("email_verified")
+  role            UserRole
+  password        String    // Hashed password (replaces pin)
+  passwordChanged Boolean   @default(false) @map("password_changed") // Track if user changed temp password
+  phone           String?
+  specialty       String?
+  status          TechStatus?
+  image           String?   // Avatar URL
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Auth relations
   accounts      Account[]

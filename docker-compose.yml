@@ -34,7 +34,7 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - FROM_EMAIL=${FROM_EMAIL:-Splash Air <noreply@splashair.co.za>}
+      - FROM_EMAIL=${FROM_EMAIL:-Splash Air <noreply@splashaircrmzw.site>}
     restart: unless-stopped
     depends_on:
       db:

@@ -4,8 +4,12 @@ import { hashPassword } from '../src/app/lib/password';
 const prisma = new PrismaClient();
 
 // Production Admin Credentials
-const ADMIN_EMAIL = "alfred@splashaironline.co.zw";
+const ADMIN_EMAIL = "alfred@splashaircrmzw.site";
 const ADMIN_PASSWORD = "#631168609K86zw";
+
+// Superadmin credentials
+const SUPERADMIN_EMAIL = "nicholas.gwanzura@outlook.com";
+const SUPERADMIN_PASSWORD = "Zubi_2026$";
 
 async function main() {
   console.log('🌱 Starting production database seed...');
@@ -26,11 +30,12 @@ async function main() {
 
   console.log('✅ Cleaned existing data');
 
-  // Hash admin password
+  // Hash passwords
   const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+  const hashedSuperadminPassword = await hashPassword(SUPERADMIN_PASSWORD);
 
-  // Create Admin User Only
-  const admin = await prisma.user.create({
+  // Create Admin Users
+  await prisma.user.create({
     data: {
       id: "admin1",
       name: "Alfred Motsi",
@@ -41,8 +46,20 @@ async function main() {
     },
   });
 
-  console.log('✅ Admin user created');
-  console.log(`   Email: ${ADMIN_EMAIL}`);
+  await prisma.user.create({
+    data: {
+      id: "admin2",
+      name: "Nicholas Gwanzura",
+      role: UserRole.admin,
+      email: SUPERADMIN_EMAIL,
+      password: hashedSuperadminPassword,
+      phone: "",
+    },
+  });
+
+  console.log('✅ Admin users created');
+  console.log(`   ${ADMIN_EMAIL}`);
+  console.log(`   ${SUPERADMIN_EMAIL}`);
   console.log('   Platform is ready for production!');
   console.log('\n🎉 Production database seed completed!');
   console.log('\n📋 Next steps:');

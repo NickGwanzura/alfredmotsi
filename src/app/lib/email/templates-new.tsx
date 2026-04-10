@@ -302,7 +302,7 @@ export function JobScheduledEmail({
             )}
             
             <Text style={paragraph}>
-              To reschedule or for any queries, please contact us at <a href="mailto:alfred@splashaironline.co.zw" style={link}>alfred@splashaironline.co.zw</a> or reply to this email.
+              To reschedule or for any queries, please contact us at <a href="mailto:alfred@splashaircrmzw.site" style={link}>alfred@splashaircrmzw.site</a> or reply to this email.
             </Text>
             
             <Hr style={divider} />
@@ -310,7 +310,7 @@ export function JobScheduledEmail({
             <Text style={footer}>
               <strong>Splash Air Conditioning</strong><br />
               Professional HVAC Services<br />
-              <a href="mailto:alfred@splashaironline.co.zw" style={footerLink}>alfred@splashaironline.co.zw</a>
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
             </Text>
           </Section>
         </Container>
@@ -419,7 +419,7 @@ export function JobCompletedEmail({
             <Text style={footer}>
               <strong>Splash Air Conditioning</strong><br />
               Professional HVAC Services<br />
-              <a href="mailto:alfred@splashaironline.co.zw" style={footerLink}>alfred@splashaironline.co.zw</a>
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
             </Text>
           </Section>
         </Container>
@@ -525,7 +525,7 @@ export function PortalInviteEmail({
             </Section>
             
             <Text style={paragraph}>
-              For assistance accessing your portal, please contact our support team at <a href="mailto:alfred@splashaironline.co.zw" style={link}>alfred@splashaironline.co.zw</a>
+              For assistance accessing your portal, please contact our support team at <a href="mailto:alfred@splashaircrmzw.site" style={link}>alfred@splashaircrmzw.site</a>
             </Text>
             
             <Hr style={divider} />
@@ -533,7 +533,7 @@ export function PortalInviteEmail({
             <Text style={footer}>
               <strong>Splash Air Conditioning</strong><br />
               Professional HVAC Services<br />
-              <a href="mailto:alfred@splashaironline.co.zw" style={footerLink}>alfred@splashaironline.co.zw</a>
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
             </Text>
           </Section>
         </Container>
@@ -713,7 +713,7 @@ export function UserInviteEmail({
             </Button>
             
             <Text style={paragraph}>
-              If you have any issues accessing your account, please contact the administrator at <a href="mailto:alfred@splashaironline.co.zw" style={link}>alfred@splashaironline.co.zw</a>
+              If you have any issues accessing your account, please contact the administrator at <a href="mailto:alfred@splashaircrmzw.site" style={link}>alfred@splashaircrmzw.site</a>
             </Text>
             
             <Hr style={divider} />
@@ -817,7 +817,7 @@ export function StatusUpdateEmail({
             <Text style={footer}>
               <strong>Splash Air Conditioning</strong><br />
               Professional HVAC Services<br />
-              <a href="mailto:alfred@splashaironline.co.zw" style={footerLink}>alfred@splashaironline.co.zw</a>
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
             </Text>
           </Section>
         </Container>

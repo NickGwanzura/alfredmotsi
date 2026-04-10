@@ -3,6 +3,7 @@
 import React from 'react';
 import { JobStatus, JobPriority, AlertType, CRMOutcome } from '@/app/types';
 import { STATUS_CFG, PRIO_TAG, ALERT_CFG } from '@/app/lib/config';
+import { Icon } from './Icon';
 
 export function StatusTag({ status }: { status: JobStatus }) {
   const c = STATUS_CFG[status] || { label: status, bg: "var(--tgr)", txt: "var(--tgrt)" };
@@ -39,6 +40,20 @@ export function SectionTitle({ children, color }: { children: React.ReactNode; c
   return <p className="sec-title" style={color ? { color } : {}}>{children}</p>;
 }
 
+const notificationIcons: Record<string, string> = {
+  e: 'error',
+  w: 'warning', 
+  s: 'checkmark',
+  i: 'info',
+};
+
+const notificationRoles: Record<string, string> = {
+  e: 'alert',
+  w: 'alert',
+  s: 'status',
+  i: 'status',
+};
+
 export function Notification({ 
   kind = "i", 
   title, 
@@ -49,11 +64,23 @@ export function Notification({
   body?: string 
 }) {
   const cls = { e: "notif-e", w: "notif-w", s: "notif-s", i: "notif-i" }[kind] || "notif-i";
+  const iconName = notificationIcons[kind];
+  const role = notificationRoles[kind];
+  
   return (
-    <div className={`notif ${cls}`}>
-      <div>
-        <div className="notif-title">{title}</div>
-        {body && <div className="notif-body">{body}</div>}
+    <div 
+      className={`notif ${cls}`}
+      role={role}
+      aria-live={kind === 'e' ? 'assertive' : 'polite'}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <span style={{ flexShrink: 0, marginTop: 2 }}>
+          <Icon name={iconName as any} size={20} />
+        </span>
+        <div>
+          <div className="notif-title">{title}</div>
+          {body && <div className="notif-body">{body}</div>}
+        </div>
       </div>
     </div>
   );

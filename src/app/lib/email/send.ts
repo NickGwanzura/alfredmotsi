@@ -8,6 +8,121 @@ import {
   UserInviteEmail,
   StatusUpdateEmail,
 } from './templates-new';
+import {
+  validateEmailContent,
+  htmlToText,
+  generateEmailHeaders,
+  generateListUnsubscribeHeader,
+  checkRateLimit,
+  generatePreviewText,
+  EMAIL_CONFIG,
+} from './standards';
+
+// ============================================
+// EMAIL SEND WRAPPER (ENFORCES BEST PRACTICES)
+// ============================================
+
+interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  category?: string;
+  isTransactional?: boolean;
+  campaignId?: string;
+}
+
+/**
+ * Core email send function with best practices enforcement
+ * - Validates content before sending
+ * - Generates plain text version
+ * - Adds deliverability headers
+ * - Implements rate limiting
+ */
+export async function sendEmailWithBestPractices({
+  to,
+  subject,
+  html,
+  text,
+  category,
+  isTransactional = true,
+  campaignId,
+}: SendEmailOptions): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  const recipients = Array.isArray(to) ? to : [to];
+  const primaryRecipient = recipients[0];
+  
+  console.log('[sendEmailWithBestPractices] Starting:', { 
+    to: primaryRecipient, 
+    subject,
+    category,
+    isTransactional 
+  });
+  
+  if (!isEmailEnabled()) {
+    console.log('📧 [Email Disabled] Email would be sent to:', primaryRecipient);
+    return { success: false, error: 'Email not configured' };
+  }
+
+  // Validate recipient email format
+  const validation = validateEmailContent({ to: primaryRecipient, subject, html });
+  if (!validation.valid) {
+    console.error('[sendEmailWithBestPractices] Validation failed:', validation.errors);
+    return { success: false, error: `Validation failed: ${validation.errors.join(', ')}` };
+  }
+
+  // Check rate limit
+  const rateLimit = checkRateLimit(primaryRecipient);
+  if (!rateLimit.allowed) {
+    console.error('[sendEmailWithBestPractices] Rate limit exceeded for:', primaryRecipient);
+    return { 
+      success: false, 
+      error: `Rate limit exceeded. Try again in ${rateLimit.retryAfter} minutes.` 
+    };
+  }
+
+  try {
+    // Generate plain text version if not provided
+    const plainText = text || htmlToText(html);
+    
+    // Generate deliverability headers
+    const headers = generateEmailHeaders({ category, isTransactional, campaignId });
+    
+    // Add List-Unsubscribe for non-transactional emails
+    if (!isTransactional) {
+      const listUnsubscribe = generateListUnsubscribeHeader(primaryRecipient);
+      if (listUnsubscribe) {
+        headers['List-Unsubscribe'] = listUnsubscribe;
+        headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+      }
+    }
+
+    const resendClient = getResend();
+    if (!resendClient) {
+      return { success: false, error: 'Email client not available' };
+    }
+
+    const { data, error } = await resendClient.emails.send({
+      from: FROM_EMAIL,
+      to: recipients,
+      subject,
+      html,
+      text: plainText,
+      replyTo: EMAIL_CONFIG.replyTo,
+      headers,
+    });
+
+    if (error) {
+      console.error('❌ Failed to send email:', error);
+      return { success: false, error };
+    }
+
+    console.log('✅ Email sent successfully to:', primaryRecipient);
+    return { success: true, data };
+  } catch (error: unknown) {
+    console.error('❌ Error sending email:', error);
+    return { success: false, error: String(error) };
+  }
+}
 
 // ============================================
 // JOB EMAILS
@@ -42,11 +157,6 @@ export async function sendJobScheduledEmail({
 }: SendJobScheduledEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendJobScheduledEmail] Starting with params:', { to, customerName, jobTitle, jobId });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Job scheduled email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobDate || !jobTime || !jobType || !jobAddress || !jobId) {
     console.error('[sendJobScheduledEmail] Missing required fields');
@@ -75,27 +185,13 @@ export async function sendJobScheduledEmail({
 
     const html = await render(JobScheduledEmail(emailProps));
 
-    console.log('[sendJobScheduledEmail] Sending via Resend to:', to);
-
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: `Service Appointment Confirmed - ${jobTitle}`,
       html,
+      category: 'job-scheduled',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send job scheduled email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Job scheduled email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending job scheduled email:', error);
     return { success: false, error: String(error) };
@@ -127,11 +223,6 @@ export async function sendJobCompletedEmail({
 }: SendJobCompletedEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendJobCompletedEmail] Starting with params:', { to, customerName, jobTitle });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Job completed email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobDate || !technicianName || !workDescription) {
     console.error('[sendJobCompletedEmail] Missing required fields');
@@ -154,25 +245,13 @@ export async function sendJobCompletedEmail({
 
     const html = await render(JobCompletedEmail(emailProps));
 
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: `Job Completed - ${jobTitle}`,
       html,
+      category: 'job-completed',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send job completed email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Job completed email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending job completed email:', error);
     return { success: false, error: String(error) };
@@ -204,11 +283,6 @@ export async function sendStatusUpdateEmail({
 }: SendStatusUpdateEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendStatusUpdateEmail] Starting with params:', { to, customerName, jobTitle, jobId });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Status update email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobId || !oldStatus || !newStatus || !updatedBy || !updateTime) {
     console.error('[sendStatusUpdateEmail] Missing required fields');
@@ -231,25 +305,13 @@ export async function sendStatusUpdateEmail({
 
     const html = await render(StatusUpdateEmail(emailProps));
 
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: `Job Status Update - ${jobTitle}`,
       html,
+      category: 'status-update',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send status update email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Status update email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending status update email:', error);
     return { success: false, error: String(error) };
@@ -271,15 +333,10 @@ export async function sendPortalInviteEmail({
   to,
   customerName,
   portalCode,
-  loginUrl = 'https://splashair.co.za/login',
+  loginUrl = 'https://splashaircrmzw.site/login',
 }: SendPortalInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendPortalInviteEmail] Starting with params:', { to, customerName });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Portal invite email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !customerName || !portalCode) {
     console.error('[sendPortalInviteEmail] Missing required fields');
@@ -298,25 +355,13 @@ export async function sendPortalInviteEmail({
 
     const html = await render(PortalInviteEmail(emailProps));
 
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: 'Your Splash Air Client Portal Access',
       html,
+      category: 'portal-invite',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send portal invite email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Portal invite email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending portal invite email:', error);
     return { success: false, error: String(error) };
@@ -354,11 +399,6 @@ export async function sendTechAssignmentEmail({
 }: SendTechAssignmentEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendTechAssignmentEmail] Starting with params:', { to, technicianName, jobTitle, jobId });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Tech assignment email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !technicianName || !customerName || !jobTitle || !jobDate || !jobTime || !jobAddress || !jobDescription || !jobId) {
     console.error('[sendTechAssignmentEmail] Missing required fields');
@@ -382,25 +422,13 @@ export async function sendTechAssignmentEmail({
 
     const html = await render(TechAssignmentEmail(emailProps));
 
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: `New Job Assignment - ${jobTitle}`,
       html,
+      category: 'tech-assignment',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send tech assignment email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Tech assignment email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending tech assignment email:', error);
     return { success: false, error: String(error) };
@@ -419,20 +447,28 @@ interface SendUserInviteEmailParams {
   loginUrl?: string;
 }
 
+/**
+ * ⚠️ SECURITY NOTICE: This function sends passwords via email
+ * 
+ * RECOMMENDATION: Replace with secure token-based invitation:
+ * 1. Generate secure token (expires in 24h)
+ * 2. Store token hash in database
+ * 3. Send email with secure link
+ * 4. User clicks link to set password
+ * 5. Token is invalidated after use
+ * 
+ * See: standards.ts generateSecureToken() for token generation
+ */
 export async function sendUserInviteEmail({
   to,
   userName,
   tempPassword,
   role,
-  loginUrl = 'https://splashair.co.za/login',
+  loginUrl = 'https://splashaircrmzw.site/login',
 }: SendUserInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendUserInviteEmail] Starting with params:', { to, userName, role });
+  console.warn('⚠️ [SECURITY] Sending password via email is not recommended. Consider implementing secure token-based invitations.');
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] User invite email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !userName || !tempPassword || !role) {
     console.error('[sendUserInviteEmail] Missing required fields');
@@ -452,25 +488,13 @@ export async function sendUserInviteEmail({
 
     const html = await render(UserInviteEmail(emailProps));
 
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
+    return await sendEmailWithBestPractices({
       to,
       subject: `Your Splash Air ${role.charAt(0).toUpperCase() + role.slice(1)} Account`,
       html,
+      category: 'user-invite',
+      isTransactional: true,
     });
-
-    if (error) {
-      console.error('❌ Failed to send user invite email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ User invite email sent to:', to);
-    return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending user invite email:', error);
     return { success: false, error: String(error) };
@@ -486,6 +510,8 @@ interface SendCustomEmailParams {
   subject: string;
   html: string;
   text?: string;
+  category?: string;
+  isTransactional?: boolean;
 }
 
 export async function sendCustomEmail({
@@ -493,43 +519,34 @@ export async function sendCustomEmail({
   subject,
   html,
   text,
+  category = 'custom',
+  isTransactional = true,
 }: SendCustomEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendCustomEmail] Starting with params:', { to: Array.isArray(to) ? to.length : to, subject });
+  console.log('[sendCustomEmail] Starting with params:', { 
+    to: Array.isArray(to) ? to.length : to, 
+    subject,
+    category,
+    isTransactional 
+  });
   
-  if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Custom email would be sent to:', to);
-    return { success: false, error: 'Email not configured' };
-  }
-
   // Validate required fields
   if (!to || !subject || !html) {
     console.error('[sendCustomEmail] Missing required fields');
     return { success: false, error: 'Missing required fields' };
   }
 
-  try {
-    const resendClient = getResend();
-    if (!resendClient) {
-      return { success: false, error: 'Email client not available' };
-    }
-
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
-      to: Array.isArray(to) ? to : [to],
-      subject,
-      html,
-      text,
-    });
-
-    if (error) {
-      console.error('❌ Failed to send custom email:', error);
-      return { success: false, error };
-    }
-
-    console.log('✅ Custom email sent to:', to);
-    return { success: true, data };
-  } catch (error: unknown) {
-    console.error('❌ Error sending custom email:', error);
-    return { success: false, error: String(error) };
-  }
+  return await sendEmailWithBestPractices({
+    to,
+    subject,
+    html,
+    text,
+    category,
+    isTransactional,
+  });
 }
+
+// ============================================
+// EXPORTS
+// ============================================
+
+export { generatePreviewText, htmlToText, validateEmailContent } from './standards';

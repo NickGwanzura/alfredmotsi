@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, FormItem, Notification } from './ui';
 import { sendUserInviteEmail } from '@/app/lib/email/client';
+import { Close, Add } from '@carbon/icons-react';
 
 interface ManagedUser {
   id: string;
@@ -106,12 +107,13 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       }
 
       // 2. Send invite email
+      // Add ?logout=1 to force clear any existing session
       await sendUserInviteEmail({
         to: form.email,
         userName: form.name,
         tempPassword: tempPw,
         role: form.role,
-        loginUrl: window.location.origin,
+        loginUrl: `${window.location.origin}/?logout=1`,
       });
 
       setShowInvite(false);
@@ -176,7 +178,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
           <h1>User Management</h1>
           <p>Invite staff, manage roles, and control access to the platform.</p>
         </div>
-        <button className="btn btn-p" onClick={openInvite}>+ Invite User</button>
+        <button 
+          className="btn btn-p" 
+          onClick={openInvite}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+        >
+          <Add size={16} />
+          Invite User
+        </button>
       </div>
 
       {/* Success notification */}
@@ -294,7 +303,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Invite Team Member</div>
               </div>
-              <button className="x-btn" onClick={() => setShowInvite(false)}>✕</button>
+              <button 
+                className="x-btn" 
+                onClick={() => setShowInvite(false)}
+                aria-label="Close"
+                title="Close"
+              >
+                <Close size={20} />
+              </button>
             </div>
 
             <div className="modal-body">
@@ -313,7 +329,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                   <input
                     className="inp"
                     type="email"
-                    placeholder="e.g. tendai@splashair.co.zw"
+                    placeholder="e.g. tendai@splashaircrmzw.site"
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   />
@@ -406,7 +422,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Edit User</div>
               </div>
-              <button className="x-btn" onClick={() => setEditTarget(null)}>✕</button>
+              <button 
+                className="x-btn" 
+                onClick={() => setEditTarget(null)}
+                aria-label="Close"
+                title="Close"
+              >
+                <Close size={20} />
+              </button>
             </div>
 
             <div className="modal-body">
@@ -463,7 +486,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Remove User</div>
               </div>
-              <button className="x-btn" onClick={() => setDeleteTarget(null)}>✕</button>
+              <button 
+                className="x-btn" 
+                onClick={() => setDeleteTarget(null)}
+                aria-label="Close"
+                title="Close"
+              >
+                <Close size={20} />
+              </button>
             </div>
 
             <div className="modal-body">

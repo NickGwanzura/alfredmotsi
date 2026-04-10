@@ -4,6 +4,7 @@ import React from 'react';
 import { Job, Customer, User } from '@/app/types';
 import { STATUS_CFG } from '@/app/lib/config';
 import { fmtDate } from '@/app/lib/utils';
+import { Close, Printer } from '@carbon/icons-react';
 
 interface JobCardPrintProps {
   job: Job;
@@ -623,7 +624,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           <!-- Footer -->
           <div class="print-footer">
             <div>Thank you for choosing Splash Air Conditioning</div>
-            <div class="print-footer-contact">For support call: 011 000 0001 | Email: info@splashair.co.za</div>
+            <div class="print-footer-contact">For support call: 011 000 0001 | Email: info@splashaircrmzw.site</div>
             <div style="margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #a8a8a8;">
               Job ID: ${job.id} | Generated: ${new Date().toLocaleDateString('en-ZA')}
             </div>
@@ -655,7 +656,14 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             <p className="modal-lbl">Print Preview</p>
             <h2 className="modal-title">Job Card: {job.jobCardRef || job.id}</h2>
           </div>
-          <button className="x-btn" onClick={onClose}>✕</button>
+          <button 
+            className="x-btn" 
+            onClick={onClose}
+            aria-label="Close modal"
+            title="Close"
+          >
+            <Close size={20} />
+          </button>
         </div>
 
         <div className="modal-body">
@@ -815,7 +823,14 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
 
         <div className="modal-foot">
           <button className="btn btn-s" onClick={onClose}>Cancel</button>
-          <button className="btn btn-p" onClick={handlePrint}>🖨️ Print Job Card</button>
+          <button 
+            className="btn btn-p" 
+            onClick={handlePrint}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Printer size={16} />
+            Print Job Card
+          </button>
         </div>
       </div>
     </div>

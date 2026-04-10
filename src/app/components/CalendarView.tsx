@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, TECH_STATUS } from '@/app/lib/config';
 import { Avatar } from './ui';
+import { ChevronLeft, ChevronRight } from '@carbon/icons-react';
 
 interface CalendarViewProps {
   jobs: Job[];
@@ -41,9 +42,23 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
           <p>{isAdmin ? "Side-by-side technician grid. Conflict detection active." : "Your 7-day schedule view."}</p>
         </div>
         <div style={{ display: "flex", gap: 0 }}>
-          <button className="btn btn-s btn-sm" onClick={() => setWo(w => w - 1)}>‹ Prev</button>
+          <button 
+            className="btn btn-s btn-sm" 
+            onClick={() => setWo(w => w - 1)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <ChevronLeft size={16} />
+            Prev
+          </button>
           <button className="btn btn-s btn-sm" onClick={() => setWo(0)}>Today</button>
-          <button className="btn btn-s btn-sm" onClick={() => setWo(w => w + 1)}>Next ›</button>
+          <button 
+            className="btn btn-s btn-sm" 
+            onClick={() => setWo(w => w + 1)}
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
 

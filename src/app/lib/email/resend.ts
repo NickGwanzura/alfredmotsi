@@ -19,7 +19,7 @@ export function getResend(): Resend | null {
 /** @deprecated Use getResend() instead */
 export const resend = getResend;
 
-export const FROM_EMAIL = process.env.FROM_EMAIL || 'Splash Air <noreply@splashair.co.za>';
+export const FROM_EMAIL = process.env.FROM_EMAIL || 'Splash Air <noreply@splashaircrmzw.site>';
 
 export function isEmailEnabled(): boolean {
   return !!getResend();
