@@ -18,43 +18,52 @@ async function main() {
   const hashedPassword = await hashPassword(ADMIN_PASSWORD);
   const hashedSuperadminPassword = await hashPassword(SUPERADMIN_PASSWORD);
 
-  // Create or update Admin Users (idempotent - won't delete existing data)
-  const admin1 = await prisma.user.upsert({
+  // Check if admin1 exists
+  const existingAdmin1 = await prisma.user.findUnique({
     where: { email: ADMIN_EMAIL },
-    update: {}, // Don't update if exists
-    create: {
-      id: "admin1",
-      name: "Alfred Motsi",
-      role: UserRole.admin,
-      email: ADMIN_EMAIL,
-      password: hashedPassword,
-      phone: "",
-    },
   });
 
-  const admin2 = await prisma.user.upsert({
+  if (existingAdmin1) {
+    console.log('✅ Admin 1 already exists:', ADMIN_EMAIL);
+  } else {
+    await prisma.user.create({
+      data: {
+        name: "Alfred Motsi",
+        role: UserRole.admin,
+        email: ADMIN_EMAIL,
+        password: hashedPassword,
+        phone: "",
+      },
+    });
+    console.log('✅ Created Admin 1:', ADMIN_EMAIL);
+  }
+
+  // Check if admin2 exists
+  const existingAdmin2 = await prisma.user.findUnique({
     where: { email: SUPERADMIN_EMAIL },
-    update: {}, // Don't update if exists
-    create: {
-      id: "admin2",
-      name: "Nicholas Gwanzura",
-      role: UserRole.admin,
-      email: SUPERADMIN_EMAIL,
-      password: hashedSuperadminPassword,
-      phone: "",
-    },
   });
 
-  console.log('✅ Admin users ready:');
-  console.log(`   ${admin1.email} (created: ${admin1.createdAt === admin1.updatedAt ? 'yes' : 'already existed'})`);
-  console.log(`   ${admin2.email} (created: ${admin2.createdAt === admin2.updatedAt ? 'yes' : 'already existed'})`);
-  console.log('   Platform is ready for production!');
+  if (existingAdmin2) {
+    console.log('✅ Admin 2 already exists:', SUPERADMIN_EMAIL);
+  } else {
+    await prisma.user.create({
+      data: {
+        name: "Nicholas Gwanzura",
+        role: UserRole.admin,
+        email: SUPERADMIN_EMAIL,
+        password: hashedSuperadminPassword,
+        phone: "",
+      },
+    });
+    console.log('✅ Created Admin 2:', SUPERADMIN_EMAIL);
+  }
+
   console.log('\n🎉 Production database seed completed!');
-  console.log('\n📋 Next steps:');
-  console.log('   1. Log in with the admin credentials');
-  console.log('   2. Add technicians from the dashboard');
-  console.log('   3. Add customers from the CRM');
-  console.log('   4. Start creating jobs');
+  console.log('\n📋 Admin Credentials:');
+  console.log('   Email:', ADMIN_EMAIL);
+  console.log('   Password:', ADMIN_PASSWORD);
+  console.log('\n   Email:', SUPERADMIN_EMAIL);
+  console.log('   Password:', SUPERADMIN_PASSWORD);
 }
 
 main()
