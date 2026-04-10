@@ -18,6 +18,10 @@ import JobCardModal from '@/app/components/JobCardModal';
 import JobCardPrint from '@/app/components/JobCardPrint';
 import UserManagement from '@/app/components/UserManagement';
 import PasswordChangeModal from '@/app/components/PasswordChangeModal';
+import AddCustomerModal from '@/app/components/AddCustomerModal';
+import AddGasStockModal from '@/app/components/AddGasStockModal';
+import AddGasUsageModal from '@/app/components/AddGasUsageModal';
+import AddCRMModal from '@/app/components/AddCRMModal';
 
 // Carbon Icons
 import {
@@ -64,6 +68,18 @@ export default function Home() {
   const [showAddJob, setShowAddJob] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
   const [loginTime] = useState<Date>(new Date());
+
+  // Add modal states
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [showAddGasStock, setShowAddGasStock] = useState(false);
+  const [showAddGasUsage, setShowAddGasUsage] = useState(false);
+  const [showAddCRM, setShowAddCRM] = useState(false);
+
+  // Form data states
+  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
+  const [newGasStock, setNewGasStock] = useState<Partial<GasStockItem>>({});
+  const [newGasUsage, setNewGasUsage] = useState<Partial<GasUsageRecord>>({});
+  const [newCRM, setNewCRM] = useState<Partial<CRMRecord>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -196,6 +212,92 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error creating job:', error);
+    }
+  };
+
+  // Add customer handler
+  const addCustomer = async (customerData: Partial<Customer>) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customerData),
+      });
+      
+      if (res.ok) {
+        const createdCustomer = await res.json();
+        setCustomers(prev => [...prev, createdCustomer]);
+        setShowAddCustomer(false);
+        setNewCustomer({});
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+    }
+  };
+
+  // Add gas stock handler
+  const addGasStock = async (stockData: Partial<GasStockItem>) => {
+    try {
+      const res = await fetch('/api/gas-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stockData),
+      });
+      
+      if (res.ok) {
+        const createdStock = await res.json();
+        setGasStock(prev => [...prev, createdStock]);
+        setShowAddGasStock(false);
+        setNewGasStock({});
+      }
+    } catch (error) {
+      console.error('Error adding gas stock:', error);
+    }
+  };
+
+  // Add gas usage handler
+  const addGasUsage = async (usageData: Partial<GasUsageRecord>) => {
+    try {
+      const res = await fetch('/api/gas-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(usageData),
+      });
+      
+      if (res.ok) {
+        const createdUsage = await res.json();
+        setGasUsage(prev => [...prev, createdUsage]);
+        // Refresh gas stock to get updated remaining amounts
+        const stockRes = await fetch('/api/gas-stock');
+        if (stockRes.ok) {
+          const stockData = await stockRes.json();
+          setGasStock(stockData);
+        }
+        setShowAddGasUsage(false);
+        setNewGasUsage({});
+      }
+    } catch (error) {
+      console.error('Error recording gas usage:', error);
+    }
+  };
+
+  // Add CRM record handler
+  const addCRMRecord = async (crmData: Partial<CRMRecord>) => {
+    try {
+      const res = await fetch('/api/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(crmData),
+      });
+      
+      if (res.ok) {
+        const createdRecord = await res.json();
+        setCrmRecords(prev => [...prev, createdRecord]);
+        setShowAddCRM(false);
+        setNewCRM({});
+      }
+    } catch (error) {
+      console.error('Error creating CRM record:', error);
     }
   };
 
@@ -417,19 +519,34 @@ export default function Home() {
                 <CustomerDB 
                   customers={customers} 
                   jobs={jobs} 
-                  onJobClick={setSelectedJob} 
+                  onJobClick={setSelectedJob}
+                  onAddCustomer={(customer) => {
+                    setNewCustomer(customer);
+                    setShowAddCustomer(true);
+                  }}
                 />
               )}
               
               {!showAddJob && page === "gas-stock" && isAdmin && (
                 <GasStock 
-                  stock={gasStock} 
+                  stock={gasStock}
+                  onAdd={(item) => {
+                    setNewGasStock(item);
+                    setShowAddGasStock(true);
+                  }}
                 />
               )}
               
               {!showAddJob && page === "gas-usage" && isAdmin && (
                 <GasUsage 
-                  usage={gasUsage} 
+                  usage={gasUsage}
+                  stock={gasStock.map(s => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
+                  customers={customers.map(c => ({ id: c.id, name: c.name }))}
+                  jobs={jobs.map(j => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
+                  onAdd={(record) => {
+                    setNewGasUsage(record);
+                    setShowAddGasUsage(true);
+                  }}
                 />
               )}
               
@@ -437,6 +554,10 @@ export default function Home() {
                 <CRM 
                   records={crmRecords}
                   customers={customers}
+                  onAdd={(record) => {
+                    setNewCRM(record);
+                    setShowAddCRM(true);
+                  }}
                 />
               )}
               
@@ -488,6 +609,50 @@ export default function Home() {
             await update();
           }}
           onLogout={handleLogout}
+        />
+      )}
+
+      {/* Add Customer Modal */}
+      {showAddCustomer && (
+        <AddCustomerModal
+          customer={newCustomer}
+          onChange={setNewCustomer}
+          onSave={() => addCustomer(newCustomer)}
+          onClose={() => setShowAddCustomer(false)}
+        />
+      )}
+
+      {/* Add Gas Stock Modal */}
+      {showAddGasStock && (
+        <AddGasStockModal
+          stock={newGasStock}
+          onChange={setNewGasStock}
+          onSave={() => addGasStock(newGasStock)}
+          onClose={() => setShowAddGasStock(false)}
+        />
+      )}
+
+      {/* Add Gas Usage Modal */}
+      {showAddGasUsage && (
+        <AddGasUsageModal
+          usage={newGasUsage}
+          stock={gasStock}
+          customers={customers}
+          jobs={jobs}
+          onChange={setNewGasUsage}
+          onSave={() => addGasUsage(newGasUsage)}
+          onClose={() => setShowAddGasUsage(false)}
+        />
+      )}
+
+      {/* Add CRM Record Modal */}
+      {showAddCRM && (
+        <AddCRMModal
+          record={newCRM}
+          customers={customers}
+          onChange={setNewCRM}
+          onSave={() => addCRMRecord(newCRM)}
+          onClose={() => setShowAddCRM(false)}
         />
       )}
     </div>

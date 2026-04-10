@@ -74,8 +74,34 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
 
   return (
     <div className="fi-anim">
-      <div className="page-hdr">
+      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Customer Relationship Management</h1>
+        {onAdd && customers.length > 0 && (
+          <button 
+            className="btn btn-p"
+            onClick={() => {
+              const now = new Date();
+              const emptyRecord: CRMRecord = {
+                id: '',
+                customerId: customers[0]?.id || '',
+                type: 'call',
+                subject: '',
+                body: '',
+                date: now.toISOString().split('T')[0],
+                time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                by: '',
+                followUp: '',
+                followUpDone: false,
+                outcome: 'pending',
+                createdAt: now.toISOString(),
+                updatedAt: now.toISOString(),
+              };
+              onAdd(emptyRecord);
+            }}
+          >
+            + Add Record
+          </button>
+        )}
       </div>
 
       {/* Stats */}

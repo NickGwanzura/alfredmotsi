@@ -11,6 +11,7 @@ interface CustomerDBProps {
   jobs: Job[];
   onJobClick: (job: Job) => void;
   onEditCustomer?: (customer: Customer) => void;
+  onAddCustomer?: (customer: Customer) => void;
 }
 
 export default function CustomerDB({
@@ -18,6 +19,7 @@ export default function CustomerDB({
   jobs,
   onJobClick,
   onEditCustomer,
+  onAddCustomer,
 }: CustomerDBProps) {
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -66,8 +68,32 @@ export default function CustomerDB({
 
   return (
     <div className="fi-anim">
-      <div className="page-hdr">
+      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Customer Database</h1>
+        {onAddCustomer && (
+          <button 
+            className="btn btn-p"
+            onClick={() => {
+              // Open add customer modal with empty customer
+              const emptyCustomer: Customer = {
+                id: '',
+                name: '',
+                address: '',
+                siteAddress: '',
+                phone: '',
+                whatsapp: '',
+                email: '',
+                portalCode: '',
+                portalEnabled: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              onAddCustomer(emptyCustomer);
+            }}
+          >
+            + Add Customer
+          </button>
+        )}
       </div>
 
       <div className="g2" style={{ gridTemplateColumns: '1fr 2fr', gap: 'var(--sp)' }}>

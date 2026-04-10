@@ -7,9 +7,13 @@ import { SectionTitle } from './ui';
 interface GasUsageProps {
   usage: GasUsageRecord[];
   onExport?: () => void;
+  onAdd?: (record: GasUsageRecord) => void;
+  stock?: { id: string; gasType: string; remaining: number; unit: string }[];
+  customers?: { id: string; name: string }[];
+  jobs?: { id: string; title: string; jobCardRef: string }[];
 }
 
-export default function GasUsage({ usage, onExport }: GasUsageProps) {
+export default function GasUsage({ usage, onExport, onAdd, stock, customers, jobs }: GasUsageProps) {
   const [gasFilter, setGasFilter] = useState<string>('all');
 
   const gasTypes = useMemo(() => {
@@ -102,6 +106,28 @@ export default function GasUsage({ usage, onExport }: GasUsageProps) {
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
+          {onAdd && stock && stock.length > 0 && (
+            <button 
+              className="btn btn-p btn-sm"
+              onClick={() => {
+                const emptyRecord: GasUsageRecord = {
+                  id: '',
+                  stockId: stock[0]?.id || '',
+                  gasType: stock[0]?.gasType || '',
+                  quantityUsed: 0,
+                  usedBy: '',
+                  jobId: '',
+                  customer: '',
+                  date: new Date().toISOString().split('T')[0],
+                  time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                  purpose: '',
+                };
+                onAdd(emptyRecord);
+              }}
+            >
+              + Record Usage
+            </button>
+          )}
           {onExport && (
             <button className="btn btn-s btn-sm" onClick={onExport}>
               Export CSV
