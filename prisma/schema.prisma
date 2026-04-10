@@ -199,7 +199,7 @@ model Customer {
   siteAddress   String?  @map("site_address")
   phone         String
   whatsapp      String?
-  email         String
+  email         String   @unique
   portalCode    String?  @unique @map("portal_code")
   portalEnabled Boolean  @default(false) @map("portal_enabled")
   createdAt     DateTime @default(now()) @map("created_at")
