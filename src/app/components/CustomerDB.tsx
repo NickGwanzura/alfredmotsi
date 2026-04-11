@@ -369,11 +369,19 @@ export default function CustomerDB({ customers, jobs, onJobClick, onEditCustomer
 
                   {emailTemplate === 'portal-invite' && (
                     <div style={{ marginBottom: 10 }}>
-                      <Notification
-                        kind="i"
-                        title="Branded email"
-                        body="This will send a professionally branded portal invite via Resend directly to the customer's inbox."
-                      />
+                      {!active.portalCode ? (
+                        <Notification
+                          kind="w"
+                          title="No portal code"
+                          body="This customer doesn't have a portal code. Edit the customer record to add one before sending an invite."
+                        />
+                      ) : (
+                        <Notification
+                          kind="i"
+                          title="Branded email"
+                          body="Sends a professionally branded portal invite via Resend directly to the customer's inbox."
+                        />
+                      )}
                     </div>
                   )}
 
@@ -412,7 +420,7 @@ export default function CustomerDB({ customers, jobs, onJobClick, onEditCustomer
                       className="btn btn-mail btn-sm"
                       style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                       onClick={sendEmail}
-                      disabled={emailSending}
+                      disabled={emailSending || (emailTemplate === 'portal-invite' && !active.portalCode)}
                     >
                       {emailSending ? 'Sending…' : <><CheckmarkFilled size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
                     </button>

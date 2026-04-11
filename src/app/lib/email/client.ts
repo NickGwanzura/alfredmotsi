@@ -117,15 +117,17 @@ export async function sendPortalInviteEmail(payload: {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
-      return { success: false, error: data.error || 'Failed to send email' };
+      // Surface the actual Resend/server error detail when available
+      const detail = data.details || data.message || data.error || 'Failed to send email';
+      return { success: false, error: detail };
     }
 
     return { success: true, data };
   } catch (error) {
     console.error('Error sending portal invite email:', error);
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Network error — check your connection.' };
   }
 }
 
