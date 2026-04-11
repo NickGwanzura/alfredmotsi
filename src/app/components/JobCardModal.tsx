@@ -829,14 +829,13 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
               <div className="tile">
                 <SectionTitle>Compliance Notes</SectionTitle>
                 <p style={{ fontSize: "14px", color: "var(--ts)", lineHeight: 1.6 }}>
-                  All refrigerant handling must comply with the Montreal Protocol and local environmental regulations. 
-                  Recovered refrigerant must be stored in certified recovery cylinders and properly labeled. 
+                  All refrigerant handling must comply with the Montreal Protocol and local environmental regulations.
+                  Recovered refrigerant must be stored in certified recovery cylinders and properly labeled.
                   R-22 (HCFC) systems must be reported for phase-out tracking.
                 </p>
               </div>
             </div>
           )}
-        </div>
 
           {/* Consumables Tab */}
           {tab === "consumables" && (
@@ -919,7 +918,6 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
             </div>
           )}
         </div>
-
         <div className="modal-foot">
           <button className="btn btn-g" onClick={onClose}>Cancel</button>
           {status === "completed" && onPrint && (
