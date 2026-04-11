@@ -555,12 +555,13 @@ export default function Home() {
               )}
               
               {!showAddJob && page === "gas-stock" && isAdmin && (
-                <GasStock 
+                <GasStock
                   stock={gasStock}
                   onAdd={(item) => {
                     setNewGasStock(item);
                     setShowAddGasStock(true);
                   }}
+                  onRefresh={fetchData}
                 />
               )}
               

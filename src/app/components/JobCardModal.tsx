@@ -371,8 +371,9 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
                     Email Reminder
                   </button>
                   {onPrint && (
-                    <button className="btn btn-s btn-sm" onClick={handlePrint}>
-                      Print Job Card
+                    <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handlePrint}>
+                      <Printer size={14} />
+                      Print / PDF
                     </button>
                   )}
                 </div>
@@ -920,7 +921,7 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
         </div>
         <div className="modal-foot">
           <button className="btn btn-g" onClick={onClose}>Cancel</button>
-          {status === "completed" && onPrint && (
+          {onPrint && (
             <button className="btn btn-s" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handlePrint}>
               <Download size={14} />
               Download PDF

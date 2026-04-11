@@ -106,14 +106,14 @@ export default function GasUsage({ usage, onExport, onAdd, stock, customers, job
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
-          {onAdd && stock && stock.length > 0 && (
-            <button 
+          {onAdd && (
+            <button
               className="btn btn-p btn-sm"
               onClick={() => {
                 const emptyRecord: GasUsageRecord = {
                   id: '',
-                  stockId: stock[0]?.id || '',
-                  gasType: stock[0]?.gasType || '',
+                  stockId: stock?.[0]?.id || '',
+                  gasType: stock?.[0]?.gasType || '',
                   quantityUsed: 0,
                   usedBy: '',
                   jobId: '',

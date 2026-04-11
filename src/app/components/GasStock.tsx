@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GasStockItem } from '@/app/types';
 import { SectionTitle } from './ui';
 
 interface GasStockProps {
   stock: GasStockItem[];
   onAdd?: (item: GasStockItem) => void;
+  onRefresh?: () => void;
 }
 
 const LOW_STOCK_THRESHOLD = 20; // percentage
@@ -41,7 +42,32 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export default function GasStock({ stock, onAdd }: GasStockProps) {
+export default function GasStock({ stock, onAdd, onRefresh }: GasStockProps) {
+  const [adjustId, setAdjustId] = useState<string | null>(null);
+  const [adjustVal, setAdjustVal] = useState('');
+  const [adjustReason, setAdjustReason] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
+
+  const handleAdjust = async (item: GasStockItem) => {
+    if (!adjustVal) return;
+    setAdjusting(true);
+    try {
+      const res = await fetch(`/api/gas-stock/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remaining: parseFloat(adjustVal), reason: adjustReason || 'Manual adjustment' }),
+      });
+      if (res.ok) {
+        setAdjustId(null);
+        setAdjustVal('');
+        setAdjustReason('');
+        onRefresh?.();
+      }
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   const totalCylinders = calculateTotalCylinders(stock);
   const totalKg = calculateTotalKg(stock);
   const lowStockCount = calculateLowStockCount(stock);
@@ -83,10 +109,9 @@ export default function GasStock({ stock, onAdd }: GasStockProps) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--s4)' }}>
           <SectionTitle>Stock Inventory</SectionTitle>
           {onAdd && (
-            <button 
-              className="btn btn-primary"
+            <button
+              className="btn btn-p btn-sm"
               onClick={() => {
-                // Open add modal or navigate to add form
                 const emptyItem: GasStockItem = {
                   id: '',
                   gasType: '',
@@ -199,32 +224,53 @@ export default function GasStock({ stock, onAdd }: GasStockProps) {
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 'var(--s2)' }}>
-                          <button 
-                            className="btn btn-sm"
-                            style={{ fontSize: '12px', padding: 'var(--s1) var(--s3)' }}
-                            onClick={() => {
-                              // Edit action
-                              console.log('Edit item:', item.id);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            className="btn btn-sm"
-                            style={{ 
-                              fontSize: '12px', 
-                              padding: 'var(--s1) var(--s3)',
-                              opacity: 0.7
-                            }}
-                            onClick={() => {
-                              // View usage history
-                              console.log('View usage:', item.id);
-                            }}
-                          >
-                            History
-                          </button>
-                        </div>
+                        {adjustId === item.id ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)', minWidth: 200 }}>
+                            <input
+                              className="inp"
+                              type="number"
+                              step="0.1"
+                              placeholder={`New remaining (was ${item.remaining})`}
+                              value={adjustVal}
+                              onChange={e => setAdjustVal(e.target.value)}
+                              style={{ height: 32, fontSize: 12 }}
+                            />
+                            <input
+                              className="inp"
+                              placeholder="Reason (optional)"
+                              value={adjustReason}
+                              onChange={e => setAdjustReason(e.target.value)}
+                              style={{ height: 32, fontSize: 12 }}
+                            />
+                            <div style={{ display: 'flex', gap: 'var(--s2)' }}>
+                              <button
+                                className="btn btn-p btn-sm"
+                                disabled={adjusting}
+                                onClick={() => handleAdjust(item)}
+                                style={{ fontSize: 12 }}
+                              >
+                                {adjusting ? 'Saving…' : 'Save'}
+                              </button>
+                              <button
+                                className="btn btn-g btn-sm"
+                                onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); }}
+                                style={{ fontSize: 12 }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 'var(--s2)' }}>
+                            <button
+                              className="btn btn-s btn-sm"
+                              style={{ fontSize: 12 }}
+                              onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); }}
+                            >
+                              Adjust Stock
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

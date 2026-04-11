@@ -63,14 +63,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { techIds, coTechIds, ...jobData } = body;
+    // Strip client-side-only / relation fields — only pass scalar Prisma fields
+    const {
+      techIds, coTechIds,
+      // nested relations that must not be passed as scalars
+      diagnostics, recurring, comments, history, gasUsageRecords, consumables, auditLogs,
+      customer,
+      // client-generated id (let DB generate its own)
+      id,
+      ...jobData
+    } = body;
 
     const job = await prisma.job.create({
       data: {
         ...jobData,
+        source: jobData.source || 'admin',
         status: jobData.status || 'unallocated',
-        technicians: techIds ? { connect: techIds.map((id: string) => ({ id })) } : undefined,
-        coTechnicians: coTechIds ? { connect: coTechIds.map((id: string) => ({ id })) } : undefined,
+        photos: jobData.photos || [],
+        alerts: jobData.alerts || [],
+        technicians: techIds?.length ? { connect: techIds.map((tid: string) => ({ id: tid })) } : undefined,
+        coTechnicians: coTechIds?.length ? { connect: coTechIds.map((tid: string) => ({ id: tid })) } : undefined,
       },
       include: {
         customer: true,
