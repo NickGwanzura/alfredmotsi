@@ -84,9 +84,10 @@ export async function POST(request: NextRequest) {
       alerts: (jobData.alerts as string[]) || [],
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const job = await prisma.job.create({
       data: {
-        ...prismaData,
+        ...(prismaData as any),
         technicians: techIds?.length ? { connect: techIds.map((tid: string) => ({ id: tid })) } : undefined,
         coTechnicians: coTechIds?.length ? { connect: coTechIds.map((tid: string) => ({ id: tid })) } : undefined,
       },
