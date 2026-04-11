@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Job, User, Customer, JobStatus, JobType } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
 import { StatusTag, PrioTag } from './ui';
+import { Add } from '@carbon/icons-react';
 
 interface JobsTableProps {
   jobs: Job[];
@@ -11,9 +12,10 @@ interface JobsTableProps {
   customers: Customer[];
   currentUser: User;
   onJobClick: (job: Job) => void;
+  onAddJob?: () => void;
 }
 
-export default function JobsTable({ jobs, techs, customers, currentUser, onJobClick }: JobsTableProps) {
+export default function JobsTable({ jobs, techs, customers, currentUser, onJobClick, onAddJob }: JobsTableProps) {
   const isAdmin = currentUser.role === "admin";
   const [sf, setSF] = useState<JobStatus | "all">("all");
   const [tf, setTF] = useState<JobType | "all">("all");
@@ -32,9 +34,21 @@ export default function JobsTable({ jobs, techs, customers, currentUser, onJobCl
 
   return (
     <div className="fi-anim">
-      <div className="page-hdr">
-        <h1>{isAdmin ? "All Jobs" : "My Jobs"}</h1>
-        <p>{rows.length} records</p>
+      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <h1>{isAdmin ? "All Jobs" : "My Jobs"}</h1>
+          <p>{rows.length} records</p>
+        </div>
+        {isAdmin && onAddJob && (
+          <button
+            className="btn btn-p btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={onAddJob}
+          >
+            <Add size={16} />
+            Add Job
+          </button>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 0, marginBottom: "var(--cds-spacing-05)", flexWrap: "wrap" }}>

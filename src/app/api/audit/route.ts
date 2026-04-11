@@ -48,6 +48,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // GET /api/audit - Admin-only audit log viewer
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    // Guard: if migration hasn't run yet, return empty result instead of crashing
+    try { await prisma.auditLog.count(); } catch {
+      return NextResponse.json({ logs: [], total: 0, page: 1, pages: 0 });
+    }
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

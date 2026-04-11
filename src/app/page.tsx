@@ -533,12 +533,13 @@ export default function Home() {
               )}
               
               {!showAddJob && page === "jobs" && (
-                <JobsTable 
-                  jobs={jobs} 
-                  techs={techs} 
-                  customers={customers} 
-                  currentUser={user as any} 
-                  onJobClick={setSelectedJob} 
+                <JobsTable
+                  jobs={jobs}
+                  techs={techs}
+                  customers={customers}
+                  currentUser={user as any}
+                  onJobClick={setSelectedJob}
+                  onAddJob={isAdmin ? () => setShowAddJob(true) : undefined}
                 />
               )}
               

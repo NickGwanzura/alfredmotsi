@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Job, Customer, User } from '@/app/types';
 import { STATUS_CFG } from '@/app/lib/config';
 import { fmtDate } from '@/app/lib/utils';
@@ -645,6 +645,10 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
     printWindow.document.write(printContent);
     printWindow.document.close();
   };
+
+  useEffect(() => {
+    handlePrint();
+  }, []);
 
   const statusConfig = STATUS_CFG[job.status];
 
