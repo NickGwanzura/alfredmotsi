@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { auth } from '@/app/lib/auth/auth';
+import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 
 // GET /api/jobs/[id] - Get single job
 export async function GET(
@@ -34,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    return NextResponse.json(job);
+    return NextResponse.json(jobToClient(job as Record<string, unknown>));
   } catch (error) {
     console.error('Error fetching job:', error);
     return NextResponse.json(
@@ -58,23 +59,28 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    
-    // Remove relation arrays from direct update
-    const { techIds, coTechIds, ...updateData } = body;
+
+    // Strip all relation/non-scalar fields, keep only scalar updates
+    const {
+      techIds, coTechIds,
+      diagnostics, recurring, comments, history, gasUsageRecords, consumables, auditLogs,
+      customer, id: _id, technicians: _t, coTechnicians: _ct,
+      createdAt, updatedAt,
+      ...rawUpdate
+    } = body;
+
+    // Map display enum values → Prisma enum keys
+    const updateData = jobFromClient(rawUpdate as Record<string, unknown>);
 
     const job = await prisma.job.update({
       where: { id },
       data: {
         ...updateData,
         ...(techIds && {
-          technicians: {
-            set: techIds.map((id: string) => ({ id }))
-          }
+          technicians: { set: techIds.map((tid: string) => ({ id: tid })) }
         }),
         ...(coTechIds && {
-          coTechnicians: {
-            set: coTechIds.map((id: string) => ({ id }))
-          }
+          coTechnicians: { set: coTechIds.map((tid: string) => ({ id: tid })) }
         }),
       },
       include: {
@@ -85,7 +91,7 @@ export async function PUT(
       }
     });
 
-    return NextResponse.json(job);
+    return NextResponse.json(jobToClient(job as Record<string, unknown>));
   } catch (error) {
     console.error('Error updating job:', error);
     return NextResponse.json(

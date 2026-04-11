@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { auth } from '@/app/lib/auth/auth';
+import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 
 // GET /api/jobs - List all jobs
 export async function GET(request: NextRequest) {
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'asc' }
     });
 
-    return NextResponse.json(jobs);
+    return NextResponse.json(jobs.map(j => jobToClient(j as Record<string, unknown>)));
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return NextResponse.json(
@@ -74,16 +75,18 @@ export async function POST(request: NextRequest) {
       ...jobData
     } = body;
 
-    console.log('[POST /api/jobs] jobData keys:', Object.keys(jobData));
-    console.log('[POST /api/jobs] jobData:', JSON.stringify(jobData));
+    // Map display enum values → Prisma enum keys
+    const prismaData = jobFromClient({
+      ...jobData,
+      source: (jobData.source as string) || 'admin',
+      status: (jobData.status as string) || 'unallocated',
+      photos: (jobData.photos as string[]) || [],
+      alerts: (jobData.alerts as string[]) || [],
+    });
 
     const job = await prisma.job.create({
       data: {
-        ...jobData,
-        source: jobData.source || 'admin',
-        status: jobData.status || 'unallocated',
-        photos: jobData.photos || [],
-        alerts: jobData.alerts || [],
+        ...prismaData,
         technicians: techIds?.length ? { connect: techIds.map((tid: string) => ({ id: tid })) } : undefined,
         coTechnicians: coTechIds?.length ? { connect: coTechIds.map((tid: string) => ({ id: tid })) } : undefined,
       },
@@ -94,7 +97,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(job, { status: 201 });
+    return NextResponse.json(jobToClient(job as Record<string, unknown>), { status: 201 });
   } catch (error) {
     console.error('Error creating job:', error);
     return NextResponse.json(
