@@ -4,7 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { Customer, Job } from '@/app/types';
 import { TYPE_CFG } from '@/app/lib/config';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
-import { StatusTag, SectionTitle } from './ui';
+import { StatusTag, SectionTitle, Avatar } from './ui';
+import {
+  Add,
+  Edit,
+  Chat,
+  Email,
+  UserMultiple,
+  ChevronRight,
+} from '@carbon/icons-react';
 
 interface CustomerDBProps {
   customers: Customer[];
@@ -14,304 +22,235 @@ interface CustomerDBProps {
   onAddCustomer?: (customer: Customer) => void;
 }
 
-export default function CustomerDB({
-  customers,
-  jobs,
-  onJobClick,
-  onEditCustomer,
-  onAddCustomer,
-}: CustomerDBProps) {
-  const [search, setSearch] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+const AVATAR_COLORS = [
+  '#0f62fe', '#198038', '#9f1853', '#6929c4',
+  '#005d5d', '#8a3800', '#003a6d',
+];
 
-  const filteredCustomers = useMemo(() => {
+function avatarColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+export default function CustomerDB({ customers, jobs, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Customer | null>(null);
+
+  const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
     if (!s) return customers;
-    return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(s) ||
-        c.address.toLowerCase().includes(s) ||
-        c.phone.includes(s) ||
-        c.email.toLowerCase().includes(s)
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(s) ||
+      c.address.toLowerCase().includes(s) ||
+      c.phone.includes(s) ||
+      c.email.toLowerCase().includes(s)
     );
   }, [customers, search]);
 
-  const getCustomerJobs = (customerId: string): Job[] => {
-    return jobs
-      .filter((j) => j.customerId === customerId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  };
+  const active = selected ?? filtered[0] ?? null;
+  const customerJobs = useMemo(
+    () => active
+      ? jobs.filter(j => j.customerId === active.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      : [],
+    [active, jobs]
+  );
 
-  const getJobCount = (customerId: string): number => {
-    return jobs.filter((j) => j.customerId === customerId).length;
-  };
+  const jobCount = (id: string) => jobs.filter(j => j.customerId === id).length;
 
-  const handleWAClick = (customer: Customer) => {
-    const phone = customer.whatsapp || customer.phone;
-    const msg = `Hi ${customer.name},`;
-    window.open(buildWA(phone, msg), '_blank');
-  };
-
-  const handleMailClick = (customer: Customer) => {
-    const subject = 'Splash Air - Service Update';
-    const body = `Dear ${customer.name},\n\n`;
-    window.open(buildMail(customer.email, subject, body), '_blank');
-  };
-
-  const handlePortalInvite = (customer: Customer) => {
-    const phone = customer.whatsapp || customer.phone;
-    const text = portalInviteText(customer);
-    window.open(buildWA(phone, text), '_blank');
-  };
-
-  const displayCustomer = selectedCustomer || filteredCustomers[0];
+  const openEmpty = () => onAddCustomer?.({ id: '', name: '', address: '', siteAddress: '', phone: '', whatsapp: '', email: '', portalCode: '', portalEnabled: false });
 
   return (
     <div className="fi-anim">
-      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Customer Database</h1>
+      {/* Header */}
+      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div>
+          <h1>Customers</h1>
+          <p>{filtered.length} records</p>
+        </div>
         {onAddCustomer && (
-          <button 
-            className="btn btn-p"
-            onClick={() => {
-              // Open add customer modal with empty customer
-              const emptyCustomer: Customer = {
-                id: '',
-                name: '',
-                address: '',
-                siteAddress: '',
-                phone: '',
-                whatsapp: '',
-                email: '',
-                portalCode: '',
-                portalEnabled: false,
-              };
-              onAddCustomer(emptyCustomer);
-            }}
-          >
-            + Add Customer
+          <button className="btn btn-p btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={openEmpty}>
+            <Add size={16} /> Add Customer
           </button>
         )}
       </div>
 
-      <div className="g2" style={{ gridTemplateColumns: '1fr 2fr', gap: 'var(--sp)' }}>
-        {/* Customer List */}
-        <div>
+      {/* Two-panel layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 'var(--cds-spacing-05)', alignItems: 'start' }}>
+
+        {/* ── Left panel: search + list ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           <input
-            type="text"
             className="inp"
-            placeholder="Search customers..."
+            placeholder="Search customers…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ marginBottom: 'var(--sp)' }}
+            onChange={e => setSearch(e.target.value)}
+            style={{ borderBottom: '1px solid var(--cds-border-strong-01)' }}
           />
 
-          <div className="sl">
-            <div className="sl-head">
-              <div className="sl-row">
-                <div className="sl-col">Customer</div>
-                <div className="sl-col sl-sm">Jobs</div>
-              </div>
-            </div>
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                className={`sl-row tile-click ${
-                  displayCustomer?.id === customer.id ? 'active' : ''
-                }`}
-                onClick={() => setSelectedCustomer(customer)}
-                style={{
-                  cursor: 'pointer',
-                  background:
-                    displayCustomer?.id === customer.id
-                      ? 'var(--bga)'
-                      : undefined,
-                }}
-              >
-                <div className="sl-col">
-                  <div style={{ fontWeight: 500 }}>{customer.name}</div>
-                  <div className="sl-sm" style={{ color: 'var(--tt)' }}>
-                    {customer.address}
-                  </div>
-                </div>
-                <div className="sl-col sl-sm">{getJobCount(customer.id)}</div>
-              </div>
-            ))}
-            {filteredCustomers.length === 0 && (
-              <div className="sl-row" style={{ color: 'var(--tt)' }}>
-                <div className="sl-col">No customers found</div>
+          <div className="tbl-wrap" style={{ marginBottom: 0 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th style={{ width: 56, textAlign: 'right' }}>Jobs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(c => (
+                  <tr
+                    key={c.id}
+                    onClick={() => setSelected(c)}
+                    style={{
+                      cursor: 'pointer',
+                      background: active?.id === c.id ? 'var(--cds-layer-selected-01)' : undefined,
+                    }}
+                  >
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar name={c.name} size={28} color={avatarColor(c.name)} />
+                        <div>
+                          <div style={{ fontWeight: 500, lineHeight: 1.2 }}>{c.name}</div>
+                          <div style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-secondary)' }}>{c.address}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--cds-text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                        {jobCount(c.id)}
+                        {active?.id === c.id && <ChevronRight size={12} />}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div style={{ padding: 'var(--cds-spacing-08)', textAlign: 'center', color: 'var(--cds-text-helper)' }}>
+                No customers match your search.
               </div>
             )}
           </div>
         </div>
 
-        {/* Customer Detail */}
-        {displayCustomer ? (
-          <div className="tile" style={{ height: 'fit-content' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 'var(--sp)',
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, marginBottom: '4px' }}>
-                  {displayCustomer.name}
-                </h3>
-                <div style={{ color: 'var(--tt)', fontSize: '0.9em' }}>
-                  {displayCustomer.address}
+        {/* ── Right panel: detail ── */}
+        {active ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cds-spacing-05)' }}>
+
+            {/* Identity card */}
+            <div className="tile">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 'var(--cds-spacing-05)' }}>
+                <Avatar name={active.name} size={48} color={avatarColor(active.name)} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: '0 0 2px' }}>{active.name}</h3>
+                  <div style={{ color: 'var(--cds-text-secondary)', fontSize: 'var(--cds-body-short-01-font-size)' }}>{active.address}</div>
+                  {active.siteAddress && (
+                    <div style={{ color: 'var(--cds-text-helper)', fontSize: 'var(--cds-label-01)' }}>
+                      Site: {active.siteAddress}
+                    </div>
+                  )}
                 </div>
-                {displayCustomer.siteAddress && (
-                  <div
-                    style={{
-                      color: 'var(--tt)',
-                      fontSize: '0.85em',
-                      marginTop: '4px',
-                    }}
-                  >
-                    Site: {displayCustomer.siteAddress}
+                {onEditCustomer && (
+                  <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={() => onEditCustomer(active)}>
+                    <Edit size={14} /> Edit
+                  </button>
+                )}
+              </div>
+
+              {/* Contact + Portal row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--cds-spacing-05)', marginBottom: 'var(--cds-spacing-05)' }}>
+                <div>
+                  <SectionTitle>Contact</SectionTitle>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Row label="Phone" value={active.phone} />
+                    <Row label="Email" value={active.email} />
+                    {active.whatsapp && <Row label="WhatsApp" value={active.whatsapp} />}
+                  </div>
+                </div>
+                <div>
+                  <SectionTitle>Portal</SectionTitle>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Row label="Code" value={active.portalCode ?? '—'} mono />
+                    <Row
+                      label="Status"
+                      value={active.portalEnabled ? 'Enabled' : 'Disabled'}
+                      valueColor={active.portalEnabled ? 'var(--cds-support-success)' : 'var(--cds-support-error)'}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-wa" style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => window.open(buildWA(active.whatsapp || active.phone, `Hi ${active.name},`), '_blank')}>
+                  <Chat size={16} /> WhatsApp
+                </button>
+                <button className="btn btn-mail" style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => window.open(buildMail(active.email, 'Splash Air - Service Update', `Dear ${active.name},\n\n`), '_blank')}>
+                  <Email size={16} /> Email
+                </button>
+                <button className="btn btn-s" style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => window.open(buildWA(active.whatsapp || active.phone, portalInviteText(active)), '_blank')}>
+                  <UserMultiple size={16} /> Portal Invite
+                </button>
+              </div>
+            </div>
+
+            {/* Service history */}
+            <div>
+              <SectionTitle>Service History ({customerJobs.length})</SectionTitle>
+              <div className="tbl-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Job</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerJobs.map(j => {
+                      const tc = TYPE_CFG[j.type];
+                      return (
+                        <tr key={j.id} onClick={() => onJobClick(j)} style={{ cursor: 'pointer' }}>
+                          <td style={{ fontWeight: 500 }}>{j.title}</td>
+                          <td className="mono" style={{ color: 'var(--cds-text-secondary)', whiteSpace: 'nowrap' }}>
+                            {fmtDate(j.date)}
+                          </td>
+                          <td>
+                            <span style={{ color: tc?.color, fontWeight: 500 }}>{tc?.icon} {tc?.label}</span>
+                          </td>
+                          <td><StatusTag status={j.status} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {customerJobs.length === 0 && (
+                  <div style={{ padding: 'var(--cds-spacing-07)', textAlign: 'center', color: 'var(--cds-text-helper)' }}>
+                    No jobs on record.
                   </div>
                 )}
               </div>
-              {onEditCustomer && (
-                <button
-                  className="btn btn-s btn-sm"
-                  onClick={() => onEditCustomer(displayCustomer)}
-                >
-                  Edit
-                </button>
-              )}
-            </div>
-
-            <div
-              className="g2"
-              style={{
-                gridTemplateColumns: '1fr 1fr',
-                gap: 'var(--sp)',
-                marginBottom: 'var(--sp)',
-              }}
-            >
-              <div>
-                <SectionTitle>Contact</SectionTitle>
-                <div style={{ fontSize: '0.9em' }}>
-                  <div style={{ marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--tt)' }}>Phone: </span>
-                    {displayCustomer.phone}
-                  </div>
-                  <div style={{ marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--tt)' }}>Email: </span>
-                    {displayCustomer.email}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <SectionTitle>Portal Access</SectionTitle>
-                <div style={{ fontSize: '0.9em' }}>
-                  <div style={{ marginBottom: '4px' }}>
-                    <span style={{ color: 'var(--tt)' }}>Code: </span>
-                    <span className="mono">{displayCustomer.portalCode}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--tt)' }}>Status: </span>
-                    {displayCustomer.portalEnabled ? (
-                      <span style={{ color: 'var(--ss)' }}>Enabled</span>
-                    ) : (
-                      <span style={{ color: 'var(--se)' }}>Disabled</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: 'var(--sp)',
-              }}
-            >
-              <button
-                className="btn btn-wa"
-                onClick={() => handleWAClick(displayCustomer)}
-              >
-                WhatsApp
-              </button>
-              <button
-                className="btn btn-mail"
-                onClick={() => handleMailClick(displayCustomer)}
-              >
-                Email
-              </button>
-              <button
-                className="btn btn-s"
-                onClick={() => handlePortalInvite(displayCustomer)}
-              >
-                Portal Invite
-              </button>
-            </div>
-
-            <SectionTitle>Service History</SectionTitle>
-            <div className="sl">
-              {getCustomerJobs(displayCustomer.id).map((job) => (
-                <div
-                  key={job.id}
-                  className="sl-row tile-click"
-                  onClick={() => onJobClick(job)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="sl-col">
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: TYPE_CFG[job.type]?.color || 'var(--tt)',
-                        }}
-                      >
-                        {TYPE_CFG[job.type]?.icon || '•'}
-                      </span>
-                      <span style={{ fontWeight: 500 }}>{job.title}</span>
-                    </div>
-                    <div
-                      className="sl-sm"
-                      style={{ color: 'var(--tt)', marginLeft: '24px' }}
-                    >
-                      {fmtDate(job.date)} at {job.time} • {job.unitType}
-                    </div>
-                  </div>
-                  <div className="sl-col sl-sm">
-                    <StatusTag status={job.status} />
-                  </div>
-                </div>
-              ))}
-              {getCustomerJobs(displayCustomer.id).length === 0 && (
-                <div className="sl-row" style={{ color: 'var(--tt)' }}>
-                  <div className="sl-col">No jobs found for this customer</div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
-          <div
-            className="tile"
-            style={{
-              height: 'fit-content',
-              color: 'var(--tt)',
-              textAlign: 'center',
-              padding: '48px',
-            }}
-          >
-            Select a customer to view details
+          <div className="tile" style={{ textAlign: 'center', padding: 'var(--cds-spacing-10)', color: 'var(--cds-text-helper)' }}>
+            Select a customer to view details.
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value, mono, valueColor }: { label: string; value: string; mono?: boolean; valueColor?: string }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, fontSize: 'var(--cds-body-short-01-font-size)' }}>
+      <span style={{ color: 'var(--cds-text-secondary)', minWidth: 60, flexShrink: 0 }}>{label}</span>
+      <span className={mono ? 'mono' : ''} style={valueColor ? { color: valueColor } : {}}>{value}</span>
     </div>
   );
 }

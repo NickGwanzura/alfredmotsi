@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Customer } from '@/app/types';
 import { Close } from '@carbon/icons-react';
+import { FormItem, Notification } from './ui';
 
 interface AddCustomerModalProps {
   customer: Partial<Customer>;
@@ -15,21 +16,22 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const set = (field: keyof Customer, value: string) => onChange({ ...customer, [field]: value });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    if (!customer.name || !customer.email || !customer.phone || !customer.address) {
-      setError('Name, email, phone, and address are required');
-      setLoading(false);
+    if (!customer.name?.trim() || !customer.email?.trim() || !customer.phone?.trim() || !customer.address?.trim()) {
+      setError('Name, email, phone, and address are required.');
       return;
     }
 
+    setLoading(true);
     try {
       await onSave();
-    } catch (err) {
-      setError('Failed to create customer');
+    } catch {
+      setError('Failed to save customer. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -41,7 +43,7 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
         <div className="modal-hdr">
           <div>
             <div className="modal-lbl">Customer Database</div>
-            <div className="modal-title">Add New Customer</div>
+            <div className="modal-title">{customer.id ? 'Edit Customer' : 'Add New Customer'}</div>
           </div>
           <button className="x-btn" onClick={onClose} aria-label="Close">
             <Close size={20} />
@@ -51,89 +53,42 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && (
-              <div className="notif notif-e" style={{ marginBottom: 'var(--s4)' }}>
-                <div className="notif-title">Error</div>
-                <div className="notif-body">{error}</div>
+              <div style={{ marginBottom: 'var(--cds-spacing-05)' }}>
+                <Notification kind="e" title="Validation Error" body={error} />
               </div>
             )}
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
-              <div>
-                <label className="form-label">Full Name *</label>
-                <input
-                  className="inp"
-                  value={customer.name || ''}
-                  onChange={e => onChange({ ...customer, name: e.target.value })}
-                  placeholder="e.g. John Smith"
-                  required
-                />
-              </div>
-              <div>
-                <label className="form-label">Email *</label>
-                <input
-                  className="inp"
-                  type="email"
-                  value={customer.email || ''}
-                  onChange={e => onChange({ ...customer, email: e.target.value })}
-                  placeholder="e.g. john@example.com"
-                  required
-                />
-              </div>
+            <div className="g2">
+              <FormItem label="Full Name *">
+                <input className="inp" value={customer.name || ''} onChange={e => set('name', e.target.value)} placeholder="e.g. John Smith" autoFocus />
+              </FormItem>
+              <FormItem label="Email *">
+                <input className="inp" type="email" value={customer.email || ''} onChange={e => set('email', e.target.value)} placeholder="e.g. john@company.com" />
+              </FormItem>
             </div>
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
-              <div>
-                <label className="form-label">Phone *</label>
-                <input
-                  className="inp"
-                  value={customer.phone || ''}
-                  onChange={e => onChange({ ...customer, phone: e.target.value })}
-                  placeholder="e.g. +263 77 123 4567"
-                  required
-                />
-              </div>
-              <div>
-                <label className="form-label">WhatsApp (optional)</label>
-                <input
-                  className="inp"
-                  value={customer.whatsapp || ''}
-                  onChange={e => onChange({ ...customer, whatsapp: e.target.value })}
-                  placeholder="e.g. +263 77 123 4567"
-                />
-              </div>
+            <div className="g2">
+              <FormItem label="Phone *">
+                <input className="inp" value={customer.phone || ''} onChange={e => set('phone', e.target.value)} placeholder="e.g. +263 77 123 4567" />
+              </FormItem>
+              <FormItem label="WhatsApp">
+                <input className="inp" value={customer.whatsapp || ''} onChange={e => set('whatsapp', e.target.value)} placeholder="Same as phone if identical" />
+              </FormItem>
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
-              <label className="form-label">Address *</label>
-              <input
-                className="inp"
-                value={customer.address || ''}
-                onChange={e => onChange({ ...customer, address: e.target.value })}
-                placeholder="e.g. 123 Main Street, Harare"
-                required
-              />
-            </div>
+            <FormItem label="Billing Address *">
+              <input className="inp" value={customer.address || ''} onChange={e => set('address', e.target.value)} placeholder="e.g. 123 Main Street, Harare" />
+            </FormItem>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
-              <label className="form-label">Site Address (optional)</label>
-              <input
-                className="inp"
-                value={customer.siteAddress || ''}
-                onChange={e => onChange({ ...customer, siteAddress: e.target.value })}
-                placeholder="e.g. 456 Factory Road, Industrial Area"
-              />
-              <small style={{ color: 'var(--ts)', fontSize: '12px' }}>
-                If different from billing address
-              </small>
-            </div>
+            <FormItem label="Site Address" helper="Leave blank if the same as billing address.">
+              <input className="inp" value={customer.siteAddress || ''} onChange={e => set('siteAddress', e.target.value)} placeholder="e.g. 456 Factory Road, Industrial Area" />
+            </FormItem>
           </div>
 
           <div className="modal-foot">
-            <button type="button" className="btn btn-g" onClick={onClose}>
-              Cancel
-            </button>
+            <button type="button" className="btn btn-g" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-p" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Customer'}
+              {loading ? 'Saving…' : customer.id ? 'Save Changes' : 'Add Customer'}
             </button>
           </div>
         </form>
