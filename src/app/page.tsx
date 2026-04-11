@@ -17,11 +17,14 @@ import AddJobModal from '@/app/components/AddJobModal';
 import JobCardModal from '@/app/components/JobCardModal';
 import JobCardPrint from '@/app/components/JobCardPrint';
 import UserManagement from '@/app/components/UserManagement';
+import AuditLogView from '@/app/components/AuditLogView';
 import PasswordChangeModal from '@/app/components/PasswordChangeModal';
 import AddCustomerModal from '@/app/components/AddCustomerModal';
 import AddGasStockModal from '@/app/components/AddGasStockModal';
 import AddGasUsageModal from '@/app/components/AddGasUsageModal';
 import AddCRMModal from '@/app/components/AddCRMModal';
+
+import { captureAudit } from '@/app/lib/audit/capture';
 
 // Carbon Icons
 import {
@@ -35,6 +38,7 @@ import {
   UserMultiple,
   Add,
   Logout,
+  Security,
 } from '@carbon/icons-react';
 
 interface NavItem {
@@ -54,6 +58,7 @@ export default function Home() {
   const { data: session, status, update } = useSession();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const auditFiredRef = React.useRef(false);
   
   // Data state - fetched from API in production
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
@@ -68,6 +73,7 @@ export default function Home() {
   const [showAddJob, setShowAddJob] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
   const [loginTime] = useState<Date>(new Date());
+  const [sideNavOpen, setSideNavOpen] = useState(false);
 
   // Add modal states
   const [showAddCustomer, setShowAddCustomer] = useState(false);
@@ -83,10 +89,14 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    
-    // Fetch data from API in production
+
     if (status === "authenticated") {
       fetchData();
+      // Fire login audit once per session
+      if (!auditFiredRef.current) {
+        auditFiredRef.current = true;
+        captureAudit('login');
+      }
     }
   }, [status]);
 
@@ -315,6 +325,7 @@ export default function Home() {
     { id: "crm", label: "CRM", Icon: ChartLine },
     { id: "ods-report", label: "ODS Report", Icon: FlagFilled },
     { id: "users", label: "Users", Icon: UserMultiple },
+    { id: "audit-log", label: "Audit Log", Icon: Security },
   ];
 
   const techNav: NavItem[] = [
@@ -329,6 +340,14 @@ export default function Home() {
     <div style={{ fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, sans-serif", minHeight: "100vh" }}>
       {/* Header */}
       <header className="hdr">
+        <button
+          className="btn btn-g btn-sm"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, padding: 0 }}
+          onClick={() => setSideNavOpen(o => !o)}
+          aria-label="Toggle navigation"
+        >
+          ☰
+        </button>
         <span style={{ fontSize: 20 }}>❄</span>
         <a className="hdr-name">Splash Air <span>/ Service Platform v10</span></a>
         <div style={{ flex: 1 }} />
@@ -388,15 +407,23 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Sidebar overlay on mobile */}
+      {sideNavOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 6999 }}
+          onClick={() => setSideNavOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <nav className="snav">
+      <nav className={`snav ${sideNavOpen ? 'open' : ''}`}>
         <div className="snav-items">
           <p className="snav-sec">Navigation</p>
           {nav.map(n => (
             <div 
               key={n.id} 
               className={`snav-item ${page === n.id ? "active" : ""}`} 
-              onClick={() => { setPage(n.id); setShowAddJob(false); }}
+              onClick={() => { setPage(n.id); setShowAddJob(false); setSideNavOpen(false); }}
             >
               <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <n.Icon size={18} />
@@ -570,6 +597,10 @@ export default function Home() {
 
               {!showAddJob && page === "users" && isAdmin && (
                 <UserManagement currentUserId={user.id!} />
+              )}
+
+              {!showAddJob && page === "audit-log" && isAdmin && (
+                <AuditLogView techs={techs} />
               )}
             </>
           )}

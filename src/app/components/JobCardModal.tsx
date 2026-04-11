@@ -1,24 +1,27 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Job, 
-  User, 
-  Customer, 
-  JobStatus, 
-  Diagnostics, 
-  Comment, 
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  Job,
+  User,
+  Customer,
+  JobStatus,
+  Diagnostics,
+  Comment,
   AlertType,
   UnitType,
   RefrigerantType,
-  SystemStatus 
+  SystemStatus,
+  Consumable,
+  ConsumableType
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
 import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg } from '@/app/lib/utils';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
-import { Close, PlayFilled, StopFilled, Printer, Camera } from '@carbon/icons-react';
+import { captureAudit } from '@/app/lib/audit/capture';
+import { Close, PlayFilled, StopFilled, Printer, Camera, Download, Add, TrashCan } from '@carbon/icons-react';
 
 interface JobCardModalProps {
   job: Job;
@@ -29,8 +32,11 @@ interface JobCardModalProps {
   onPrint?: (job: Job) => void;
 }
 
-const TABS = ["details", "diagnostics", "media", "sign-off", "ods"] as const;
+const TABS = ["details", "diagnostics", "media", "sign-off", "ods", "consumables"] as const;
 type Tab = typeof TABS[number];
+
+const CONSUMABLE_TYPES: ConsumableType[] = ['gas', 'compressor', 'part', 'other'];
+const CONSUMABLE_UNITS = ['kg', 'unit', 'pcs', 'L', 'set', 'm'];
 
 const UNIT_TYPE_OPTIONS: UnitType[] = [
   "Split System", 
@@ -85,7 +91,51 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
   const [diag, setDiag] = useState<Diagnostics>(job.diagnostics || blankDiag);
   const [alerts, setAlerts] = useState<AlertType[]>(job.alerts || []);
 
-  const setD = (k: keyof Diagnostics, v: string | number | undefined) => 
+  // Consumables
+  const [consumables, setConsumables] = useState<Consumable[]>([]);
+  const [consumablesLoading, setConsumablesLoading] = useState(false);
+  const [newConsumable, setNewConsumable] = useState({ type: 'part' as ConsumableType, name: '', brand: '', quantity: '', unit: 'unit', notes: '' });
+
+  // ODS quick gas log modal state
+  const [showGasLog, setShowGasLog] = useState(false);
+
+  // Audit: fire-and-forget on mount
+  useEffect(() => {
+    captureAudit('view_job', job.id);
+  }, [job.id]);
+
+  // Load consumables when tab is opened
+  useEffect(() => {
+    if (tab === 'consumables') {
+      setConsumablesLoading(true);
+      fetch(`/api/consumables?jobId=${job.id}`)
+        .then(r => r.json())
+        .then(d => Array.isArray(d) ? setConsumables(d) : null)
+        .catch(() => null)
+        .finally(() => setConsumablesLoading(false));
+    }
+  }, [tab, job.id]);
+
+  const handleAddConsumable = async () => {
+    if (!newConsumable.name || !newConsumable.quantity) return;
+    const res = await fetch('/api/consumables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newConsumable, jobId: job.id, quantity: parseFloat(newConsumable.quantity) }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setConsumables(p => [created, ...p]);
+      setNewConsumable({ type: 'part', name: '', brand: '', quantity: '', unit: 'unit', notes: '' });
+    }
+  };
+
+  const handleDeleteConsumable = async (id: string) => {
+    const res = await fetch(`/api/consumables/${id}`, { method: 'DELETE' });
+    if (res.ok) setConsumables(p => p.filter(c => c.id !== id));
+  };
+
+  const setD = (k: keyof Diagnostics, v: string | number | undefined) =>
     setDiag(prev => ({ ...prev, [k]: v }));
 
   const runCheck = () => {
@@ -105,17 +155,19 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
   const save = () => {
     const a = runCheck();
     const co = status === "completed" ? (clockOut || nowTime()) : clockOut;
-    onUpdate({ 
-      ...job, 
-      status, 
-      clockIn, 
-      clockOut: co, 
-      diagnostics: diag.voltage ? diag : job.diagnostics, 
-      alerts: a, 
-      signature: sig, 
-      photos, 
-      jobCardRef, 
-      comments 
+    if (status === "completed") captureAudit('complete_job', job.id);
+    else captureAudit('edit_job', job.id);
+    onUpdate({
+      ...job,
+      status,
+      clockIn,
+      clockOut: co,
+      diagnostics: diag.voltage ? diag : job.diagnostics,
+      alerts: a,
+      signature: sig,
+      photos,
+      jobCardRef,
+      comments
     });
     onClose();
   };
@@ -239,8 +291,9 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
               className={`tab ${tab === tName ? "on" : ""}`} 
               onClick={() => setTab(tName)}
             >
-              {tName === "sign-off" ? "Sign-Off" : 
-               tName === "ods" ? "ODS" : 
+              {tName === "sign-off" ? "Sign-Off" :
+               tName === "ods" ? "ODS" :
+               tName === "consumables" ? "Consumables" :
                tName.charAt(0).toUpperCase() + tName.slice(1)}
             </div>
           ))}
@@ -686,6 +739,37 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
                 </div>
               </div>
 
+              {/* Quick Gas Log Button */}
+              <div style={{ marginBottom: "var(--s5)", display: 'flex', gap: 'var(--s3)', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-p btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => setShowGasLog(true)}
+                >
+                  <Add size={14} />
+                  Log Gas Usage to Stock
+                </button>
+              </div>
+
+              {/* Quick Gas Log inline form */}
+              {showGasLog && (
+                <div className="tile" style={{ marginBottom: 'var(--s5)', border: '2px solid var(--cds-interactive)' }}>
+                  <SectionTitle>Log Gas Usage</SectionTitle>
+                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginBottom: 'var(--s4)' }}>
+                    Record gas used on this job — this will deduct from your stock inventory.
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>
+                    Use the Gas Usage page to record full details, or add this job's gas under the Consumables tab.
+                  </p>
+                  <div style={{ display: 'flex', gap: 'var(--s3)', marginTop: 'var(--s4)' }}>
+                    <button className="btn btn-s btn-sm" onClick={() => { setShowGasLog(false); setTab('consumables'); }}>
+                      Go to Consumables tab
+                    </button>
+                    <button className="btn btn-g btn-sm" onClick={() => setShowGasLog(false)}>Dismiss</button>
+                  </div>
+                </div>
+              )}
+
               <div className="refrig-box">
                 <SectionTitle>Refrigerant Movement Log</SectionTitle>
                 <div className="g3" style={{ marginBottom: "var(--s5)" }}>
@@ -754,8 +838,96 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
           )}
         </div>
 
+          {/* Consumables Tab */}
+          {tab === "consumables" && (
+            <div className="fi-anim">
+              <div className="tile" style={{ marginBottom: 'var(--s5)' }}>
+                <SectionTitle>Add Consumable</SectionTitle>
+                <div className="g3" style={{ marginBottom: 'var(--s4)' }}>
+                  <FormItem label="Type">
+                    <select className="sel" value={newConsumable.type} onChange={e => setNewConsumable(p => ({ ...p, type: e.target.value as ConsumableType }))}>
+                      {CONSUMABLE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                    </select>
+                  </FormItem>
+                  <FormItem label="Name / Description">
+                    <input className="inp" placeholder="e.g. R-410A Gas, Compressor unit" value={newConsumable.name} onChange={e => setNewConsumable(p => ({ ...p, name: e.target.value }))} />
+                  </FormItem>
+                  <FormItem label="Brand">
+                    <input className="inp" placeholder="Optional" value={newConsumable.brand} onChange={e => setNewConsumable(p => ({ ...p, brand: e.target.value }))} />
+                  </FormItem>
+                  <FormItem label="Quantity">
+                    <input className="inp" type="number" placeholder="0" value={newConsumable.quantity} onChange={e => setNewConsumable(p => ({ ...p, quantity: e.target.value }))} />
+                  </FormItem>
+                  <FormItem label="Unit">
+                    <select className="sel" value={newConsumable.unit} onChange={e => setNewConsumable(p => ({ ...p, unit: e.target.value }))}>
+                      {CONSUMABLE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </FormItem>
+                  <FormItem label="Notes">
+                    <input className="inp" placeholder="Optional notes" value={newConsumable.notes} onChange={e => setNewConsumable(p => ({ ...p, notes: e.target.value }))} />
+                  </FormItem>
+                </div>
+                {canEdit && (
+                  <button className="btn btn-p btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handleAddConsumable}>
+                    <Add size={14} />
+                    Add Consumable
+                  </button>
+                )}
+              </div>
+
+              <div className="tile">
+                <SectionTitle>Consumables Used on This Job</SectionTitle>
+                {consumablesLoading ? (
+                  <p style={{ color: 'var(--cds-text-secondary)', fontSize: 14 }}>Loading...</p>
+                ) : consumables.length === 0 ? (
+                  <p style={{ color: 'var(--cds-text-secondary)', fontSize: 14 }}>No consumables recorded yet.</p>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: 'var(--cds-layer-02)' }}>
+                          {['Type', 'Name', 'Brand', 'Qty', 'Unit', 'Notes', 'Recorded'].map(h => (
+                            <th key={h} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid var(--cds-border-subtle)', fontWeight: 600, fontSize: 12, color: 'var(--cds-text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                          ))}
+                          {canEdit && <th />}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {consumables.map(c => (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--cds-border-subtle)' }}>
+                            <td style={{ padding: '8px 12px' }}><span style={{ background: 'var(--cds-layer-02)', padding: '2px 8px', borderRadius: 2, fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>{c.type}</span></td>
+                            <td style={{ padding: '8px 12px', fontWeight: 500 }}>{c.name}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--cds-text-secondary)' }}>{c.brand || '—'}</td>
+                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>{c.quantity}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--cds-text-secondary)' }}>{c.unit}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--cds-text-secondary)', maxWidth: 160 }}>{c.notes || '—'}</td>
+                            <td style={{ padding: '8px 12px', color: 'var(--cds-text-secondary)', fontSize: 11 }}>{new Date(c.recordedAt).toLocaleDateString()}</td>
+                            {canEdit && (
+                              <td style={{ padding: '8px 12px' }}>
+                                <button className="btn btn-d btn-sm" style={{ padding: '4px 8px' }} onClick={() => handleDeleteConsumable(c.id)}>
+                                  <TrashCan size={12} />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="modal-foot">
           <button className="btn btn-g" onClick={onClose}>Cancel</button>
+          {status === "completed" && onPrint && (
+            <button className="btn btn-s" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handlePrint}>
+              <Download size={14} />
+              Download PDF
+            </button>
+          )}
           {canEdit && <button className="btn btn-p" onClick={save}>Save Job Card</button>}
         </div>
       </div>

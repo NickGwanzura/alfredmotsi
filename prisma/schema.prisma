@@ -113,6 +113,20 @@ enum CRMOutcome {
   resolved
 }
 
+enum ConsumableType {
+  gas
+  compressor
+  part
+  other
+}
+
+enum AuditAction {
+  login
+  view_job
+  edit_job
+  complete_job
+}
+
 // ============================================
 // AUTH MODELS (NextAuth.js)
 // ============================================
@@ -184,6 +198,8 @@ model User {
   coAssignedJobs  Job[] @relation("CoAssignedJobs")
   gasUsageRecords GasUsageRecord[]
   crmRecords      CRMRecord[]
+  consumables     Consumable[]
+  auditLogs       AuditLog[]
 
   @@map("users")
 }
@@ -243,6 +259,8 @@ model Job {
   history       HistoryEntry[]
   recurring     RecurringSchedule?
   gasUsageRecords GasUsageRecord[]
+  consumables   Consumable[]
+  auditLogs     AuditLog[]
 
   @@map("jobs")
 }
@@ -366,4 +384,45 @@ model CRMRecord {
   user     User     @relation(fields: [by], references: [id], onDelete: Cascade)
 
   @@map("crm_records")
+}
+
+model Consumable {
+  id         String          @id @default(cuid())
+  jobId      String          @map("job_id")
+  type       ConsumableType
+  name       String
+  brand      String?
+  model      String?
+  quantity   Float
+  unit       String
+  notes      String?
+  recordedBy String          @map("recorded_by")
+  recordedAt DateTime        @default(now()) @map("recorded_at")
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [recordedBy], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("consumables")
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String      @map("user_id")
+  userName  String      @map("user_name")
+  action    AuditAction
+  jobId     String?     @map("job_id")
+  latitude  Float?
+  longitude Float?
+  accuracy  Float?
+  ipAddress String?     @map("ip_address")
+  userAgent String?     @map("user_agent")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([jobId])
+  @@map("audit_logs")
 }

@@ -169,7 +169,39 @@ export interface PriorityTagConfig {
   txt: string;
 }
 
-export type PageId = 'home' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users';
+export type PageId = 'home' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log';
+
+export type ConsumableType = 'gas' | 'compressor' | 'part' | 'other';
+
+export interface Consumable {
+  id: string;
+  jobId: string;
+  type: ConsumableType;
+  name: string;
+  brand?: string;
+  model?: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+  recordedBy: string;
+  recordedAt: string;
+}
+
+export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job';
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string;
+  userName: string;
+  action: AuditAction;
+  jobId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+}
 
 export interface NavItem {
   id: PageId;

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     
     if (techId) {
       where.OR = [
-        { assignedTo: techId },
+        { technicians: { some: { id: techId } } },
         { coTechnicians: { some: { id: techId } } }
       ];
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const job = await prisma.job.create({
       data: {
         ...jobData,
-        status: jobData.status || 'PENDING',
+        status: jobData.status || 'unallocated',
         technicians: techIds ? { connect: techIds.map((id: string) => ({ id })) } : undefined,
         coTechnicians: coTechIds ? { connect: coTechIds.map((id: string) => ({ id })) } : undefined,
       },
