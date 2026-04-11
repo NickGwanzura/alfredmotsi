@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
       ...jobData
     } = body;
 
+    console.log('[POST /api/jobs] jobData keys:', Object.keys(jobData));
+    console.log('[POST /api/jobs] jobData:', JSON.stringify(jobData));
+
     const job = await prisma.job.create({
       data: {
         ...jobData,
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating job:', error);
     return NextResponse.json(
-      { error: 'Failed to create job' },
+      { error: 'Failed to create job', detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

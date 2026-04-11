@@ -219,6 +219,9 @@ export default function Home() {
         setJobs(prev => [...prev, createdJob]);
         setShowAddJob(false);
         setPage("jobs");
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error('Create job failed:', res.status, errData);
       }
     } catch (error) {
       console.error('Error creating job:', error);
