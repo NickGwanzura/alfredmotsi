@@ -260,22 +260,19 @@ export default function Home() {
 
   // Add gas stock handler
   const addGasStock = async (stockData: Partial<GasStockItem>) => {
-    try {
-      const res = await fetch('/api/gas-stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stockData),
-      });
-      
-      if (res.ok) {
-        const createdStock = await res.json();
-        setGasStock(prev => [...prev, createdStock]);
-        setShowAddGasStock(false);
-        setNewGasStock({});
-      }
-    } catch (error) {
-      console.error('Error adding gas stock:', error);
+    const res = await fetch('/api/gas-stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stockData),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Server error ${res.status}`);
     }
+    const createdStock = await res.json();
+    setGasStock(prev => [...prev, createdStock]);
+    setShowAddGasStock(false);
+    setNewGasStock({});
   };
 
   // Add gas usage handler
@@ -286,19 +283,22 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(usageData),
       });
-      
-      if (res.ok) {
-        const createdUsage = await res.json();
-        setGasUsage(prev => [...prev, createdUsage]);
-        // Refresh gas stock to get updated remaining amounts
-        const stockRes = await fetch('/api/gas-stock');
-        if (stockRes.ok) {
-          const stockData = await stockRes.json();
-          setGasStock(stockData);
-        }
-        setShowAddGasUsage(false);
-        setNewGasUsage({});
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
       }
+
+      const createdUsage = await res.json();
+      setGasUsage(prev => [...prev, createdUsage]);
+      // Refresh gas stock to get updated remaining amounts
+      const stockRes = await fetch('/api/gas-stock');
+      if (stockRes.ok) {
+        const stockData = await stockRes.json();
+        setGasStock(stockData);
+      }
+      setShowAddGasUsage(false);
+      setNewGasUsage({});
     } catch (error) {
       console.error('Error recording gas usage:', error);
     }
