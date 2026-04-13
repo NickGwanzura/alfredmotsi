@@ -96,13 +96,31 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
   const [consumablesLoading, setConsumablesLoading] = useState(false);
   const [newConsumable, setNewConsumable] = useState({ type: 'part' as ConsumableType, name: '', brand: '', quantity: '', unit: 'unit', notes: '' });
 
-  // ODS quick gas log modal state
+  // ODS inline gas log state
   const [showGasLog, setShowGasLog] = useState(false);
+  const [gasStock, setGasStock] = useState<{ id: string; gasType: string; brand: string; remaining: number; unit: string }[]>([]);
+  const [gasStockLoading, setGasStockLoading] = useState(false);
+  const [gasForm, setGasForm] = useState({ stockId: '', quantityUsed: '', purpose: '' });
+  const [gasSubmitting, setGasSubmitting] = useState(false);
+  const [gasSuccess, setGasSuccess] = useState<string | null>(null);
+  const [gasError, setGasError] = useState<string | null>(null);
 
   // Audit: fire-and-forget on mount
   useEffect(() => {
     captureAudit('view_job', job.id);
   }, [job.id]);
+
+  // Load gas stock when ODS tab is opened
+  useEffect(() => {
+    if (tab === 'ods' && gasStock.length === 0 && !gasStockLoading) {
+      setGasStockLoading(true);
+      fetch('/api/gas-stock')
+        .then(r => r.json())
+        .then(d => Array.isArray(d) ? setGasStock(d.filter((s: { remaining: number }) => s.remaining > 0)) : null)
+        .catch(() => null)
+        .finally(() => setGasStockLoading(false));
+    }
+  }, [tab]);
 
   // Load consumables when tab is opened
   useEffect(() => {
@@ -133,6 +151,50 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
   const handleDeleteConsumable = async (id: string) => {
     const res = await fetch(`/api/consumables/${id}`, { method: 'DELETE' });
     if (res.ok) setConsumables(p => p.filter(c => c.id !== id));
+  };
+
+  const submitGasUsage = async () => {
+    setGasError(null);
+    if (!gasForm.stockId || !gasForm.quantityUsed) {
+      setGasError('Select a gas stock item and enter quantity.');
+      return;
+    }
+    const qty = parseFloat(gasForm.quantityUsed);
+    if (isNaN(qty) || qty <= 0) { setGasError('Quantity must be a positive number.'); return; }
+    const selected = gasStock.find(s => s.id === gasForm.stockId);
+    if (selected && qty > selected.remaining) {
+      setGasError(`Only ${selected.remaining} ${selected.unit} remaining in stock.`);
+      return;
+    }
+    setGasSubmitting(true);
+    try {
+      const res = await fetch('/api/gas-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stockId: gasForm.stockId,
+          gasType: selected?.gasType || '',
+          quantityUsed: qty,
+          customer: cust.name || '',
+          jobId: job.id,
+          purpose: gasForm.purpose || '',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGasSuccess(`${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
+        setGasForm({ stockId: '', quantityUsed: '', purpose: '' });
+        setShowGasLog(false);
+        // Update local remaining count
+        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s).filter(s => s.remaining > 0));
+      } else {
+        setGasError(data.error || 'Failed to record gas usage.');
+      }
+    } catch {
+      setGasError('Network error — please try again.');
+    } finally {
+      setGasSubmitting(false);
+    }
   };
 
   const setD = (k: keyof Diagnostics, v: string | number | undefined) =>
@@ -740,36 +802,99 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
                 </div>
               </div>
 
-              {/* Quick Gas Log Button */}
-              <div style={{ marginBottom: "var(--s5)", display: 'flex', gap: 'var(--s3)', flexWrap: 'wrap' }}>
-                <button
-                  className="btn btn-p btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => setShowGasLog(true)}
-                >
-                  <Add size={14} />
-                  Log Gas Usage to Stock
-                </button>
-              </div>
-
-              {/* Quick Gas Log inline form */}
-              {showGasLog && (
-                <div className="tile" style={{ marginBottom: 'var(--s5)', border: '2px solid var(--cds-interactive)' }}>
-                  <SectionTitle>Log Gas Usage</SectionTitle>
-                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginBottom: 'var(--s4)' }}>
-                    Record gas used on this job — this will deduct from your stock inventory.
-                  </p>
-                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>
-                    Use the Gas Usage page to record full details, or add this job's gas under the Consumables tab.
-                  </p>
-                  <div style={{ display: 'flex', gap: 'var(--s3)', marginTop: 'var(--s4)' }}>
-                    <button className="btn btn-s btn-sm" onClick={() => { setShowGasLog(false); setTab('consumables'); }}>
-                      Go to Consumables tab
+              {/* Gas Usage — inline form (deducts from stock) */}
+              <div style={{ marginBottom: 'var(--s5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <SectionTitle>Log Gas Usage to Stock</SectionTitle>
+                  {canEdit && (
+                    <button
+                      className={`btn btn-sm ${showGasLog ? 'btn-g' : 'btn-p'}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      onClick={() => { setShowGasLog(g => !g); setGasError(null); setGasSuccess(null); }}
+                    >
+                      {showGasLog ? 'Cancel' : <><Add size={14} /> Log Usage</>}
                     </button>
-                    <button className="btn btn-g btn-sm" onClick={() => setShowGasLog(false)}>Dismiss</button>
-                  </div>
+                  )}
                 </div>
-              )}
+                <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginBottom: 8 }}>
+                  Records refrigerant used and deducts from your gas stock inventory.
+                </p>
+
+                {gasSuccess && (
+                  <div className="notif notif-s" style={{ marginBottom: 12 }}>
+                    <div className="notif-title">Logged</div>
+                    <div className="notif-body">{gasSuccess}</div>
+                  </div>
+                )}
+
+                {showGasLog && (
+                  <div className="tile fi-anim" style={{ border: '1px solid var(--cds-interactive)', padding: 'var(--s4)' }}>
+                    {gasStockLoading && <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>Loading stock…</p>}
+                    {!gasStockLoading && gasStock.length === 0 && (
+                      <div className="notif notif-w">
+                        <div className="notif-title">No stock available</div>
+                        <div className="notif-body">All gas stock is depleted or no items exist. Contact admin to add stock.</div>
+                      </div>
+                    )}
+                    {!gasStockLoading && gasStock.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {gasError && (
+                          <div className="notif notif-e">
+                            <div className="notif-title">Error</div>
+                            <div className="notif-body">{gasError}</div>
+                          </div>
+                        )}
+                        <FormItem label="Gas Stock *">
+                          <select
+                            className="sel"
+                            value={gasForm.stockId}
+                            onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}
+                          >
+                            <option value="">Select gas…</option>
+                            {gasStock.map(s => (
+                              <option key={s.id} value={s.id}>
+                                {s.gasType} — {s.brand} ({s.remaining} {s.unit} remaining)
+                              </option>
+                            ))}
+                          </select>
+                        </FormItem>
+                        <div className="g2">
+                          <FormItem label={`Quantity Used (${gasStock.find(s => s.id === gasForm.stockId)?.unit || 'kg'}) *`}>
+                            <input
+                              className="inp"
+                              type="number"
+                              step="0.1"
+                              min="0.1"
+                              max={gasStock.find(s => s.id === gasForm.stockId)?.remaining}
+                              placeholder="e.g. 2.5"
+                              value={gasForm.quantityUsed}
+                              onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))}
+                              disabled={!gasForm.stockId}
+                            />
+                          </FormItem>
+                          <FormItem label="Purpose (optional)">
+                            <input
+                              className="inp"
+                              placeholder="e.g. System recharge"
+                              value={gasForm.purpose}
+                              onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))}
+                            />
+                          </FormItem>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-p btn-sm"
+                            onClick={submitGasUsage}
+                            disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed}
+                          >
+                            {gasSubmitting ? 'Saving…' : 'Record Usage'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="refrig-box">
                 <SectionTitle>Refrigerant Movement Log</SectionTitle>
