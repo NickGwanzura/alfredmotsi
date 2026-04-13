@@ -191,15 +191,25 @@ export default function Home() {
 
   const updateJob = async (updatedJob: Job) => {
     try {
+      const prevJob = jobs.find(j => j.id === updatedJob.id);
       const res = await fetch(`/api/jobs/${updatedJob.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedJob),
       });
-      
+
       if (res.ok) {
         setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
         setSelectedJob(updatedJob);
+
+        // Fire-and-forget admin notification when job is marked completed
+        if (updatedJob.status === 'completed' && prevJob?.status !== 'completed') {
+          fetch('/api/notifications/job-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: updatedJob.id }),
+          }).catch(() => {});
+        }
       }
     } catch (error) {
       console.error('Error updating job:', error);
