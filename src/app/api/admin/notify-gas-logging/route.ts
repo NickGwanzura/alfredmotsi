@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { render } from '@react-email/components';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
@@ -8,9 +8,9 @@ import { AnnouncementEmail } from '@/app/lib/email/templates-new';
 /**
  * POST /api/admin/notify-gas-logging
  * Reminds every user (admins + techs) to log gas usage against every job
- * where refrigerant was involved.
+ * where refrigerant was involved. Pass ?detail=1 to get per-recipient results.
  */
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -94,6 +94,20 @@ export async function POST(): Promise<NextResponse> {
 
   const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
   console.log(`[notify-gas-logging] sent ${sent}/${users.length} gas logging reminders`);
+
+  const url = new URL(request.url);
+  if (url.searchParams.get('detail') === '1') {
+    const detail = results.map((r, i) => ({
+      email: users[i].email,
+      name: users[i].name,
+      role: users[i].role,
+      ok: r.status === 'fulfilled' && r.value.success,
+      error: r.status === 'fulfilled'
+        ? (r.value.success ? null : String(r.value.error))
+        : String(r.reason),
+    }));
+    return NextResponse.json({ ok: true, sent, total: users.length, detail });
+  }
 
   return NextResponse.json({ ok: true, sent, total: users.length });
 }
