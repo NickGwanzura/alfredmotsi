@@ -24,9 +24,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const subject = 'Please log gas usage on every job where refrigerant is used';
 
-  const results = await Promise.allSettled(
-    users.map(async u => {
-      const isTechUser = u.role === 'tech';
+  const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+  const results: PromiseSettledResult<{ success: boolean; error?: unknown }>[] = [];
+
+  for (const u of users) {
+    const isTechUser = u.role === 'tech';
+    try {
       const html = await render(AnnouncementEmail({
         recipientName: u.name.split(' ')[0] || 'there',
         preview: 'A quick reminder to log refrigerant usage against every job that uses it.',
@@ -82,15 +85,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           'If you spot a job you forgot to log gas on, open it now and add the record. Thanks team.',
       }));
 
-      return sendCustomEmail({
+      const r = await sendCustomEmail({
         to: u.email,
         subject,
         html,
         category: 'gas-logging-reminder',
         isTransactional: true,
       });
-    })
-  );
+      results.push({ status: 'fulfilled', value: r });
+    } catch (err) {
+      results.push({ status: 'rejected', reason: err });
+    }
+    // Throttle to stay under Resend's 2 req/sec limit
+    await sleep(600);
+  }
 
   const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
   console.log(`[notify-gas-logging] sent ${sent}/${users.length} gas logging reminders`);
@@ -101,7 +109,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!e) return 'unknown';
       if (e instanceof Error) return e.message;
       if (typeof e === 'string') return e;
-      try { return JSON.stringify(e); } catch { return String(e); }
+      if (typeof e === 'object') {
+        const obj = e as Record<string, unknown>;
+        const keys = Object.getOwnPropertyNames(obj);
+        const plain: Record<string, unknown> = {};
+        for (const k of keys) plain[k] = obj[k];
+        const parts: string[] = [];
+        if (typeof obj.name === 'string') parts.push(String(obj.name));
+        if (typeof obj.statusCode === 'number') parts.push(`status=${obj.statusCode}`);
+        if (typeof obj.message === 'string') parts.push(String(obj.message));
+        if (parts.length > 0) return parts.join(' | ');
+        try { return JSON.stringify(plain); } catch { return String(e); }
+      }
+      return String(e);
     };
     const detail = results.map((r, i) => ({
       email: users[i].email,
