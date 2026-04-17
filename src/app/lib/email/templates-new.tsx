@@ -825,3 +825,137 @@ export function StatusUpdateEmail({
     </Html>
   );
 }
+
+// ============================================
+// ANNOUNCEMENT EMAIL (reusable for updates, reminders, notices)
+// ============================================
+
+export interface AnnouncementSection {
+  title: string;
+  body?: string;
+  bullets?: string[];
+}
+
+export interface AnnouncementEmailProps {
+  recipientName: string;
+  preview: string;
+  headline: string;
+  intro?: string;
+  kind?: 'info' | 'reminder' | 'update' | 'warning';
+  callout?: { title: string; body: string };
+  sections?: AnnouncementSection[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+  closing?: string;
+  signOff?: string;
+  companyAddress?: string;
+  companyPhones?: string;
+}
+
+export function AnnouncementEmail({
+  recipientName,
+  preview,
+  headline,
+  intro,
+  kind = 'update',
+  callout,
+  sections = [],
+  ctaLabel,
+  ctaUrl,
+  closing,
+  signOff = 'The Splash Air Team',
+  companyAddress = '661 Lorraine Drive, Bluffhill, Harare',
+  companyPhones = '0715212141 & 0773034528',
+}: AnnouncementEmailProps) {
+  const kindStyles: Record<string, { box: React.CSSProperties; label: string; labelColor: string }> = {
+    info:     { box: infoBox,  label: 'Announcement',  labelColor: colors.primary },
+    update:   { box: infoBox,  label: "What's new",    labelColor: colors.primary },
+    reminder: { box: alertBox, label: 'Reminder',      labelColor: '#9c6a06' },
+    warning:  { box: alertBox, label: 'Please note',   labelColor: '#9c6a06' },
+  };
+  const s = kindStyles[kind];
+
+  return (
+    <Html>
+      <Head />
+      <Preview>{preview}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Section style={header}>
+            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Text style={tagline}>Professional HVAC Services</Text>
+          </Section>
+
+          <Section style={content}>
+            <Text style={{
+              ...statusBadge,
+              backgroundColor: kind === 'reminder' || kind === 'warning' ? '#fff8e1' : '#e3f2fd',
+              color: s.labelColor,
+              marginBottom: '16px',
+            }}>
+              {s.label}
+            </Text>
+
+            <Heading style={h1}>{headline}</Heading>
+
+            <Text style={paragraph}>Hi {recipientName},</Text>
+
+            {intro && <Text style={paragraph}>{intro}</Text>}
+
+            {callout && (
+              <Section style={s.box}>
+                <Text style={{ ...detailLabel, margin: '0 0 6px' }}>{callout.title}</Text>
+                <Text style={{ ...detailItem, margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
+                  {callout.body}
+                </Text>
+              </Section>
+            )}
+
+            {sections.map((sec, i) => (
+              <React.Fragment key={i}>
+                <Heading style={h2}>{sec.title}</Heading>
+                {sec.body && <Text style={paragraph}>{sec.body}</Text>}
+                {sec.bullets && sec.bullets.length > 0 && (
+                  <Section style={{ margin: '0 0 16px' }}>
+                    {sec.bullets.map((b, j) => (
+                      <Text key={j} style={{
+                        ...paragraph,
+                        margin: '6px 0',
+                        paddingLeft: '20px',
+                      }}>
+                        <span style={{ color: colors.primary, fontWeight: 700, marginRight: '8px' }}>•</span>
+                        {b}
+                      </Text>
+                    ))}
+                  </Section>
+                )}
+              </React.Fragment>
+            ))}
+
+            {ctaLabel && ctaUrl && (
+              <Section style={{ textAlign: 'center', margin: '32px 0 16px' }}>
+                <Button href={ctaUrl} style={button}>{ctaLabel}</Button>
+              </Section>
+            )}
+
+            {closing && <Text style={paragraph}>{closing}</Text>}
+
+            <Text style={{ ...paragraph, marginTop: '32px' }}>
+              Best regards,<br />
+              <strong>{signOff}</strong>
+            </Text>
+
+            <Hr style={divider} />
+
+            <Text style={footer}>
+              <strong>Splashair Air Conditioning (Pvt) Ltd</strong><br />
+              {companyAddress}<br />
+              Phone: {companyPhones}<br />
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
