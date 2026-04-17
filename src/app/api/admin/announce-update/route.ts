@@ -23,8 +23,11 @@ export async function POST(): Promise<NextResponse> {
 
   const subject = "What's new in Splash Air CRM — latest updates";
 
-  const results = await Promise.allSettled(
-    admins.map(async a => {
+  const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+  const results: PromiseSettledResult<{ success: boolean; error?: unknown }>[] = [];
+
+  for (const a of admins) {
+    try {
       const html = await render(AnnouncementEmail({
         recipientName: a.name.split(' ')[0] || 'there',
         preview: 'Gas usage warnings, clock-in reminders, PDF job cards, user CRUD, and more.',
@@ -91,15 +94,20 @@ export async function POST(): Promise<NextResponse> {
           'If you spot anything odd or have suggestions, reply to this email and we\'ll follow up.',
       }));
 
-      return sendCustomEmail({
+      const r = await sendCustomEmail({
         to: a.email,
         subject,
         html,
         category: 'platform-update',
         isTransactional: true,
       });
-    })
-  );
+      results.push({ status: 'fulfilled', value: r });
+    } catch (err) {
+      results.push({ status: 'rejected', reason: err });
+    }
+    // Throttle to stay under Resend's 2 req/sec limit
+    await sleep(600);
+  }
 
   const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
   console.log(`[announce-update] sent ${sent}/${admins.length} admin update emails`);

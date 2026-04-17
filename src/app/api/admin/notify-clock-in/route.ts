@@ -24,9 +24,12 @@ export async function POST(): Promise<NextResponse> {
 
   const subject = 'Please clock in and clock out on every job';
 
-  const results = await Promise.allSettled(
-    users.map(async u => {
-      const isTechUser = u.role === 'tech';
+  const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+  const results: PromiseSettledResult<{ success: boolean; error?: unknown }>[] = [];
+
+  for (const u of users) {
+    const isTechUser = u.role === 'tech';
+    try {
       const html = await render(AnnouncementEmail({
         recipientName: u.name.split(' ')[0] || 'there',
         preview: 'A quick reminder to log your clock-in and clock-out times on every job.',
@@ -79,15 +82,20 @@ export async function POST(): Promise<NextResponse> {
           'just reply to this email and we\'ll walk you through it.',
       }));
 
-      return sendCustomEmail({
+      const r = await sendCustomEmail({
         to: u.email,
         subject,
         html,
         category: 'clock-in-reminder',
         isTransactional: true,
       });
-    })
-  );
+      results.push({ status: 'fulfilled', value: r });
+    } catch (err) {
+      results.push({ status: 'rejected', reason: err });
+    }
+    // Throttle to stay under Resend's 2 req/sec limit
+    await sleep(600);
+  }
 
   const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
   console.log(`[notify-clock-in] sent ${sent}/${users.length} clock-in reminder emails`);
