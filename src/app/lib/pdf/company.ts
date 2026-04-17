@@ -4,7 +4,7 @@
  */
 export const COMPANY = {
   name: 'Splashair Air Conditioning (Pvt) Ltd',
-  address: 'Splash Air Pvt Ltd',
+  address: '661 Lorraine Drive, Bluffhill, Harare',
   phones: ['0715212141', '0773034528'],
   services: [
     'Air Conditioning & Refrigeration',
