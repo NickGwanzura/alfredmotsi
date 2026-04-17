@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { sendJobCompletedEmail } from '@/app/lib/email/send';
+import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
 
 /**
  * POST /api/notifications/job-complete
  * Called when a technician marks a job as completed.
- * Sends a job-completion notification to all admin users.
+ * Sends a job-completion notification with the Job Card PDF attached to:
+ *  - All admin users
+ *  - The customer on the job (if they have an email)
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -16,53 +19,95 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { jobId } = await request.json();
     if (!jobId) return NextResponse.json({ error: 'jobId required' }, { status: 400 });
 
-    // Fetch job with customer and lead tech
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: {
         customer: true,
-        technicians: { select: { id: true, name: true } },
+        technicians: { select: { id: true, name: true, phone: true } },
+        coTechnicians: { select: { id: true, name: true } },
+        diagnostics: true,
+        gasUsageRecords: true,
+        consumables: true,
       },
     });
 
     if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
 
-    // Fetch all admin users
-    const admins = await prisma.user.findMany({
-      where: { role: 'admin' },
-      select: { email: true, name: true },
-    });
-
-    if (admins.length === 0) {
-      return NextResponse.json({ ok: true, sent: 0 });
+    // Generate the PDF once, reuse for all recipients
+    let pdfBuffer: Buffer | null = null;
+    try {
+      pdfBuffer = await generateJobCardPdf(job);
+    } catch (pdfErr) {
+      console.error('[job-complete notify] PDF generation failed:', pdfErr);
+      // Continue without attachment rather than failing the whole notification
     }
+
+    const attachments = pdfBuffer
+      ? [{
+          filename: `JobCard-${job.jobCardRef}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        }]
+      : undefined;
 
     const techName = job.technicians[0]?.name || 'Technician';
     const date = new Date(job.date + 'T12:00').toLocaleDateString('en-ZA', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
 
-    // Send to each admin (fire all in parallel, swallow individual failures)
+    // Admins
+    const admins = await prisma.user.findMany({
+      where: { role: 'admin' },
+      select: { email: true, name: true },
+    });
+
+    // Build recipient list: admins + customer (if they have email)
+    const recipients: { email: string; name: string; kind: 'admin' | 'customer' }[] = [
+      ...admins.map(a => ({ email: a.email, name: a.name, kind: 'admin' as const })),
+    ];
+    if (job.customer.email) {
+      recipients.push({ email: job.customer.email, name: job.customer.name, kind: 'customer' });
+    }
+
+    if (recipients.length === 0) {
+      return NextResponse.json({ ok: true, sent: 0, total: 0 });
+    }
+
     const results = await Promise.allSettled(
-      admins.map(admin =>
+      recipients.map(r =>
         sendJobCompletedEmail({
-          to: admin.email,
+          to: r.email,
           customerName: job.customer.name,
           jobTitle: job.title,
           jobDate: date,
           technicianName: techName,
           workDescription: job.description || 'Job completed on site.',
+          attachments,
         })
       )
     );
 
     const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    console.log(`[job-complete notify] Job ${jobId} — sent ${sent}/${admins.length} admin emails`);
+    const adminResults = results.slice(0, admins.length);
+    const sentAdmins = adminResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const customerResult = job.customer.email ? results[admins.length] : undefined;
+    const sentCustomer = !!(customerResult && customerResult.status === 'fulfilled' && (customerResult as PromiseFulfilledResult<{ success: boolean }>).value.success);
 
-    return NextResponse.json({ ok: true, sent, total: admins.length });
+    console.log(
+      `[job-complete notify] Job ${jobId} — sent ${sent}/${recipients.length} ` +
+      `(admins: ${sentAdmins}/${admins.length}, customer: ${sentCustomer ? 'yes' : 'no'}, pdf: ${pdfBuffer ? 'attached' : 'missing'})`
+    );
+
+    return NextResponse.json({
+      ok: true,
+      sent,
+      total: recipients.length,
+      adminsSent: sentAdmins,
+      customerSent: sentCustomer,
+      pdfAttached: !!pdfBuffer,
+    });
   } catch (error) {
     console.error('[job-complete notify] Error:', error);
-    // Never surface this to the user — notification failures are non-blocking
     return NextResponse.json({ ok: false }, { status: 200 });
   }
 }

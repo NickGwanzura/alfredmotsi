@@ -23,6 +23,7 @@
     "@carbon/styles": "^1.104.0",
     "@prisma/client": "^5.22.0",
     "@react-email/components": "^1.0.10",
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
     "next": "16.2.1",

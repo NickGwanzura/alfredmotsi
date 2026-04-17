@@ -22,6 +22,12 @@ import {
 // EMAIL SEND WRAPPER (ENFORCES BEST PRACTICES)
 // ============================================
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 interface SendEmailOptions {
   to: string | string[];
   subject: string;
@@ -30,6 +36,7 @@ interface SendEmailOptions {
   category?: string;
   isTransactional?: boolean;
   campaignId?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -47,6 +54,7 @@ export async function sendEmailWithBestPractices({
   category,
   isTransactional = true,
   campaignId,
+  attachments,
 }: SendEmailOptions): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   const recipients = Array.isArray(to) ? to : [to];
   const primaryRecipient = recipients[0];
@@ -101,6 +109,12 @@ export async function sendEmailWithBestPractices({
       return { success: false, error: 'Email client not available' };
     }
 
+    const resendAttachments = attachments?.map(a => ({
+      filename: a.filename,
+      content: typeof a.content === 'string' ? a.content : a.content,
+      contentType: a.contentType,
+    }));
+
     const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: recipients,
@@ -109,6 +123,7 @@ export async function sendEmailWithBestPractices({
       text: plainText,
       replyTo: EMAIL_CONFIG.replyTo,
       headers,
+      ...(resendAttachments && resendAttachments.length > 0 && { attachments: resendAttachments }),
     });
 
     if (error) {
@@ -208,6 +223,7 @@ interface SendJobCompletedEmailParams {
   recommendations?: string;
   nextServiceDate?: string;
   jobCardUrl?: string;
+  attachments?: EmailAttachment[];
 }
 
 export async function sendJobCompletedEmail({
@@ -220,6 +236,7 @@ export async function sendJobCompletedEmail({
   recommendations,
   nextServiceDate,
   jobCardUrl,
+  attachments,
 }: SendJobCompletedEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   console.log('[sendJobCompletedEmail] Starting with params:', { to, customerName, jobTitle });
   
@@ -251,6 +268,7 @@ export async function sendJobCompletedEmail({
       html,
       category: 'job-completed',
       isTransactional: true,
+      attachments,
     });
   } catch (error: unknown) {
     console.error('❌ Error sending job completed email:', error);
