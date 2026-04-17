@@ -551,6 +551,7 @@ export default function Home() {
                   techs={techs}
                   customers={customers}
                   currentUser={user as any}
+                  gasUsage={gasUsage}
                   onJobClick={setSelectedJob}
                   onAddJob={isAdmin ? () => setShowAddJob(true) : undefined}
                 />
@@ -624,11 +625,12 @@ export default function Home() {
 
       {/* Job Card Modal */}
       {selectedJob && (
-        <JobCardModal 
-          job={selectedJob} 
-          customers={customers} 
-          currentUser={user as any} 
-          onClose={() => setSelectedJob(null)} 
+        <JobCardModal
+          job={selectedJob}
+          customers={customers}
+          currentUser={user as any}
+          gasUsage={gasUsage}
+          onClose={() => setSelectedJob(null)}
           onUpdate={updateJob}
           onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
         />

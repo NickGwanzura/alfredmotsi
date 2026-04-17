@@ -13,11 +13,13 @@ import {
   RefrigerantType,
   SystemStatus,
   Consumable,
-  ConsumableType
+  ConsumableType,
+  GasUsageRecord,
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
 import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg } from '@/app/lib/utils';
+import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
@@ -27,6 +29,7 @@ interface JobCardModalProps {
   job: Job;
   customers: Customer[];
   currentUser: User;
+  gasUsage?: GasUsageRecord[];
   onClose: () => void;
   onUpdate: (job: Job) => void;
   onPrint?: (job: Job) => void;
@@ -53,7 +56,7 @@ const UNIT_TYPE_OPTIONS: UnitType[] = [
 
 const REFRIGERANT_OPTIONS: (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 
-export default function JobCardModal({ job, customers, currentUser, onClose, onUpdate, onPrint }: JobCardModalProps) {
+export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onPrint }: JobCardModalProps) {
   const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
   const isAdmin = currentUser.role === "admin";
   const isAssigned = job.techIds.includes(currentUser.id);
@@ -362,6 +365,28 @@ export default function JobCardModal({ job, customers, currentUser, onClose, onU
         </div>
 
         <div className="modal-body">
+          {(() => {
+            const warn = getGasUsageWarning(job, gasUsage, job.id);
+            if (!warn) return null;
+            const isOverdue = warn.level === 'overdue';
+            return (
+              <div
+                className={`notif ${isOverdue ? 'notif-e' : 'notif-w'}`}
+                style={{ marginBottom: 'var(--s4)', cursor: 'pointer' }}
+                onClick={() => setTab('ods')}
+                role="button"
+                title="Click to open the ODS tab and log gas usage"
+              >
+                <div>
+                  <div className="notif-title">
+                    {isOverdue ? 'Refrigerant usage not logged' : 'Log refrigerant usage'}
+                  </div>
+                  <div className="notif-body">{warn.message}</div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Details Tab */}
           {tab === "details" && (
             <div className="fi-anim">

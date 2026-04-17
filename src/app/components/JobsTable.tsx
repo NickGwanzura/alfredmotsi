@@ -1,21 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Job, User, Customer, JobStatus, JobType } from '@/app/types';
+import { Job, User, Customer, JobStatus, JobType, GasUsageRecord } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
+import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag } from './ui';
-import { Add } from '@carbon/icons-react';
+import { Add, WarningAltFilled } from '@carbon/icons-react';
 
 interface JobsTableProps {
   jobs: Job[];
   techs: User[];
   customers: Customer[];
   currentUser: User;
+  gasUsage?: GasUsageRecord[];
   onJobClick: (job: Job) => void;
   onAddJob?: () => void;
 }
 
-export default function JobsTable({ jobs, techs, customers, currentUser, onJobClick, onAddJob }: JobsTableProps) {
+export default function JobsTable({ jobs, techs, customers, currentUser, gasUsage = [], onJobClick, onAddJob }: JobsTableProps) {
   const isAdmin = currentUser.role === "admin";
   const [sf, setSF] = useState<JobStatus | "all">("all");
   const [tf, setTF] = useState<JobType | "all">("all");
@@ -119,6 +121,19 @@ export default function JobsTable({ jobs, techs, customers, currentUser, onJobCl
                     {(j.alerts || []).map(a => (
                       <span key={a} title={ALERT_CFG[a]?.label}>{ALERT_CFG[a]?.icon}</span>
                     ))}
+                    {(() => {
+                      const warn = getGasUsageWarning(j, gasUsage, j.id);
+                      if (!warn) return null;
+                      const color = warn.level === 'overdue' ? '#da1e28' : '#f1c21b';
+                      return (
+                        <span
+                          style={{ color, marginLeft: 4, display: 'inline-flex', verticalAlign: 'middle' }}
+                          title={warn.message}
+                        >
+                          <WarningAltFilled size={16} />
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               );
