@@ -97,14 +97,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const url = new URL(request.url);
   if (url.searchParams.get('detail') === '1') {
+    const serialize = (e: unknown): string => {
+      if (!e) return 'unknown';
+      if (e instanceof Error) return e.message;
+      if (typeof e === 'string') return e;
+      try { return JSON.stringify(e); } catch { return String(e); }
+    };
     const detail = results.map((r, i) => ({
       email: users[i].email,
       name: users[i].name,
       role: users[i].role,
       ok: r.status === 'fulfilled' && r.value.success,
       error: r.status === 'fulfilled'
-        ? (r.value.success ? null : String(r.value.error))
-        : String(r.reason),
+        ? (r.value.success ? null : serialize(r.value.error))
+        : serialize(r.reason),
     }));
     return NextResponse.json({ ok: true, sent, total: users.length, detail });
   }
