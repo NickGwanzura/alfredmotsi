@@ -21,36 +21,54 @@ export async function POST(): Promise<NextResponse> {
 
   if (admins.length === 0) return NextResponse.json({ ok: true, sent: 0 });
 
-  const subject = "What's new in Splash Air CRM — April 2026";
+  const subject = "What's new in Splash Air CRM — latest updates";
 
   const results = await Promise.allSettled(
     admins.map(async a => {
       const html = await render(AnnouncementEmail({
         recipientName: a.name.split(' ')[0] || 'there',
-        preview: 'New features are live — completion emails, PDFs, user management, and more.',
-        headline: 'Platform updates are live',
+        preview: 'Gas usage warnings, clock-in reminders, PDF job cards, user CRUD, and more.',
+        headline: 'Latest platform updates',
         kind: 'update',
         intro:
-          'A batch of improvements has just been deployed to Splash Air CRM. ' +
-          'Here\'s a quick tour of everything that\'s new.',
+          'Several improvements have just been deployed to Splash Air CRM. ' +
+          'Here\'s a summary of what\'s new — most of it is aimed at keeping ' +
+          'our operational data clean and reducing the manual chase-ups.',
         callout: {
-          title: 'Heads up',
+          title: 'New — gas usage warnings',
           body:
-            'Customers now automatically receive a branded Job Card PDF by email ' +
-            'the moment a technician marks a job complete.',
+            'Jobs that need refrigerant logging are now visually flagged. ' +
+            'Completed jobs missing gas data show a red warning; in-progress ones ' +
+            'show an amber reminder. Clicking either opens the ODS tab to log it.',
         },
         sections: [
           {
-            title: 'Job completion',
+            title: 'Gas usage tracking',
             bullets: [
-              'Customers receive a completion email automatically when a job is marked done',
-              'A branded Job Card PDF is attached to every completion email',
-              'Admins also get the same email + PDF on every completion',
-              'New endpoint to download any Job Card as PDF on demand',
+              'Warning icon on every job row that likely needs gas logged but has none',
+              'Banner at the top of the Job Card modal when logging is missing',
+              'Click the banner to jump straight to the ODS tab and log usage',
+              'Sales, inspections, and quotes never trigger the warning',
+              'Jobs where diagnostics already captured refrigerant use are skipped',
             ],
           },
           {
-            title: 'User management',
+            title: 'Clock-in discipline',
+            bullets: [
+              'Every user has received an email reminder to clock in and clock out on every job',
+              'Keep an eye on jobs with missing times — they will affect invoicing and payroll',
+            ],
+          },
+          {
+            title: 'Job completion workflow',
+            bullets: [
+              'Customers now automatically receive a branded completion email',
+              'The Job Card PDF is attached to every completion email — admins + customer',
+              'Endpoint GET /api/jobs/:id/pdf serves the same PDF on demand',
+            ],
+          },
+          {
+            title: 'User management (CRUD)',
             bullets: [
               'Full edit: change name, email, role, phone, and specialty in one place',
               'Resend Credentials button emails a new temporary password to any user',
@@ -61,22 +79,16 @@ export async function POST(): Promise<NextResponse> {
           {
             title: 'PDF branding',
             body:
-              'Every generated PDF now carries the official company header and footer — ' +
+              'Every generated PDF carries the official company header and footer — ' +
               'Splashair Air Conditioning (Pvt) Ltd · 661 Lorraine Drive, Bluffhill, Harare · ' +
-              'Phone 0715212141 & 0773034528.',
-          },
-          {
-            title: 'Technician job cards',
-            bullets: [
-              'Technicians can log gas usage directly from the job card ODS tab',
-              'Materials with quantities and units can be recorded per job',
-              'Gas stock and usage now surface real error messages on failure',
-            ],
+              'Phone 0715212141 & 0773034528 · Services: Air Conditioning & Refrigeration, ' +
+              'Air Conditioning Equipment & Systems, Air Conditioning Installation.',
           },
         ],
         ctaLabel: 'Open Splash Air CRM',
         ctaUrl: 'https://splashaircrmzw.site',
-        closing: 'If you run into anything unexpected, reply to this email and we\'ll look into it.',
+        closing:
+          'If you spot anything odd or have suggestions, reply to this email and we\'ll follow up.',
       }));
 
       return sendCustomEmail({
