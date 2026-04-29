@@ -1,5 +1,6 @@
-import { Diagnostics, AlertType, Job, Customer } from '@/app/types';
+import { Diagnostics, AlertType, Job, Customer, SystemStatus } from '@/app/types';
 import { ALERT_CFG } from './config';
+import { getPressureThresholds } from './refrigerants';
 
 export const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -21,14 +22,45 @@ export const initials = (name: string) =>
 
 export const newId = () => "JOB-" + String(Date.now()).slice(-5);
 
+export const DIAG_THRESHOLDS = {
+  maxCurrent: 16,
+  minVoltage: 210,
+} as const;
+
+export const num = (s?: string | null): number | null => {
+  if (s === undefined || s === null) return null;
+  const trimmed = String(s).trim();
+  if (trimmed === "") return null;
+  const n = parseFloat(trimmed);
+  return Number.isFinite(n) ? n : null;
+};
+
 export function runAlerts(diag: Diagnostics | null): AlertType[] {
   const a: AlertType[] = [];
   if (!diag) return a;
-  if (parseFloat(diag.current || "0") > 16) a.push("HIGH_CURRENT");
-  if (parseFloat(diag.voltage || "0") < 210) a.push("LOW_VOLTAGE");
-  if (parseFloat(diag.avgTemp || "0") > parseFloat(diag.maxTemp || "0")) a.push("HIGH_TEMP");
-  if (parseFloat(diag.suction || "0") < 50 || parseFloat(diag.discharge || "0") > 300) a.push("PRESSURE_LEAK");
+  const current = num(diag.current);
+  const voltage = num(diag.voltage);
+  const avgTemp = num(diag.avgTemp);
+  const maxTemp = num(diag.maxTemp);
+  const suction = num(diag.suction);
+  const discharge = num(diag.discharge);
+  if (current !== null && current > DIAG_THRESHOLDS.maxCurrent) a.push("HIGH_CURRENT");
+  if (voltage !== null && voltage < DIAG_THRESHOLDS.minVoltage) a.push("LOW_VOLTAGE");
+  if (avgTemp !== null && maxTemp !== null && avgTemp > maxTemp) a.push("HIGH_TEMP");
+  const p = getPressureThresholds(diag.refrigerantType);
+  if (
+    (suction !== null && (suction < p.suctionMin || suction > p.suctionMax)) ||
+    (discharge !== null && (discharge < p.dischargeMin || discharge > p.dischargeMax))
+  ) {
+    a.push("PRESSURE_LEAK");
+  }
   return a;
+}
+
+export function deriveSystemStatus(alerts: AlertType[]): SystemStatus {
+  if (alerts.includes("PRESSURE_LEAK") || alerts.includes("HIGH_CURRENT")) return "critical";
+  if (alerts.includes("LOW_VOLTAGE") || alerts.includes("HIGH_TEMP")) return "sub-optimal";
+  return "optimal";
 }
 
 export function hasConflict(

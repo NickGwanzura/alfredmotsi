@@ -18,7 +18,8 @@ import {
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
-import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg } from '@/app/lib/utils';
+import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg, DIAG_THRESHOLDS, num, deriveSystemStatus } from '@/app/lib/utils';
+import { REFRIGERANT_INFO, getPressureThresholds } from '@/app/lib/refrigerants';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
@@ -32,6 +33,7 @@ interface JobCardModalProps {
   gasUsage?: GasUsageRecord[];
   onClose: () => void;
   onUpdate: (job: Job) => void;
+  onDelete?: (jobId: string, reason: string) => Promise<boolean> | boolean;
   onPrint?: (job: Job) => void;
 }
 
@@ -56,7 +58,7 @@ const UNIT_TYPE_OPTIONS: UnitType[] = [
 
 const REFRIGERANT_OPTIONS: (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 
-export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onPrint }: JobCardModalProps) {
+export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onDelete, onPrint }: JobCardModalProps) {
   const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
   const isAdmin = currentUser.role === "admin";
   const isAssigned = job.techIds.includes(currentUser.id);
@@ -108,22 +110,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [gasSuccess, setGasSuccess] = useState<string | null>(null);
   const [gasError, setGasError] = useState<string | null>(null);
 
+  // Deletion (admin)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Audit: fire-and-forget on mount
   useEffect(() => {
     captureAudit('view_job', job.id);
   }, [job.id]);
 
-  // Load gas stock when ODS tab is opened
+  // Load gas stock when ODS tab opens or Log Usage panel is shown
   useEffect(() => {
-    if (tab === 'ods' && gasStock.length === 0 && !gasStockLoading) {
-      setGasStockLoading(true);
-      fetch('/api/gas-stock')
-        .then(r => r.json())
-        .then(d => Array.isArray(d) ? setGasStock(d.filter((s: { remaining: number }) => s.remaining > 0)) : null)
-        .catch(() => null)
-        .finally(() => setGasStockLoading(false));
-    }
-  }, [tab]);
+    if (tab !== 'ods' && !showGasLog) return;
+    setGasStockLoading(true);
+    fetch('/api/gas-stock')
+      .then(r => r.json())
+      .then(d => Array.isArray(d) ? setGasStock(d) : null)
+      .catch(() => null)
+      .finally(() => setGasStockLoading(false));
+  }, [tab, showGasLog]);
 
   // Load consumables when tab is opened
   useEffect(() => {
@@ -188,8 +195,19 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         setGasSuccess(`${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
         setGasForm({ stockId: '', quantityUsed: '', purpose: '' });
         setShowGasLog(false);
-        // Update local remaining count
-        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s).filter(s => s.remaining > 0));
+        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s));
+        if (selected) {
+          const currentType = (diag.refrigerantType || '').trim();
+          const loggedType = (selected.gasType || '').trim();
+          if (!currentType) {
+            setD('refrigerantType', loggedType);
+            setD('refrigerantUsed', (diag.refrigerantUsed || 0) + qty);
+          } else if (currentType === loggedType) {
+            setD('refrigerantUsed', (diag.refrigerantUsed || 0) + qty);
+          } else {
+            setGasError(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`);
+          }
+        }
       } else {
         setGasError(data.error || 'Failed to record gas usage.');
       }
@@ -209,7 +227,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     return a;
   };
 
-  const diagDone = !!(diag.voltage && diag.current && diag.suction && diag.discharge);
+  const hasAnyDiagnosticData = (d: Diagnostics): boolean => {
+    const stringFields: (keyof Diagnostics)[] = [
+      'voltage', 'current', 'suction', 'discharge',
+      'avgTemp', 'maxTemp', 'deltaT', 'notes',
+      'brand', 'serial', 'unitType', 'refrigerantType',
+    ];
+    for (const k of stringFields) {
+      const v = d[k];
+      if (typeof v === 'string' && v.trim() !== '') return true;
+    }
+    if ((d.refrigerantRecovered || 0) > 0) return true;
+    if ((d.refrigerantUsed || 0) > 0) return true;
+    if ((d.refrigerantReused || 0) > 0) return true;
+    return false;
+  };
+
+  const electricalsDone = !!(diag.voltage?.trim() && diag.current?.trim());
+  const pressuresDone = !!(diag.suction?.trim() && diag.discharge?.trim());
+  const statusSet = !!(diag.status && diag.status !== 'optimal');
+  const notesPresent = !!diag.notes?.trim();
+  const diagDone = electricalsDone || pressuresDone || statusSet || notesPresent;
   const canSign = job.type === "sales" || diagDone;
   const dur = formatDuration(clockIn, clockOut);
   const t = TYPE_CFG[job.type] || TYPE_CFG.repair;
@@ -227,7 +265,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
       status,
       clockIn,
       clockOut: co,
-      diagnostics: diag.voltage ? diag : job.diagnostics,
+      diagnostics: hasAnyDiagnosticData(diag) ? diag : job.diagnostics,
       alerts: a,
       signature: sig,
       photos,
@@ -274,6 +312,30 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
       onPrint(job);
     } else {
       window.print();
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    const trimmed = deleteReason.trim();
+    if (!trimmed) {
+      setDeleteError('Please provide a reason for deleting this job.');
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const ok = await onDelete(job.id, trimmed);
+      if (ok) {
+        setShowDeleteConfirm(false);
+        onClose();
+      } else {
+        setDeleteError('Failed to delete job. Please try again.');
+      }
+    } catch {
+      setDeleteError('Failed to delete job. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -559,28 +621,28 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               <div className="tile" style={{ marginBottom: "var(--s5)" }}>
                 <SectionTitle>2 — Electrical Readings</SectionTitle>
                 <div className="g3">
-                  <FormItem 
-                    label="Supply voltage (V)" 
-                    error={diag.voltage && parseFloat(diag.voltage) < 210 ? "Below 210 V minimum — LOW_VOLTAGE alert" : undefined}
+                  <FormItem
+                    label="Supply voltage (V)"
+                    error={(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? `Below ${DIAG_THRESHOLDS.minVoltage} V minimum — LOW_VOLTAGE alert` : undefined; })()}
                   >
-                    <input 
-                      className={`inp ${diag.voltage && parseFloat(diag.voltage) < 210 ? "inp-err" : ""}`} 
-                      type="number" 
-                      placeholder="e.g. 230" 
-                      value={diag.voltage || ""} 
-                      onChange={e => setD("voltage", e.target.value)} 
+                    <input
+                      className={`inp ${(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? "inp-err" : ""; })()}`}
+                      type="number"
+                      placeholder="e.g. 230"
+                      value={diag.voltage || ""}
+                      onChange={e => setD("voltage", e.target.value)}
                     />
                   </FormItem>
-                  <FormItem 
-                    label="Current draw (A)" 
-                    error={diag.current && parseFloat(diag.current) > 16 ? "Exceeds 16 A max — HIGH_CURRENT alert" : undefined}
+                  <FormItem
+                    label="Current draw (A)"
+                    error={(() => { const v = num(diag.current); return v !== null && v > DIAG_THRESHOLDS.maxCurrent ? `Exceeds ${DIAG_THRESHOLDS.maxCurrent} A max — HIGH_CURRENT alert` : undefined; })()}
                   >
-                    <input 
-                      className={`inp ${diag.current && parseFloat(diag.current) > 16 ? "inp-err" : ""}`} 
-                      type="number" 
-                      placeholder="e.g. 12.5" 
-                      value={diag.current || ""} 
-                      onChange={e => setD("current", e.target.value)} 
+                    <input
+                      className={`inp ${(() => { const v = num(diag.current); return v !== null && v > DIAG_THRESHOLDS.maxCurrent ? "inp-err" : ""; })()}`}
+                      type="number"
+                      placeholder="e.g. 12.5"
+                      value={diag.current || ""}
+                      onChange={e => setD("current", e.target.value)}
                     />
                   </FormItem>
                   <FormItem label="Refrigerant type">
@@ -633,40 +695,84 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               <div className="tile" style={{ marginBottom: "var(--s5)" }}>
                 <SectionTitle>4 — Refrigeration Pressure Test</SectionTitle>
                 <div className="g3">
-                  <FormItem 
-                    label="Suction pressure (PSI)" 
-                    error={diag.suction && parseFloat(diag.suction) < 50 ? "Low suction — possible refrigerant leak" : undefined}
+                  <FormItem
+                    label="Suction pressure (PSI)"
+                    error={(() => {
+                      const v = num(diag.suction);
+                      if (v === null) return undefined;
+                      const p = getPressureThresholds(diag.refrigerantType);
+                      if (v < p.suctionMin) return `Suction ${v} PSI is below ${p.refrigerant} normal range (${p.suctionMin}-${p.suctionMax} PSI) — possible undercharge or restriction`;
+                      if (v > p.suctionMax) return `Suction ${v} PSI is above ${p.refrigerant} normal range (${p.suctionMin}-${p.suctionMax} PSI) — possible overcharge or non-condensables`;
+                      return undefined;
+                    })()}
                   >
-                    <input 
-                      className={`inp ${diag.suction && parseFloat(diag.suction) < 50 ? "inp-err" : ""}`} 
-                      type="number" 
-                      placeholder="e.g. 68" 
-                      value={diag.suction || ""} 
-                      onChange={e => setD("suction", e.target.value)} 
+                    <input
+                      className={`inp ${(() => {
+                        const v = num(diag.suction);
+                        if (v === null) return "";
+                        const p = getPressureThresholds(diag.refrigerantType);
+                        return v < p.suctionMin || v > p.suctionMax ? "inp-err" : "";
+                      })()}`}
+                      type="number"
+                      placeholder="e.g. 68"
+                      value={diag.suction || ""}
+                      onChange={e => setD("suction", e.target.value)}
                     />
                   </FormItem>
-                  <FormItem 
-                    label="Discharge pressure (PSI)" 
-                    error={diag.discharge && parseFloat(diag.discharge) > 300 ? "High discharge — possible blockage" : undefined}
+                  <FormItem
+                    label="Discharge pressure (PSI)"
+                    error={(() => {
+                      const v = num(diag.discharge);
+                      if (v === null) return undefined;
+                      const p = getPressureThresholds(diag.refrigerantType);
+                      if (v < p.dischargeMin) return `Discharge ${v} PSI is below ${p.refrigerant} normal range (${p.dischargeMin}-${p.dischargeMax} PSI) — possible undercharge or weak compressor`;
+                      if (v > p.dischargeMax) return `Discharge ${v} PSI is above ${p.refrigerant} normal range (${p.dischargeMin}-${p.dischargeMax} PSI) — possible blockage or overcharge`;
+                      return undefined;
+                    })()}
                   >
-                    <input 
-                      className={`inp ${diag.discharge && parseFloat(diag.discharge) > 300 ? "inp-err" : ""}`} 
-                      type="number" 
-                      placeholder="e.g. 245" 
-                      value={diag.discharge || ""} 
-                      onChange={e => setD("discharge", e.target.value)} 
+                    <input
+                      className={`inp ${(() => {
+                        const v = num(diag.discharge);
+                        if (v === null) return "";
+                        const p = getPressureThresholds(diag.refrigerantType);
+                        return v < p.dischargeMin || v > p.dischargeMax ? "inp-err" : "";
+                      })()}`}
+                      type="number"
+                      placeholder="e.g. 245"
+                      value={diag.discharge || ""}
+                      onChange={e => setD("discharge", e.target.value)}
                     />
                   </FormItem>
                   <FormItem label="System status">
-                    <select 
-                      className="sel" 
-                      value={diag.status || "optimal"} 
+                    <select
+                      className="sel"
+                      value={diag.status || "optimal"}
                       onChange={e => setD("status", e.target.value as SystemStatus)}
                     >
                       <option value="optimal">Optimal</option>
                       <option value="sub-optimal">Sub-Optimal</option>
                       <option value="critical">Critical Failure</option>
                     </select>
+                    {(() => {
+                      const liveAlerts = runAlerts(diag);
+                      const suggested = deriveSystemStatus(liveAlerts);
+                      const current = diag.status || "optimal";
+                      if (suggested === current) return null;
+                      const labels: Record<SystemStatus, string> = { optimal: "Optimal", "sub-optimal": "Sub-Optimal", critical: "Critical Failure" };
+                      const reason = liveAlerts.length > 0 ? liveAlerts.join(", ") + " detected" : "no alerts";
+                      return (
+                        <div style={{ marginTop: "var(--s2)", fontSize: 13, color: "var(--ts)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span>Suggested: <strong>{labels[suggested]}</strong> ({reason})</span>
+                          <button
+                            type="button"
+                            className="btn btn-s btn-sm"
+                            onClick={() => setD("status", suggested)}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </FormItem>
                 </div>
                 <FormItem label="Functional notes">
@@ -798,33 +904,42 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="refrig-box">
                 <SectionTitle>Refrigerant Type</SectionTitle>
-                <div className="g3" style={{ marginBottom: "var(--s5)" }}>
-                  <div>
-                    <p className="lbl">Current System Refrigerant</p>
-                    <p style={{ fontSize: "24px", fontWeight: 300, color: "#004d40" }}>
-                      {diag.refrigerantType || "Not specified"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="lbl">ODS Classification</p>
-                    <p style={{ fontSize: "14px", color: "#004d40" }}>
-                      {diag.refrigerantType?.startsWith('R-22') ? 'Class I ODS (HCFC) - Phase-out in progress' : 
-                       diag.refrigerantType?.startsWith('R-4') || diag.refrigerantType?.startsWith('R-32') ? 'Non-ODS (HFC) - Subject to F-gas regulations' : 
-                       'Check classification'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="lbl">GWP Rating</p>
-                    <p style={{ fontSize: "14px", color: "#004d40" }}>
-                      {diag.refrigerantType === 'R-22' ? '1,810 (High)' :
-                       diag.refrigerantType === 'R-410A' ? '2,088 (High)' :
-                       diag.refrigerantType === 'R-32' ? '675 (Medium)' :
-                       diag.refrigerantType === 'R-134a' ? '1,430 (High)' :
-                       diag.refrigerantType === 'R-407C' ? '1,774 (High)' :
-                       'Unknown'}
-                    </p>
-                  </div>
-                </div>
+                {(() => {
+                  const key = (diag.refrigerantType || '').trim();
+                  const info = key ? REFRIGERANT_INFO[key] : undefined;
+                  return (
+                    <div className="g3" style={{ marginBottom: "var(--s5)" }}>
+                      <div>
+                        <p className="lbl">Current System Refrigerant</p>
+                        <p style={{ fontSize: "24px", fontWeight: 300, color: "#004d40" }}>
+                          {diag.refrigerantType || "Not specified"}
+                        </p>
+                        {info && (
+                          <p style={{ fontSize: "13px", color: "#00695c", marginTop: "var(--s1)" }}>
+                            Family: <strong>{info.family}</strong>
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="lbl">ODS Classification</p>
+                        <p style={{ fontSize: "14px", color: "#004d40" }}>
+                          {info ? `${info.odsClass} (${info.family})` : 'Check classification'}
+                        </p>
+                        {info && (
+                          <p style={{ fontSize: "12px", color: "#00695c", marginTop: "var(--s1)", lineHeight: 1.5 }}>
+                            {info.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="lbl">GWP Rating</p>
+                        <p style={{ fontSize: "14px", color: "#004d40" }}>
+                          {info ? `${info.gwp.toLocaleString()} (${info.gwpRating})` : 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Gas Usage — inline form (deducts from stock) */}
@@ -852,73 +967,89 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   </div>
                 )}
 
-                {showGasLog && (
-                  <div className="tile fi-anim" style={{ border: '1px solid var(--cds-interactive)', padding: 'var(--s4)' }}>
-                    {gasStockLoading && <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>Loading stock…</p>}
-                    {!gasStockLoading && gasStock.length === 0 && (
-                      <div className="notif notif-w">
-                        <div className="notif-title">No stock available</div>
-                        <div className="notif-body">All gas stock is depleted or no items exist. Contact admin to add stock.</div>
-                      </div>
-                    )}
-                    {!gasStockLoading && gasStock.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {gasError && (
-                          <div className="notif notif-e">
-                            <div className="notif-title">Error</div>
-                            <div className="notif-body">{gasError}</div>
+                {showGasLog && (() => {
+                  const sortedStock = [...gasStock].sort((a, b) => {
+                    const aEmpty = a.remaining <= 0 ? 1 : 0;
+                    const bEmpty = b.remaining <= 0 ? 1 : 0;
+                    return aEmpty - bEmpty;
+                  });
+                  const allDepleted = gasStock.length > 0 && gasStock.every(s => s.remaining <= 0);
+                  const selectedStock = gasStock.find(s => s.id === gasForm.stockId);
+                  const selectedDepleted = !!selectedStock && selectedStock.remaining <= 0;
+                  return (
+                    <div className="tile fi-anim" style={{ border: '1px solid var(--cds-interactive)', padding: 'var(--s4)' }}>
+                      {gasStockLoading && <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>Loading stock…</p>}
+                      {!gasStockLoading && gasStock.length === 0 && (
+                        <div className="notif notif-w">
+                          <div className="notif-title">No stock available</div>
+                          <div className="notif-body">No gas stock items exist in inventory. Contact admin to add stock.</div>
+                        </div>
+                      )}
+                      {!gasStockLoading && allDepleted && (
+                        <div className="notif notif-w">
+                          <div className="notif-title">All stock depleted</div>
+                          <div className="notif-body">Every gas stock item is at zero. Contact admin to top up before logging usage.</div>
+                        </div>
+                      )}
+                      {!gasStockLoading && gasStock.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {gasError && (
+                            <div className="notif notif-e">
+                              <div className="notif-title">Notice</div>
+                              <div className="notif-body">{gasError}</div>
+                            </div>
+                          )}
+                          <FormItem label="Gas Stock *">
+                            <select
+                              className="sel"
+                              value={gasForm.stockId}
+                              onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}
+                            >
+                              <option value="">Select gas…</option>
+                              {sortedStock.map(s => (
+                                <option key={s.id} value={s.id} disabled={s.remaining <= 0}>
+                                  {s.gasType} — {s.brand} ({s.remaining} {s.unit} remaining){s.remaining <= 0 ? ' (empty)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </FormItem>
+                          <div className="g2">
+                            <FormItem label={`Quantity Used (${selectedStock?.unit || 'kg'}) *`}>
+                              <input
+                                className="inp"
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                max={selectedStock?.remaining}
+                                placeholder="e.g. 2.5"
+                                value={gasForm.quantityUsed}
+                                onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))}
+                                disabled={!gasForm.stockId || selectedDepleted}
+                              />
+                            </FormItem>
+                            <FormItem label="Purpose (optional)">
+                              <input
+                                className="inp"
+                                placeholder="e.g. System recharge"
+                                value={gasForm.purpose}
+                                onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))}
+                              />
+                            </FormItem>
                           </div>
-                        )}
-                        <FormItem label="Gas Stock *">
-                          <select
-                            className="sel"
-                            value={gasForm.stockId}
-                            onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}
-                          >
-                            <option value="">Select gas…</option>
-                            {gasStock.map(s => (
-                              <option key={s.id} value={s.id}>
-                                {s.gasType} — {s.brand} ({s.remaining} {s.unit} remaining)
-                              </option>
-                            ))}
-                          </select>
-                        </FormItem>
-                        <div className="g2">
-                          <FormItem label={`Quantity Used (${gasStock.find(s => s.id === gasForm.stockId)?.unit || 'kg'}) *`}>
-                            <input
-                              className="inp"
-                              type="number"
-                              step="0.1"
-                              min="0.1"
-                              max={gasStock.find(s => s.id === gasForm.stockId)?.remaining}
-                              placeholder="e.g. 2.5"
-                              value={gasForm.quantityUsed}
-                              onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))}
-                              disabled={!gasForm.stockId}
-                            />
-                          </FormItem>
-                          <FormItem label="Purpose (optional)">
-                            <input
-                              className="inp"
-                              placeholder="e.g. System recharge"
-                              value={gasForm.purpose}
-                              onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))}
-                            />
-                          </FormItem>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                              className="btn btn-p btn-sm"
+                              onClick={submitGasUsage}
+                              disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed || selectedDepleted}
+                            >
+                              {gasSubmitting ? 'Saving…' : 'Record Usage'}
+                            </button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <button
-                            className="btn btn-p btn-sm"
-                            onClick={submitGasUsage}
-                            disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed}
-                          >
-                            {gasSubmitting ? 'Saving…' : 'Record Usage'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="refrig-box">
@@ -1071,6 +1202,16 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         </div>
         <div className="modal-foot">
           <button className="btn btn-g" onClick={onClose}>Cancel</button>
+          {isAdmin && onDelete && (
+            <button
+              className="btn btn-d"
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              onClick={() => { setDeleteReason(''); setDeleteError(null); setShowDeleteConfirm(true); }}
+            >
+              <TrashCan size={14} />
+              Delete Job
+            </button>
+          )}
           {onPrint && (
             <button className="btn btn-s" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handlePrint}>
               <Download size={14} />
@@ -1080,6 +1221,69 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           {canEdit && <button className="btn btn-p" onClick={save}>Save Job Card</button>}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div
+          className="overlay"
+          style={{ zIndex: 9500 }}
+          onClick={e => e.target === e.currentTarget && !deleting && setShowDeleteConfirm(false)}
+        >
+          <div className="modal" style={{ maxWidth: 480 }}>
+            <div className="modal-hdr">
+              <div>
+                <p className="modal-lbl">{job.id}</p>
+                <h2 className="modal-title">Delete job?</h2>
+              </div>
+              <button
+                className="x-btn"
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                aria-label="Close"
+                title="Close"
+                disabled={deleting}
+              >
+                <Close size={20} />
+              </button>
+            </div>
+            <div style={{ padding: 'var(--s6) var(--s7)', display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
+              <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', margin: 0 }}>
+                This permanently removes <strong>{job.title}</strong> and all its related records
+                (diagnostics, comments, history, consumables, gas usage). This cannot be undone.
+              </p>
+              <FormItem label="Reason for deletion *">
+                <textarea
+                  className="inp"
+                  rows={3}
+                  value={deleteReason}
+                  onChange={e => setDeleteReason(e.target.value)}
+                  placeholder="e.g. Duplicate entry, created in error, cancelled by customer…"
+                  disabled={deleting}
+                />
+              </FormItem>
+              {deleteError && (
+                <Notification kind="e" title="Cannot delete" body={deleteError} />
+              )}
+            </div>
+            <div className="modal-foot">
+              <button
+                className="btn btn-g"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-d"
+                onClick={handleConfirmDelete}
+                disabled={deleting || !deleteReason.trim()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <TrashCan size={14} />
+                {deleting ? 'Deleting…' : 'Delete Job'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
