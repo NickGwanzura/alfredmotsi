@@ -55,6 +55,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
+    // Audit log
+    const user = session.user as { id: string; name?: string | null };
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name || 'Unknown',
+        action: 'create_gas_stock',
+        jobId: null,
+        reason: `Gas stock added: ${quantity} ${unit || 'kg'} of ${gasType} ${brand} from ${supplier}`,
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                  request.headers.get('x-real-ip') || null,
+        userAgent: request.headers.get('user-agent') || null,
+      },
+    }).catch(() => {});
+
     return NextResponse.json(stockItem, { status: 201 });
   } catch (error) {
     console.error('Error creating gas stock:', error);

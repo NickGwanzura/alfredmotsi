@@ -125,6 +125,19 @@ enum AuditAction {
   view_job
   edit_job
   complete_job
+  delete_job
+  adjust_stock
+  create_customer
+  update_customer
+  delete_customer
+  create_gas_stock
+  update_gas_stock
+  delete_gas_stock
+  create_consumable
+  delete_consumable
+  create_user
+  update_user
+  delete_user
 }
 
 // ============================================
@@ -193,13 +206,13 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  // App relations
-  assignedJobs    Job[] @relation("AssignedJobs")
-  coAssignedJobs  Job[] @relation("CoAssignedJobs")
-  gasUsageRecords GasUsageRecord[]
-  crmRecords      CRMRecord[]
-  consumables     Consumable[]
-  auditLogs       AuditLog[]
+   // App relations
+   assignedJobs    Job[] @relation("AssignedJobs")
+   coAssignedJobs  Job[] @relation("CoAssignedJobs")
+   gasUsageRecords GasUsageRecord[] @relation("GasUsageByUser")
+   crmRecords      CRMRecord[]
+   consumables     Consumable[]     @relation("ConsumableRecordedBy")
+   auditLogs       AuditLog[]       @relation("AuditLogByUser")
 
   @@map("users")
 }
@@ -246,6 +259,7 @@ model Job {
   signature   String?
   jobCardRef  String     @unique @map("job_card_ref")
   alerts      AlertType[]
+  version     Int        @default(0)
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
@@ -258,9 +272,9 @@ model Job {
   comments      Comment[]
   history       HistoryEntry[]
   recurring     RecurringSchedule?
-  gasUsageRecords GasUsageRecord[]
-  consumables   Consumable[]
-  auditLogs     AuditLog[]
+   gasUsageRecords GasUsageRecord[] @relation("GasUsageOfJob")
+   consumables   Consumable[]   @relation("ConsumableOfJob")
+   auditLogs     AuditLog[]     @relation("AuditLogOfJob")
 
   @@map("jobs")
 }
@@ -340,29 +354,37 @@ model GasStockItem {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  usageRecords GasUsageRecord[]
+  usageRecords GasUsageRecord[] @relation("GasUsageRecords")
 
-  @@map("gas_stock")
-}
+   @@map("gas_stock")
+   // CHECK constraints added via migration
+   // @@check([remaining >= 0])
+   // @@check([quantity >= 0])
+ }
 
 model GasUsageRecord {
   id           String   @id @default(cuid())
-  stockId      String   @map("stock_id")
+  stockId      String?  @map("stock_id")
   gasType      String   @map("gas_type")
   quantityUsed Float    @map("quantity_used")
-  usedBy       String   @map("used_by")
-  jobId        String   @map("job_id")
+  usedBy       String?  @map("used_by")
+  jobId        String?  @map("job_id")
   customer     String
   date         String
   time         String
   purpose      String
   createdAt    DateTime @default(now()) @map("created_at")
 
-  stockItem GasStockItem @relation(fields: [stockId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [usedBy], references: [id], onDelete: Cascade)
-  job       Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stockItem GasStockItem? @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: SetNull)
+  user      User?         @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
+  job       Job?          @relation("GasUsageOfJob", fields: [jobId], references: [id], onDelete: SetNull)
 
   @@map("gas_usage")
+  // CHECK constraints added via migration
+  // @@check([quantityUsed >= 0])
+  @@index([jobId])
+  @@index([stockId])
+  @@index([usedBy])
 }
 
 model CRMRecord {
@@ -388,7 +410,7 @@ model CRMRecord {
 
 model Consumable {
   id         String          @id @default(cuid())
-  jobId      String          @map("job_id")
+  jobId      String?         @map("job_id")
   type       ConsumableType
   name       String
   brand      String?
@@ -396,19 +418,21 @@ model Consumable {
   quantity   Float
   unit       String
   notes      String?
-  recordedBy String          @map("recorded_by")
+  recordedBy String?         @map("recorded_by")
   recordedAt DateTime        @default(now()) @map("recorded_at")
 
-  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [recordedBy], references: [id], onDelete: Cascade)
+  job  Job?  @relation("ConsumableOfJob", fields: [jobId], references: [id], onDelete: SetNull)
+  user User? @relation("ConsumableRecordedBy", fields: [recordedBy], references: [id], onDelete: SetNull)
 
   @@index([jobId])
+  @@index([recordedBy])
   @@map("consumables")
+  // @@check([quantity >= 0])
 }
 
 model AuditLog {
   id        String      @id @default(cuid())
-  userId    String      @map("user_id")
+  userId    String?     @map("user_id")
   userName  String      @map("user_name")
   action    AuditAction
   jobId     String?     @map("job_id")
@@ -417,10 +441,11 @@ model AuditLog {
   accuracy  Float?
   ipAddress String?     @map("ip_address")
   userAgent String?     @map("user_agent")
+  reason    String?
   createdAt DateTime    @default(now()) @map("created_at")
 
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job  Job?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user User? @relation("AuditLogByUser", fields: [userId], references: [id], onDelete: SetNull)
+  job  Job? @relation("AuditLogOfJob", fields: [jobId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([jobId])

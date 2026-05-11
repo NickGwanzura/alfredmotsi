@@ -109,6 +109,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [gasSubmitting, setGasSubmitting] = useState(false);
   const [gasSuccess, setGasSuccess] = useState<string | null>(null);
   const [gasError, setGasError] = useState<string | null>(null);
+  const [gasMismatchWarning, setGasMismatchWarning] = useState<string | null>(null);
 
   // Deletion (admin)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -193,9 +194,8 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
       const data = await res.json();
       if (res.ok) {
         setGasSuccess(`${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
-        setGasForm({ stockId: '', quantityUsed: '', purpose: '' });
-        setShowGasLog(false);
-        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s));
+        setGasError(null);
+        setGasMismatchWarning(null);
         if (selected) {
           const currentType = (diag.refrigerantType || '').trim();
           const loggedType = (selected.gasType || '').trim();
@@ -205,9 +205,12 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           } else if (currentType === loggedType) {
             setD('refrigerantUsed', (diag.refrigerantUsed || 0) + qty);
           } else {
-            setGasError(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`);
+            setGasMismatchWarning(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`);
           }
         }
+        setGasForm({ stockId: '', quantityUsed: '', purpose: '' });
+        setShowGasLog(false);
+        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s));
       } else {
         setGasError(data.error || 'Failed to record gas usage.');
       }
@@ -339,8 +342,14 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     }
   };
 
-  // Calculate refrigerant totals for ODS tab
-  const refrigerantNet = (diag.refrigerantUsed || 0) - (diag.refrigerantRecovered || 0);
+  // Calculate refrigerant totals for ODS tab. Coerce in case the API returns
+  // strings (Prisma Decimal columns deserialize as strings) — otherwise
+  // string subtraction yields NaN.
+  const toNum = (v: unknown): number => {
+    const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const refrigerantNet = toNum(diag.refrigerantUsed) - toNum(diag.refrigerantRecovered);
 
   return (
     <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -967,6 +976,13 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   </div>
                 )}
 
+                {gasMismatchWarning && (
+                  <div className="notif notif-w" style={{ marginBottom: 12 }}>
+                    <div className="notif-title">Refrigerant type mismatch</div>
+                    <div className="notif-body">{gasMismatchWarning}</div>
+                  </div>
+                )}
+
                 {showGasLog && (() => {
                   const sortedStock = [...gasStock].sort((a, b) => {
                     const aEmpty = a.remaining <= 0 ? 1 : 0;
@@ -1092,11 +1108,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 <SectionTitle>Summary</SectionTitle>
                 <div className="g3">
                   <div className="ods-stat">
-                    <p className="ods-stat-v">{diag.refrigerantRecovered?.toFixed(1) || "0.0"} kg</p>
+                    <p className="ods-stat-v">{toNum(diag.refrigerantRecovered).toFixed(1)} kg</p>
                     <p className="ods-stat-l">Total Recovered</p>
                   </div>
                   <div className="ods-stat">
-                    <p className="ods-stat-v">{diag.refrigerantUsed?.toFixed(1) || "0.0"} kg</p>
+                    <p className="ods-stat-v">{toNum(diag.refrigerantUsed).toFixed(1)} kg</p>
                     <p className="ods-stat-l">Total Used</p>
                   </div>
                   <div className="ods-stat">

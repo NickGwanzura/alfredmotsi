@@ -52,23 +52,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Generate portal code
-    const portalCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+   // Generate portal code
+   const portalCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const customer = await prisma.customer.create({
-      data: {
-        name,
-        address,
-        siteAddress: siteAddress || null,
-        phone,
-        whatsapp: whatsapp || null,
-        email,
-        portalCode,
-        portalEnabled: false,
-      },
-    });
+   const user = session.user as { id: string; name?: string | null };
+   const customer = await prisma.customer.create({
+     data: {
+       name,
+       address,
+       siteAddress: siteAddress || null,
+       phone,
+       whatsapp: whatsapp || null,
+       email,
+       portalCode,
+       portalEnabled: false,
+     },
+   });
 
-    return NextResponse.json(customer, { status: 201 });
+   // Audit log
+   await prisma.auditLog.create({
+     data: {
+       userId: user.id,
+       userName: user.name || 'Unknown',
+       action: 'create_customer',
+       jobId: null,
+       reason: `Customer created: ${name} (${email})`,
+       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                  request.headers.get('x-real-ip') || null,
+       userAgent: request.headers.get('user-agent') || null,
+     },
+   }).catch(() => {});
+
+   return NextResponse.json(customer, { status: 201 });
   } catch (error) {
     console.error('Error creating customer:', error);
     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });

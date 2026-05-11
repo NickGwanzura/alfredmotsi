@@ -47,6 +47,20 @@ export async function PATCH(
     select: { id: true, name: true, email: true, role: true, phone: true, specialty: true },
   });
 
+  // Audit
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      userName: (session.user as any).name || 'Unknown',
+      action: 'update_user',
+      jobId: null,
+      reason: `User updated: ${name || user.name} (${email || user.email})`,
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                request.headers.get('x-real-ip') || null,
+      userAgent: request.headers.get('user-agent') || null,
+    },
+  }).catch(() => {});
+
   return NextResponse.json({ user });
 }
 
@@ -64,7 +78,24 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
   }
 
+  const targetUser = await prisma.user.findUnique({ where: { id } });
+  if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
   await prisma.user.delete({ where: { id } });
+
+  // Audit
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      userName: (session.user as any).name || 'Unknown',
+      action: 'delete_user',
+      jobId: null,
+      reason: `User deleted: ${targetUser.name} (${targetUser.email})`,
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                request.headers.get('x-real-ip') || null,
+      userAgent: request.headers.get('user-agent') || null,
+    },
+  }).catch(() => {});
 
   return NextResponse.json({ success: true });
 }

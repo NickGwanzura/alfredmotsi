@@ -216,6 +216,23 @@ export default function Home() {
     }
   };
 
+  const deleteJob = async (jobId: string, reason: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) return false;
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      setSelectedJob(null);
+      return true;
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      return false;
+    }
+  };
+
   const addJob = async (newJob: Job) => {
     try {
       const res = await fetch('/api/jobs', {
@@ -632,6 +649,7 @@ export default function Home() {
           gasUsage={gasUsage}
           onClose={() => setSelectedJob(null)}
           onUpdate={updateJob}
+          onDelete={isAdmin ? deleteJob : undefined}
           onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
         />
       )}

@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { TYPE_CFG, ALERT_CFG, TECH_STATUS } from '@/app/lib/config';
-import { StatusTag, SectionTitle, Avatar } from './ui';
+import { StatusTag, SectionTitle, Avatar, Notification } from './ui';
+import { Email } from '@carbon/icons-react';
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -16,10 +17,13 @@ const today = new Date();
 const todayStr = today.toISOString().split("T")[0];
 
 export default function AdminDashboard({ jobs, techs, customers, onJobClick }: AdminDashboardProps) {
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ ok: boolean; sent?: number; total?: number; error?: string } | null>(null);
+
   const todayJobs = jobs.filter(j => j.date === todayStr);
   const alertJobs = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed");
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
-  
+
   const stats = [
     { label: "Total jobs", v: jobs.length },
     { label: "On site now", v: jobs.filter(j => j.status === "on-site").length },
@@ -27,13 +31,49 @@ export default function AdminDashboard({ jobs, techs, customers, onJobClick }: A
     { label: "Completed", v: jobs.filter(j => j.status === "completed").length },
   ];
 
+  const sendAnnouncement = async () => {
+    setSending(true);
+    setSendResult(null);
+    try {
+      const res = await fetch('/api/admin/announce-big-fixes', { method: 'POST' });
+      const data = await res.json();
+      setSendResult(data);
+    } catch (err: any) {
+      setSendResult({ ok: false, error: err.message });
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="fi-anim">
-      <div className="page-hdr">
-        <h1>Dashboard</h1>
-        <p>Splash Air Conditioning — field operations overview</p>
+      <div className="page-hdr" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <h1>Dashboard</h1>
+          <p>Splash Air Conditioning — field operations overview</p>
+        </div>
+        <button
+          className="btn btn-p btn-sm"
+          onClick={sendAnnouncement}
+          disabled={sending}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          <Email size={16} />
+          {sending ? 'Sending…' : 'Send Big Fixes Email'}
+        </button>
       </div>
-      
+
+      {sendResult && (
+        <div className={`notif ${sendResult.ok ? 'notif-s' : 'notif-e'}`} style={{ marginBottom: 'var(--s4)' }}>
+          <div className="notif-title">{sendResult.ok ? 'Email Sent' : 'Failed to Send'}</div>
+          <div className="notif-body">
+            {sendResult.ok
+              ? `Sent ${sendResult.sent} of ${sendResult.total} emails successfully.`
+              : sendResult.error || 'An error occurred'}
+          </div>
+        </div>
+      )}
+
       {unallocatedCount > 0 && (
         <div 
           className="unalloc-badge" 

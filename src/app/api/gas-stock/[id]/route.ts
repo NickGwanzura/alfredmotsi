@@ -11,7 +11,7 @@ export async function PATCH(
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = session.user as { id: string; role: string };
+    const user = session.user as { id: string; name?: string; role: string };
     if (user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { id } = await params;
@@ -30,28 +30,24 @@ export async function PATCH(
       data: { remaining: qty },
     });
 
-    // Log the manual adjustment in gas usage records for audit trail
+    // Log the manual adjustment directly in audit_logs (no fake jobId needed)
     if (reason) {
       const original = await prisma.gasStockItem.findUnique({ where: { id } });
       if (original && original.remaining !== qty) {
-        const diff = original.remaining - qty;
-        if (diff > 0) {
-          await prisma.gasUsageRecord.create({
-            data: {
-              stockId: id,
-              gasType: updated.gasType,
-              quantityUsed: diff,
-              usedBy: user.id,
-              jobId: 'admin-adjustment',
-              customer: 'Admin Adjustment',
-              date: new Date().toISOString().split('T')[0],
-              time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-              purpose: reason || 'Manual stock adjustment',
-            },
-          }).catch(() => {
-            // Non-critical — don't fail the PATCH if usage record creation fails
-          });
-        }
+        await prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            userName: user.name || 'Admin',
+            action: 'adjust_stock',
+            jobId: null,
+            reason: `Stock adjustment for ${original.gasType} ${original.brand}: ${original.remaining} → ${qty} ${original.unit}. Reason: ${reason}`,
+            ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                      request.headers.get('x-real-ip') || null,
+            userAgent: request.headers.get('user-agent') || null,
+          },
+        }).catch(() => {
+          // Non-critical — don't fail PATCH if audit write fails
+        });
       }
     }
 
@@ -64,18 +60,37 @@ export async function PATCH(
 
 // DELETE /api/gas-stock/[id] - Admin: remove a stock item
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = session.user as { id: string; role: string };
+    const user = session.user as { id: string; name?: string; role: string };
     if (user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { id } = await params;
+    // Fetch item details for audit before deletion
+    const item = await prisma.gasStockItem.findUnique({ where: { id } });
+    if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
     await prisma.gasStockItem.delete({ where: { id } });
+
+    // Audit
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name || 'Unknown',
+        action: 'delete_gas_stock',
+        jobId: null,
+        reason: `Gas stock deleted: ${item.quantity} ${item.unit} of ${item.gasType} ${item.brand}`,
+        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                  request.headers.get('x-real-ip') || null,
+        userAgent: request.headers.get('user-agent') || null,
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting gas stock:', error);

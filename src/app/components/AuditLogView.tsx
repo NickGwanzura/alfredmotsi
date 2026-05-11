@@ -18,10 +18,11 @@ interface AuditLogResponse {
 const PAGE_SIZE = 50;
 
 const ACTION_CONFIG: Record<string, { label: string; color: string }> = {
-  login:        { label: 'Login',        color: 'var(--cds-interactive)' },
-  view_job:     { label: 'Viewed Job',   color: 'var(--cds-support-success)' },
-  edit_job:     { label: 'Edited Job',   color: '#f1c21b' },
-  complete_job: { label: 'Completed Job',color: '#8a3ffc' },
+  login:        { label: 'Login',         color: 'var(--cds-interactive)' },
+  view_job:     { label: 'Viewed Job',    color: 'var(--cds-support-success)' },
+  edit_job:     { label: 'Edited Job',    color: '#f1c21b' },
+  complete_job: { label: 'Completed Job', color: '#8a3ffc' },
+  delete_job:   { label: 'Deleted Job',   color: 'var(--cds-support-error, #da1e28)' },
 };
 
 function formatDateTime(iso: string): string {
@@ -210,6 +211,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             <option value="view_job">Viewed Job</option>
             <option value="edit_job">Edited Job</option>
             <option value="complete_job">Completed Job</option>
+            <option value="delete_job">Deleted Job</option>
           </select>
         </div>
 
@@ -287,6 +289,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
                 </span>
               </th>
               <th style={{ minWidth: 110 }}>Job ID</th>
+              <th style={{ minWidth: 180 }}>Reason</th>
               <th style={{ minWidth: 120 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <Location size={13} /> Location
@@ -298,7 +301,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} style={{ padding: 0, border: 0 }}>
+                <td colSpan={7} style={{ padding: 0, border: 0 }}>
                   <Spinner />
                 </td>
               </tr>
@@ -307,7 +310,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             {!loading && logs.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   style={{
                     textAlign: 'center',
                     padding: 'var(--s8, 48px)',
@@ -354,6 +357,25 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
                   {/* Job ID */}
                   <td style={{ fontSize: 12, color: 'var(--cds-text-secondary)', fontFamily: 'monospace' }}>
                     {log.jobId ?? '—'}
+                  </td>
+
+                  {/* Reason */}
+                  <td
+                    style={{ fontSize: 12, color: 'var(--cds-text-secondary)', maxWidth: 260 }}
+                    title={log.reason ?? undefined}
+                  >
+                    {log.reason ? (
+                      <span style={{
+                        display: 'inline-block',
+                        maxWidth: 240,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        verticalAlign: 'middle',
+                      }}>
+                        {log.reason}
+                      </span>
+                    ) : '—'}
                   </td>
 
                   {/* Location */}

@@ -48,25 +48,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      role,
-      password: hashedPassword,
-      passwordChanged: false, // New users must change their temp password
-      phone: phone || null,
-      specialty: specialty || null,
-      status: role === 'tech' ? 'available' : null,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
-  });
+   const user = await prisma.user.create({
+     data: {
+       name,
+       email,
+       role,
+       password: hashedPassword,
+       passwordChanged: false, // New users must change temp password
+       phone: phone || null,
+       specialty: specialty || null,
+       status: role === 'tech' ? 'available' : null,
+     },
+     select: {
+       id: true,
+       name: true,
+       email: true,
+       role: true,
+       createdAt: true,
+     },
+   });
 
-  return NextResponse.json({ user }, { status: 201 });
+   // Audit
+   await prisma.auditLog.create({
+     data: {
+       userId: session.user.id,
+       userName: (session.user as any).name || 'Unknown',
+       action: 'create_user',
+       jobId: null,
+       reason: `User created: ${name} (${email}, ${role})`,
+       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                 request.headers.get('x-real-ip') || null,
+       userAgent: request.headers.get('user-agent') || null,
+     },
+   }).catch(() => {});
+
+   return NextResponse.json({ user }, { status: 201 });
 }

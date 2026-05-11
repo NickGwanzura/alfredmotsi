@@ -48,49 +48,56 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check if stock item exists and has enough remaining
-    const stockItem = await prisma.gasStockItem.findUnique({
-      where: { id: stockId },
-    });
+    let usageRecord: any;
+    try {
+      usageRecord = await prisma.$transaction(async (tx) => {
+        // Atomic conditional update: decrement only if remaining >= qty
+        const affected = await tx.$executeRaw`
+          UPDATE "gas_stock"
+          SET "remaining" = "remaining" - ${qty}
+          WHERE "id" = ${stockId} AND "remaining" >= ${qty}
+        `;
 
-    if (!stockItem) {
-      return NextResponse.json(
-        { error: 'Gas stock item not found' },
-        { status: 404 }
-      );
-    }
+        if (affected === 0) {
+          const stockItem = await tx.gasStockItem.findUnique({ where: { id: stockId } });
+          if (!stockItem) {
+            const e = new Error('Gas stock item not found');
+            (e as any).code = 'STOCK_NOT_FOUND';
+            throw e;
+          }
+          const e = new Error('Insufficient stock');
+          (e as any).code = 'INSUFFICIENT_STOCK';
+          (e as any).remaining = stockItem.remaining;
+          (e as any).unit = stockItem.unit;
+          throw e;
+        }
 
-    if (stockItem.remaining < qty) {
-      return NextResponse.json(
-        { error: `Insufficient stock. Only ${stockItem.remaining} ${stockItem.unit} remaining` },
-        { status: 400 }
-      );
-    }
-
-    // Create usage record and update stock in a transaction
-    const [usageRecord] = await prisma.$transaction([
-      prisma.gasUsageRecord.create({
-        data: {
-          stockId,
-          gasType,
-          quantityUsed: qty,
-          usedBy: session.user.id!,
-          jobId,
-          customer,
-          date: new Date().toISOString().split('T')[0],
-          time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-          purpose: purpose || '',
-        },
-      }),
-      prisma.gasStockItem.update({
-        where: { id: stockId },
-        data: {
-          remaining: {
-            decrement: qty,
+        // Create usage record
+        return await tx.gasUsageRecord.create({
+          data: {
+            stockId,
+            gasType,
+            quantityUsed: qty,
+            usedBy: session.user.id!,
+            jobId,
+            customer,
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+            purpose: purpose || '',
           },
-        },
-      }),
-    ]);
+        });
+      });
+    } catch (txError: any) {
+      if ((txError as any).code === 'STOCK_NOT_FOUND') {
+        return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+      }
+      if ((txError as any).code === 'INSUFFICIENT_STOCK') {
+        const remaining = (txError as any).remaining ?? 0;
+        const unit = (txError as any).unit ?? 'kg';
+        return NextResponse.json({ error: `Insufficient stock. Only ${remaining} ${unit} remaining` }, { status: 400 });
+      }
+      throw txError; // rethrow for outer catch
+    }
 
     return NextResponse.json(usageRecord, { status: 201 });
   } catch (error) {

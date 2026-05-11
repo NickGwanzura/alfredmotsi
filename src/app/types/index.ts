@@ -187,7 +187,7 @@ export interface Consumable {
   recordedAt: string;
 }
 
-export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job';
+export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user';
 
 export interface AuditLogEntry {
   id: string;
@@ -200,6 +200,7 @@ export interface AuditLogEntry {
   accuracy?: number | null;
   ipAddress?: string | null;
   userAgent?: string | null;
+  reason?: string | null;
   createdAt: string;
 }
 

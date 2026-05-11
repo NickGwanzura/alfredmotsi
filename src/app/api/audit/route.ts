@@ -11,7 +11,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { action, jobId, latitude, longitude, accuracy } = body;
 
-    const validActions = ['login', 'view_job', 'edit_job', 'complete_job'];
+    const validActions = [
+      'login', 'view_job', 'edit_job', 'complete_job', 'delete_job',
+      'adjust_stock',
+      'create_customer', 'update_customer', 'delete_customer',
+      'create_gas_stock', 'update_gas_stock', 'delete_gas_stock',
+      'create_consumable', 'delete_consumable',
+      'create_user', 'update_user', 'delete_user',
+    ];
     if (!action || !validActions.includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

@@ -537,7 +537,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           </div>
           
           <!-- ODS / Refrigerant Data -->
-          ${diag.refrigerantType || diag.refrigerantUsed || diag.refrigerantRecovered ? `
+          ${(diag.refrigerantType && diag.refrigerantType.trim() !== '') || diag.refrigerantUsed != null || diag.refrigerantRecovered != null || diag.refrigerantReused != null ? `
           <div class="print-ods-section">
             <div class="print-ods-header">
               <div class="print-ods-icon">🌿</div>

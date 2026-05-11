@@ -36,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Techs can only add consumables to jobs they are assigned to
-  const user = session.user as { id: string; role: string };
+  const user = session.user as { id: string; name?: string; role: string };
   if (user.role !== 'admin') {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
@@ -47,19 +47,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!assigned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const consumable = await prisma.consumable.create({
-    data: {
-      jobId,
-      type,
-      name,
-      brand: brand || null,
-      model: model || null,
-      quantity: parseFloat(quantity),
-      unit,
-      notes: notes || null,
-      recordedBy: user.id,
-    },
-  });
+   const consumable = await prisma.consumable.create({
+     data: {
+       jobId,
+       type,
+       name,
+       brand: brand || null,
+       model: model || null,
+       quantity: parseFloat(quantity),
+       unit,
+       notes: notes || null,
+       recordedBy: user.id,
+     },
+   });
 
-  return NextResponse.json(consumable, { status: 201 });
+   // Audit
+   await prisma.auditLog.create({
+     data: {
+       userId: user.id,
+       userName: user.name || 'Unknown',
+       action: 'create_consumable',
+       jobId,
+       reason: `Consumable added: ${quantity} ${unit} of ${name} (${type})`,
+       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                 request.headers.get('x-real-ip') || null,
+       userAgent: request.headers.get('user-agent') || null,
+     },
+   }).catch(() => {});
+
+   return NextResponse.json(consumable, { status: 201 });
 }
