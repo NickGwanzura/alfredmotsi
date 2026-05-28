@@ -97,6 +97,23 @@ export interface Job {
   history: HistoryEntry[];
 }
 
+export interface JobAttachment {
+  id: string;
+  jobId: string;
+  fileName: string;
+  contentType: string;
+  size: number | null;
+  dataUrl: string | null;
+  url: string | null;
+  note: string | null;
+  uploadedBy: string | null;
+  uploadedAt: string;
+  uploader?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
 export interface GasStockItem {
   id: string;
   gasType: string;
@@ -169,7 +186,7 @@ export interface PriorityTagConfig {
   txt: string;
 }
 
-export type PageId = 'home' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log';
+export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log';
 
 export type ConsumableType = 'gas' | 'compressor' | 'part' | 'other';
 

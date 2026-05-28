@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Customer, Job } from '@/app/types';
+import { Customer, Job, User } from '@/app/types';
 import { TYPE_CFG } from '@/app/lib/config';
+import { canManageCustomers } from '@/app/lib/permissions';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
 import { sendPortalInviteEmail } from '@/app/lib/email/client';
 import { StatusTag, SectionTitle, Avatar, Notification } from './ui';
@@ -11,6 +12,7 @@ import { Add, Edit, Chat, Email, UserMultiple, ChevronRight, Close, Send, Checkm
 interface CustomerDBProps {
   customers: Customer[];
   jobs: Job[];
+  currentUser: User;
   onJobClick: (job: Job) => void;
   onEditCustomer?: (customer: Customer) => void;
   onAddCustomer?: (customer: Customer) => void;
@@ -27,7 +29,8 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-export default function CustomerDB({ customers, jobs, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
+export default function CustomerDB({ customers, jobs, currentUser, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
+  if (!canManageCustomers(currentUser.role)) return null;
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Customer | null>(null);
   const [compose, setCompose] = useState<Compose>(null);

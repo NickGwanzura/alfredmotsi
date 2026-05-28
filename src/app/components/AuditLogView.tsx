@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Location, User as UserIcon, Time, Document, Filter } from '@carbon/icons-react';
-import { User, AuditLogEntry } from '@/app/types';
+import { User, AuditLogEntry, AuditAction } from '@/app/types';
 
 interface AuditLogViewProps {
   techs: User[];
@@ -17,13 +17,28 @@ interface AuditLogResponse {
 
 const PAGE_SIZE = 50;
 
-const ACTION_CONFIG: Record<string, { label: string; color: string }> = {
-  login:        { label: 'Login',         color: 'var(--cds-interactive)' },
-  view_job:     { label: 'Viewed Job',    color: 'var(--cds-support-success)' },
-  edit_job:     { label: 'Edited Job',    color: '#f1c21b' },
-  complete_job: { label: 'Completed Job', color: '#8a3ffc' },
-  delete_job:   { label: 'Deleted Job',   color: 'var(--cds-support-error, #da1e28)' },
+const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; group: string }> = {
+  login:            { label: 'Login',              color: 'var(--cds-interactive)', group: 'Access' },
+  view_job:         { label: 'Viewed Job',         color: 'var(--cds-support-success)', group: 'Jobs' },
+  edit_job:         { label: 'Edited Job',         color: '#f1c21b', group: 'Jobs' },
+  complete_job:     { label: 'Completed Job',      color: '#8a3ffc', group: 'Jobs' },
+  delete_job:       { label: 'Deleted Job',        color: 'var(--cds-support-error, #da1e28)', group: 'Jobs' },
+  adjust_stock:     { label: 'Adjusted Stock',     color: '#ff832b', group: 'Stock' },
+  create_customer:  { label: 'Created Customer',   color: '#1192e8', group: 'Customers' },
+  update_customer:  { label: 'Updated Customer',   color: '#0f62fe', group: 'Customers' },
+  delete_customer:  { label: 'Deleted Customer',   color: 'var(--cds-support-error, #da1e28)', group: 'Customers' },
+  create_gas_stock: { label: 'Created Gas Stock',  color: '#007d79', group: 'Stock' },
+  update_gas_stock: { label: 'Updated Gas Stock',  color: '#005d5d', group: 'Stock' },
+  delete_gas_stock: { label: 'Deleted Gas Stock',  color: 'var(--cds-support-error, #da1e28)', group: 'Stock' },
+  create_consumable:{ label: 'Added Consumable',   color: '#007d79', group: 'Consumables' },
+  delete_consumable:{ label: 'Deleted Consumable', color: 'var(--cds-support-error, #da1e28)', group: 'Consumables' },
+  create_user:      { label: 'Created User',       color: '#6929c4', group: 'Users' },
+  update_user:      { label: 'Updated User',       color: '#8a3ffc', group: 'Users' },
+  delete_user:      { label: 'Deleted User',       color: 'var(--cds-support-error, #da1e28)', group: 'Users' },
 };
+
+const ACTION_OPTIONS = Object.entries(ACTION_CONFIG) as Array<[AuditAction, typeof ACTION_CONFIG[AuditAction]]>;
+const DESTRUCTIVE_ACTIONS = new Set<AuditAction>(['delete_job', 'delete_customer', 'delete_gas_stock', 'delete_consumable', 'delete_user']);
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -74,6 +89,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const [filterAction, setFilterAction] = useState('');
   const [filterFrom,   setFilterFrom]   = useState('');
   const [filterTo,     setFilterTo]     = useState('');
+  const [filterJobId,  setFilterJobId]  = useState('');
 
   const fetchLogs = useCallback(async (targetPage: number) => {
     setLoading(true);
@@ -86,6 +102,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       if (filterAction) params.set('action', filterAction);
       if (filterFrom)   params.set('from', filterFrom);
       if (filterTo)     params.set('to', filterTo);
+      if (filterJobId.trim()) params.set('jobId', filterJobId.trim());
 
       const res = await fetch(`/api/audit?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to load audit logs');
@@ -99,7 +116,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [filterUser, filterAction, filterFrom, filterTo]);
+  }, [filterUser, filterAction, filterFrom, filterTo, filterJobId]);
 
   // Re-fetch when filters change (reset to page 1)
   useEffect(() => {
@@ -123,9 +140,22 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
     setFilterAction('');
     setFilterFrom('');
     setFilterTo('');
+    setFilterJobId('');
   }
 
-  const hasFilters = filterUser || filterAction || filterFrom || filterTo;
+  function applyDateRange(days: number) {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(to.getDate() - days + 1);
+    setFilterFrom(from.toISOString().split('T')[0]);
+    setFilterTo(to.toISOString().split('T')[0]);
+  }
+
+  const hasFilters = filterUser || filterAction || filterFrom || filterTo || filterJobId;
+  const loadedWithLocation = logs.filter(log => log.latitude != null && log.longitude != null).length;
+  const loadedDestructive = logs.filter(log => DESTRUCTIVE_ACTIONS.has(log.action)).length;
+  const loadedUsers = new Set(logs.map(log => log.userId)).size;
+  const latestLog = logs[0]?.createdAt;
 
   return (
     <div className="fi-anim">
@@ -146,18 +176,22 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       </div>
 
       {/* Stats strip */}
-      <div className="g3" style={{ marginBottom: 'var(--s6)' }}>
+      <div className="g4" style={{ marginBottom: 'var(--s6)' }}>
         <div className="tile">
           <div className="stat-v">{total}</div>
-          <div className="stat-l">Total Records</div>
+          <div className="stat-l">{hasFilters ? 'Matching records' : 'Total records'}</div>
         </div>
         <div className="tile">
-          <div className="stat-v">{pages}</div>
-          <div className="stat-l">Pages</div>
+          <div className="stat-v">{loadedUsers}</div>
+          <div className="stat-l">Users on page</div>
         </div>
         <div className="tile">
-          <div className="stat-v">{page}</div>
-          <div className="stat-l">Current Page</div>
+          <div className="stat-v">{loadedWithLocation}</div>
+          <div className="stat-l">With location</div>
+        </div>
+        <div className="tile">
+          <div className="stat-v">{loadedDestructive}</div>
+          <div className="stat-l">Destructive actions</div>
         </div>
       </div>
 
@@ -175,6 +209,12 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--cds-text-secondary)', marginRight: 4 }}>
           <Filter size={14} />
           <span style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em' }}>Filters</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 4, alignSelf: 'flex-end' }}>
+          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(1)}>Today</button>
+          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(7)}>7 days</button>
+          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(30)}>30 days</button>
         </div>
 
         {/* User filter */}
@@ -207,12 +247,24 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             style={{ minWidth: 160 }}
           >
             <option value="">All actions</option>
-            <option value="login">Login</option>
-            <option value="view_job">Viewed Job</option>
-            <option value="edit_job">Edited Job</option>
-            <option value="complete_job">Completed Job</option>
-            <option value="delete_job">Deleted Job</option>
+            {ACTION_OPTIONS.map(([value, cfg]) => (
+              <option key={value} value={value}>{cfg.group} · {cfg.label}</option>
+            ))}
           </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 180 }}>
+          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Document size={11} /> Job ID
+          </label>
+          <input
+            type="search"
+            className="inp"
+            value={filterJobId}
+            onChange={e => setFilterJobId(e.target.value)}
+            placeholder="Exact job id"
+            style={{ minWidth: 180 }}
+          />
         </div>
 
         {/* Date from */}
@@ -253,6 +305,17 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           </button>
         )}
       </div>
+
+      {!loading && logs.length > 0 && (
+        <div className="notif notif-i" style={{ marginBottom: 'var(--s4)' }}>
+          <div>
+            <div className="notif-title">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</div>
+            <div className="notif-body">
+              Latest activity {latestLog ? formatDateTime(latestLog) : '—'} · Page {page} of {pages || 1}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {err && (
@@ -324,7 +387,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             )}
 
             {!loading && logs.map(log => {
-              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: 'var(--cds-text-secondary)' };
+              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: 'var(--cds-text-secondary)', group: 'Other' };
               const hasLocation = log.latitude != null && log.longitude != null;
 
               return (

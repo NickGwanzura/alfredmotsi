@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { GasUsageRecord } from '@/app/types';
+import { GasUsageRecord, User } from '@/app/types';
 import { SectionTitle } from './ui';
+import { canManageGasUsage } from '@/app/lib/permissions';
 
 interface GasUsageProps {
   usage: GasUsageRecord[];
+  currentUser: User;
   onExport?: () => void;
   onAdd?: (record: GasUsageRecord) => void;
   stock?: { id: string; gasType: string; remaining: number; unit: string }[];
@@ -13,7 +15,8 @@ interface GasUsageProps {
   jobs?: { id: string; title: string; jobCardRef: string }[];
 }
 
-export default function GasUsage({ usage, onExport, onAdd, stock, customers, jobs }: GasUsageProps) {
+export default function GasUsage({ usage, currentUser, onExport, onAdd, stock, customers, jobs }: GasUsageProps) {
+  if (!canManageGasUsage(currentUser.role)) return null;
   const [gasFilter, setGasFilter] = useState<string>('all');
 
   const gasTypes = useMemo(() => {

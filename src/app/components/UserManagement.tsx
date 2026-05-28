@@ -404,6 +404,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                         className="btn btn-s btn-sm"
                         onClick={() => openResend(u)}
                         title="Resend login credentials"
+                        aria-label="Resend login credentials"
                         style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                       >
                         <Email size={14} />
@@ -413,6 +414,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                           className="btn btn-d btn-sm"
                           onClick={() => openDelete(u)}
                           title="Remove user"
+                          aria-label="Remove user"
                           style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                         >
                           <TrashCan size={14} />

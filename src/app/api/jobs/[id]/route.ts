@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 
-// GET /api/jobs/[id] - Get single job
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
-    
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -35,7 +33,20 @@ export async function GET(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    return NextResponse.json(jobToClient(job as Record<string, unknown>));
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+
+    if (userRole !== 'admin') {
+      const isAssigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
+      if (!isAssigned) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    const clientJob = jobToClient({ ...job, customer: job.customer } as Record<string, unknown>);
+    const filtered = filterFinancialData(session, clientJob);
+
+    return NextResponse.json(filtered);
   } catch (error) {
     console.error('Error fetching job:', error);
     return NextResponse.json(
@@ -45,7 +56,6 @@ export async function GET(
   }
 }
 
-// PUT /api/jobs/[id] - Update job (including diagnostics, comments, history)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -55,6 +65,26 @@ export async function PUT(
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
+
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+      include: { technicians: { select: { id: true } }, coTechnicians: { select: { id: true } } },
+    });
+
+    if (!existingJob) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+
+    if (userRole !== 'admin') {
+      const assigned = [...existingJob.technicians, ...existingJob.coTechnicians].some(t => t.id === userId);
+      if (!assigned) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
 
     const {
@@ -68,7 +98,6 @@ export async function PUT(
     const updateData = jobFromClient(rawUpdate as Record<string, unknown>);
 
     const result = await prisma.$transaction(async (tx) => {
-      // Update job core fields with optimistic locking
       const whereClause: any = { id };
       if (_version !== undefined) whereClause.version = _version;
 
@@ -86,7 +115,6 @@ export async function PUT(
         },
       });
 
-      // Upsert diagnostics
       if (diagnostics) {
         await tx.diagnostics.upsert({
           where: { jobId: id },
@@ -95,7 +123,6 @@ export async function PUT(
         });
       }
 
-      // Handle recurring schedule (upsert)
       if (recurring) {
         await tx.recurringSchedule.upsert({
           where: { jobId: id },
@@ -103,11 +130,9 @@ export async function PUT(
           create: { jobId: id, ...(recurring as any) },
         });
       } else {
-        // If explicitly sent as null/undefined, delete any existing
         await tx.recurringSchedule.deleteMany({ where: { jobId: id } });
       }
 
-      // Replace comments if array provided
       if (Array.isArray(comments)) {
         await tx.comment.deleteMany({ where: { jobId: id } });
         for (const c of comments) {
@@ -122,7 +147,6 @@ export async function PUT(
         }
       }
 
-      // Replace history if array provided
       if (Array.isArray(history)) {
         await tx.historyEntry.deleteMany({ where: { jobId: id } });
         for (const h of history) {
@@ -136,7 +160,6 @@ export async function PUT(
         }
       }
 
-      // Fetch final job with all needed relations
       return await tx.job.findUnique({
         where: { id },
         include: {
@@ -149,7 +172,6 @@ export async function PUT(
     return NextResponse.json(jobToClient(result as Record<string, unknown>));
   } catch (error) {
     console.error('Error updating job:', error);
-    // Optimistic lock failure: version mismatch (no rows updated)
     if (error instanceof Error && error.message.includes('No records found')) {
       return NextResponse.json({ error: 'Job was modified by another user. Please refresh and retry.' }, { status: 409 });
     }
@@ -160,17 +182,16 @@ export async function PUT(
   }
 }
 
-// DELETE /api/jobs/[id] - Delete job (admin only, requires reason)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!session || (session.user as any).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const { id } = await params;
 
@@ -195,7 +216,6 @@ export async function DELETE(
       null;
     const userAgent = request.headers.get('user-agent') || null;
 
-    // Record audit entry and delete job atomically
     await prisma.$transaction([
       prisma.auditLog.create({
         data: {

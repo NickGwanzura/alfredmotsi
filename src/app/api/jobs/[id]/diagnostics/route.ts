@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// GET /api/jobs/[id]/diagnostics - Get job diagnostics
+async function verifyJobAccess(jobId: string, userId: string, userRole: string): Promise<NextResponse | null> {
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: { technicians: { select: { id: true } }, coTechnicians: { select: { id: true } } },
+  });
+  if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  if (userRole !== 'admin') {
+    const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
+    if (!assigned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,6 +24,10 @@ export async function GET(
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+    const accessError = await verifyJobAccess(id, userId, userRole);
+    if (accessError) return accessError;
 
     const diagnostics = await prisma.diagnostics.findUnique({
       where: { jobId: id },
@@ -28,7 +44,6 @@ export async function GET(
   }
 }
 
-// POST /api/jobs/[id]/diagnostics - Create or update diagnostics
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -37,12 +52,16 @@ export async function POST(
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = await params;
-    const body = await request.json();
+    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    if (forbidden) return forbidden;
 
-    // Validate job exists
-    const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    const { id } = await params;
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
+    const accessError = await verifyJobAccess(id, userId, userRole);
+    if (accessError) return accessError;
+
+    const body = await request.json();
 
     const {
       voltage, current, avgTemp, maxTemp, suction, discharge,

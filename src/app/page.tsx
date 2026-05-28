@@ -25,6 +25,11 @@ import AddGasUsageModal from '@/app/components/AddGasUsageModal';
 import AddCRMModal from '@/app/components/AddCRMModal';
 
 import { captureAudit } from '@/app/lib/audit/capture';
+import {
+  canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage,
+  canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
+  canViewFinancials, canViewReports
+} from '@/app/lib/permissions';
 
 // Carbon Icons
 import {
@@ -74,6 +79,7 @@ export default function Home() {
   const [printJob, setPrintJob] = useState<Job | null>(null);
   const [loginTime] = useState<Date>(new Date());
   const [sideNavOpen, setSideNavOpen] = useState(false);
+  const [fetchErrors, setFetchErrors] = useState<string[]>([]);
 
   // Add modal states
   const [showAddCustomer, setShowAddCustomer] = useState(false);
@@ -104,50 +110,56 @@ export default function Home() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      setFetchErrors([]);
+      const errors: string[] = [];
       
-      // Fetch jobs
       const jobsRes = await fetch('/api/jobs');
       if (jobsRes.ok) {
         const jobsData = await jobsRes.json();
         setJobs(jobsData);
+      } else {
+        errors.push('Failed to load jobs');
       }
       
-      // Fetch customers
       const customersRes = await fetch('/api/customers');
       if (customersRes.ok) {
         const customersData = await customersRes.json();
         setCustomers(customersData);
       }
       
-      // Fetch technicians
       const techsRes = await fetch('/api/users?role=tech');
       if (techsRes.ok) {
         const techsData = await techsRes.json();
         setTechs(techsData);
       }
       
-      // Fetch gas stock
       const gasStockRes = await fetch('/api/gas-stock');
       if (gasStockRes.ok) {
         const gasStockData = await gasStockRes.json();
         setGasStock(gasStockData);
+      } else {
+        errors.push('Failed to load gas stock');
       }
       
-      // Fetch gas usage
       const gasUsageRes = await fetch('/api/gas-usage');
       if (gasUsageRes.ok) {
         const gasUsageData = await gasUsageRes.json();
         setGasUsage(gasUsageData);
+      } else {
+        errors.push('Failed to load gas usage');
       }
       
-      // Fetch CRM records
       const crmRes = await fetch('/api/crm');
       if (crmRes.ok) {
         const crmData = await crmRes.json();
         setCrmRecords(crmData);
+      } else {
+        errors.push('Failed to load CRM records');
       }
+      
+      if (errors.length > 0) setFetchErrors(errors);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      setFetchErrors(['Network error — check your connection']);
     } finally {
       setIsLoading(false);
     }
@@ -184,8 +196,20 @@ export default function Home() {
   }
 
   const user = session.user;
-  console.log("[PAGE] User role:", user.role, "isAdmin check:", user.role === "admin");
+
+  const currentUser = user as User;
   const isAdmin = user.role === "admin";
+  const perm = {
+    canManageJobs: canManageJobs(user.role),
+    canManageCustomers: canManageCustomers(user.role),
+    canManageGasStock: canManageGasStock(user.role),
+    canManageGasUsage: canManageGasUsage(user.role),
+    canManageCRM: canManageCRM(user.role),
+    canViewODSReport: canViewODSReport(user.role),
+    canManageUsers: canManageUsers(user.role),
+    canViewAuditLog: canViewAuditLog(user.role),
+    canViewFinancials: canViewFinancials(user.role),
+  };
   const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
 
@@ -308,12 +332,21 @@ export default function Home() {
 
       const createdUsage = await res.json();
       setGasUsage(prev => [...prev, createdUsage]);
+
       // Refresh gas stock to get updated remaining amounts
       const stockRes = await fetch('/api/gas-stock');
       if (stockRes.ok) {
         const stockData = await stockRes.json();
         setGasStock(stockData);
       }
+
+      // Refresh jobs so ODS report totals (from diagnostics) update immediately
+      const jobsRes = await fetch('/api/jobs');
+      if (jobsRes.ok) {
+        const jobsData = await jobsRes.json();
+        setJobs(jobsData);
+      }
+
       setShowAddGasUsage(false);
       setNewGasUsage({});
     } catch (error) {
@@ -394,7 +427,7 @@ export default function Home() {
           {user.role?.toUpperCase() || "NO ROLE"}
         </span>
         
-        {unallocatedCount > 0 && isAdmin && (
+        {unallocatedCount > 0 && perm.canManageJobs && (
           <span style={{ 
             background: "var(--cds-support-warning)", 
             color: "#fff", 
@@ -453,7 +486,10 @@ export default function Home() {
             <div 
               key={n.id} 
               className={`snav-item ${page === n.id ? "active" : ""}`} 
+              role="button"
+              tabIndex={0}
               onClick={() => { setPage(n.id); setShowAddJob(false); setSideNavOpen(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPage(n.id); setShowAddJob(false); setSideNavOpen(false); } }}
             >
               <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <n.Icon size={18} />
@@ -467,7 +503,7 @@ export default function Home() {
             </div>
           ))}
           
-          {isAdmin && (
+          {perm.canManageJobs && (
             <>
               <div className="snav-div" />
               <p className="snav-sec">Actions</p>
@@ -503,6 +539,29 @@ export default function Home() {
       {/* Main Content */}
       <main className="content">
         <div className="page">
+          {fetchErrors.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              {fetchErrors.map((msg, i) => (
+                <div key={i} className="notif notif-e" role="alert" style={{ marginBottom: 4 }}>
+                  <span>{msg}</span>
+                  <button
+                    onClick={() => setFetchErrors([])}
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 4px' }}
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                className="btn btn-g btn-sm"
+                onClick={fetchData}
+                style={{ marginTop: 8 }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {isLoading ? (
             <div style={{ 
               display: 'flex', 
@@ -523,7 +582,7 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {showAddJob && isAdmin && (
+              {showAddJob && perm.canManageJobs && (
                 <AddJobModal 
                   techs={techs} 
                   customers={customers} 
@@ -533,21 +592,23 @@ export default function Home() {
                 />
               )}
               
-              {!showAddJob && page === "home" && isAdmin && (
+              {!showAddJob && page === "home" && perm.canManageJobs && (
                 <AdminDashboard 
                   jobs={jobs} 
                   techs={techs} 
                   customers={customers} 
+                  gasStock={gasStock}
+                  gasUsage={gasUsage}
                   onJobClick={setSelectedJob} 
                 />
               )}
               
-              {!showAddJob && page === "home" && !isAdmin && (
+              {!showAddJob && page === "home" && !perm.canManageJobs && (
                 <CalendarView 
                   jobs={jobs} 
                   techs={techs} 
                   customers={customers} 
-                  currentUser={user as any} 
+                  currentUser={currentUser} 
                   onJobClick={setSelectedJob} 
                 />
               )}
@@ -557,7 +618,7 @@ export default function Home() {
                   jobs={jobs} 
                   techs={techs} 
                   customers={customers} 
-                  currentUser={user as any} 
+                  currentUser={currentUser} 
                   onJobClick={setSelectedJob} 
                 />
               )}
@@ -567,17 +628,18 @@ export default function Home() {
                   jobs={jobs}
                   techs={techs}
                   customers={customers}
-                  currentUser={user as any}
+                  currentUser={currentUser}
                   gasUsage={gasUsage}
                   onJobClick={setSelectedJob}
-                  onAddJob={isAdmin ? () => setShowAddJob(true) : undefined}
+                  onAddJob={perm.canManageJobs ? () => setShowAddJob(true) : undefined}
                 />
               )}
               
-              {!showAddJob && page === "customers" && isAdmin && (
+              {!showAddJob && page === "customers" && perm.canManageCustomers && (
                 <CustomerDB 
                   customers={customers} 
                   jobs={jobs} 
+                  currentUser={currentUser}
                   onJobClick={setSelectedJob}
                   onAddCustomer={(customer) => {
                     setNewCustomer(customer);
@@ -586,9 +648,10 @@ export default function Home() {
                 />
               )}
               
-              {!showAddJob && page === "gas-stock" && isAdmin && (
+              {!showAddJob && page === "gas-stock" && perm.canManageGasStock && (
                 <GasStock
                   stock={gasStock}
+                  currentUser={currentUser}
                   onAdd={(item) => {
                     setNewGasStock(item);
                     setShowAddGasStock(true);
@@ -597,9 +660,10 @@ export default function Home() {
                 />
               )}
               
-              {!showAddJob && page === "gas-usage" && isAdmin && (
+              {!showAddJob && page === "gas-usage" && perm.canManageGasUsage && (
                 <GasUsage 
                   usage={gasUsage}
+                  currentUser={currentUser}
                   stock={gasStock.map(s => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
                   customers={customers.map(c => ({ id: c.id, name: c.name }))}
                   jobs={jobs.map(j => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
@@ -610,7 +674,7 @@ export default function Home() {
                 />
               )}
               
-              {!showAddJob && page === "crm" && isAdmin && (
+              {!showAddJob && page === "crm" && perm.canManageCRM && (
                 <CRM 
                   records={crmRecords}
                   customers={customers}
@@ -621,18 +685,19 @@ export default function Home() {
                 />
               )}
               
-              {!showAddJob && page === "ods-report" && isAdmin && (
+              {!showAddJob && page === "ods-report" && perm.canViewODSReport && (
                 <ODSReport
                   jobs={jobs}
                   customers={customers}
+                  currentUser={currentUser}
                 />
               )}
 
-              {!showAddJob && page === "users" && isAdmin && (
+              {!showAddJob && page === "users" && perm.canManageUsers && (
                 <UserManagement currentUserId={user.id!} />
               )}
 
-              {!showAddJob && page === "audit-log" && isAdmin && (
+              {!showAddJob && page === "audit-log" && perm.canViewAuditLog && (
                 <AuditLogView techs={techs} />
               )}
             </>
@@ -645,11 +710,11 @@ export default function Home() {
         <JobCardModal
           job={selectedJob}
           customers={customers}
-          currentUser={user as any}
+          currentUser={currentUser}
           gasUsage={gasUsage}
           onClose={() => setSelectedJob(null)}
           onUpdate={updateJob}
-          onDelete={isAdmin ? deleteJob : undefined}
+          onDelete={perm.canManageJobs ? deleteJob : undefined}
           onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
         />
       )}

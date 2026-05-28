@@ -64,7 +64,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           .print-logo-icon {
             width: 48px;
             height: 48px;
-            background: linear-gradient(135deg, #0f62fe, #0043ce);
+            background: #0f62fe;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -209,7 +209,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           .print-ods-section {
             margin-top: 16px;
             padding: 16px;
-            background: linear-gradient(135deg, #e0f2f1, #f1f8f7);
+            background: #e0f2f1;
             border: 1px solid #80cbc4;
             border-left: 4px solid #00695c;
           }
@@ -685,7 +685,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
                 <div style={{ 
                   width: 48, 
                   height: 48, 
-                  background: 'linear-gradient(135deg, #0f62fe, #0043ce)',
+                  background: '#0f62fe',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

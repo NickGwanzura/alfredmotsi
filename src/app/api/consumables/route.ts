@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// GET /api/consumables?jobId=X&userId=X
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,10 +22,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json(consumables);
 }
 
-// POST /api/consumables
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const forbidden = authorizeRole(session, ['admin', 'tech']);
+  if (forbidden) return forbidden;
 
   const body = await request.json();
   const { jobId, type, name, brand, model, quantity, unit, notes } = body;
@@ -35,7 +36,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'jobId, type, name, quantity, and unit are required' }, { status: 400 });
   }
 
-  // Techs can only add consumables to jobs they are assigned to
   const user = session.user as { id: string; name?: string; role: string };
   if (user.role !== 'admin') {
     const job = await prisma.job.findUnique({
@@ -61,7 +61,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
      },
    });
 
-   // Audit
    await prisma.auditLog.create({
      data: {
        userId: user.id,

@@ -3,11 +3,6 @@ import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
 
-/**
- * GET /api/jobs/:id/pdf
- * Returns the Job Card as a PDF stream. Used for downloads from the UI
- * and can be linked from emails.
- */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,6 +25,16 @@ export async function GET(
   });
 
   if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+
+  const userRole = (session.user as any).role;
+  const userId = (session.user as any).id;
+
+  if (userRole !== 'admin') {
+    const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
+    if (!assigned) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
 
   const pdf = await generateJobCardPdf(job);
 

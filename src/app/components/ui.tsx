@@ -90,16 +90,18 @@ export function FormItem({
   label, 
   helper, 
   error, 
+  htmlFor,
   children 
 }: { 
   label?: string; 
   helper?: string; 
   error?: string | null; 
+  htmlFor?: string;
   children: React.ReactNode 
 }) {
   return (
     <div className="fi">
-      {label && <label className="lbl">{label}</label>}
+      {label && <label className="lbl" htmlFor={htmlFor}>{label}</label>}
       {children}
       {helper && !error && <p className="helper">{helper}</p>}
       {error && <p className="err-txt">{error}</p>}
@@ -124,10 +126,10 @@ export function AlertTag({ alert }: { alert: AlertType }) {
 
 export function CRMOutcomeTag({ outcome }: { outcome: CRMOutcome }) {
   const configs: Record<CRMOutcome, { bg: string; txt: string; label: string }> = {
-    positive: { bg: "#d4edda", txt: "#155724", label: "Positive" },
-    negative: { bg: "#f8d7da", txt: "#842029", label: "Negative" },
-    pending: { bg: "#fff3cd", txt: "#664d03", label: "Pending" },
-    resolved: { bg: "#d1ecf1", txt: "#0c5460", label: "Resolved" },
+    positive: { bg: "var(--ssb)", txt: "var(--ss)", label: "Positive" },
+    negative: { bg: "var(--seb)", txt: "var(--se)", label: "Negative" },
+    pending: { bg: "var(--swb)", txt: "var(--sw)", label: "Pending" },
+    resolved: { bg: "var(--sib)", txt: "var(--si)", label: "Resolved" },
   };
   const c = configs[outcome];
   return <span className="tag" style={{ background: c.bg, color: c.txt }}>{c.label}</span>;

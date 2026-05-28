@@ -325,14 +325,13 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           <div style={styles.helpSection}>
             {mode === 'staff' ? (
               <>
-                <a href="#" style={styles.helpLink}>Forgot password?</a>
-                <span style={styles.helpDivider}>•</span>
-                <a href="#" style={styles.helpLink}>Contact IT Support</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); alert('Contact your administrator to reset your password.'); }} style={styles.helpLink}>Forgot password?</a>
+                <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
               </>
             ) : (
               <>
                 <span style={styles.helpText}>Don&apos;t have a portal code?</span>
-                <a href="#" style={styles.helpLink}>Request Access</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
               </>
             )}
           </div>
@@ -651,9 +650,6 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'none',
     fontWeight: 500,
     transition: 'color 0.11s ease',
-  },
-  helpDivider: {
-    color: '#c6c6c6',
   },
   
   // Mobile Overlay

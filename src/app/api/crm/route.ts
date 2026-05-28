@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// GET /api/crm - List all CRM records
 export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const records = await prisma.cRMRecord.findMany({
       orderBy: { createdAt: 'desc' },
@@ -28,18 +30,17 @@ export async function GET(): Promise<NextResponse> {
   }
 }
 
-// POST /api/crm - Create a new CRM record
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const body = await request.json();
     const { customerId, type, subject, body: recordBody, followUp, outcome } = body;
 
-    // Validate required fields
     if (!customerId || !type || !subject || !recordBody) {
       return NextResponse.json(
         { error: 'Customer, type, subject, and body are required' },
@@ -47,7 +48,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate type
     const validTypes = ['call', 'visit', 'complaint', 'email', 'quote'];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
@@ -56,7 +56,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate outcome
     const validOutcomes = ['positive', 'negative', 'pending', 'resolved'];
     if (outcome && !validOutcomes.includes(outcome)) {
       return NextResponse.json(

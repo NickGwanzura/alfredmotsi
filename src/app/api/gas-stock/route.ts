@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// GET /api/gas-stock - List all gas stock
 export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -21,18 +20,17 @@ export async function GET(): Promise<NextResponse> {
   }
 }
 
-// POST /api/gas-stock - Add new gas stock
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const body = await request.json();
     const { gasType, brand, quantity, unit, supplier, supplierRef, notes } = body;
 
-    // Validate required fields
     if (!gasType || !brand || !quantity || !supplier) {
       return NextResponse.json(
         { error: 'Gas type, brand, quantity, and supplier are required' },
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    // Audit log
     const user = session.user as { id: string; name?: string | null };
     await prisma.auditLog.create({
       data: {

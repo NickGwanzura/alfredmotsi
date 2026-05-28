@@ -15,14 +15,12 @@ export async function DELETE(
   const consumable = await prisma.consumable.findUnique({ where: { id } });
   if (!consumable) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Only admin or the person who recorded it can delete
   if (user.role !== 'admin' && consumable.recordedBy !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   await prisma.consumable.delete({ where: { id } });
 
-   // Audit
    await prisma.auditLog.create({
      data: {
        userId: user.id,

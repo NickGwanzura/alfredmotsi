@@ -19,7 +19,7 @@ enum UserRole {
 
 enum TechStatus {
   available
-  on_site   @map("on-site")
+  on_site    @map("on-site")
   in_transit @map("in-transit")
 }
 
@@ -34,11 +34,11 @@ enum JobType {
 
 enum JobStatus {
   scheduled
-  in_progress @map("in-progress")
-  on_site     @map("on-site")
+  in_progress     @map("in-progress")
+  on_site         @map("on-site")
   completed
   cancelled
-  pending_parts @map("pending-parts")
+  pending_parts   @map("pending-parts")
   unallocated
   pending_booking @map("pending-booking")
 }
@@ -58,20 +58,20 @@ enum IssueType {
 }
 
 enum UnitType {
-  Split_System   @map("Split System")
+  Split_System         @map("Split System")
   Ducted
-  Package_Unit   @map("Package Unit")
-  Multi_Head     @map("Multi-Head")
+  Package_Unit         @map("Package Unit")
+  Multi_Head           @map("Multi-Head")
   Cassette
-  VRV_VRF        @map("VRV/VRF")
+  VRV_VRF              @map("VRV/VRF")
   Refrigeration_System @map("Refrigeration System")
   Chiller
-  Heat_Pump      @map("Heat Pump")
-  Precision_Cooling @map("Precision Cooling")
+  Heat_Pump            @map("Heat Pump")
+  Precision_Cooling    @map("Precision Cooling")
 }
 
 enum RefrigerantType {
-  R_32  @map("R-32")
+  R_32   @map("R-32")
   R_410A @map("R-410A")
   R_22   @map("R-22")
   R_134a @map("R-134a")
@@ -140,6 +140,12 @@ enum AuditAction {
   delete_user
 }
 
+enum EmailDeliveryStatus {
+  sent
+  failed
+  skipped
+}
+
 // ============================================
 // AUTH MODELS (NextAuth.js)
 // ============================================
@@ -188,31 +194,32 @@ model VerificationToken {
 // ============================================
 
 model User {
-  id              String    @id @default(uuid())
+  id              String      @id @default(uuid())
   name            String
-  email           String    @unique
-  emailVerified   DateTime? @map("email_verified")
+  email           String      @unique
+  emailVerified   DateTime?   @map("email_verified")
   role            UserRole
-  password        String    // Hashed password (replaces pin)
-  passwordChanged Boolean   @default(false) @map("password_changed") // Track if user changed temp password
+  password        String // Hashed password (replaces pin)
+  passwordChanged Boolean     @default(false) @map("password_changed") // Track if user changed temp password
   phone           String?
   specialty       String?
   status          TechStatus?
-  image           String?   // Avatar URL
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  image           String? // Avatar URL
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   // Auth relations
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
 
-   // App relations
-   assignedJobs    Job[] @relation("AssignedJobs")
-   coAssignedJobs  Job[] @relation("CoAssignedJobs")
-   gasUsageRecords GasUsageRecord[] @relation("GasUsageByUser")
-   crmRecords      CRMRecord[]
-   consumables     Consumable[]     @relation("ConsumableRecordedBy")
-   auditLogs       AuditLog[]       @relation("AuditLogByUser")
+  // App relations
+  assignedJobs        Job[]            @relation("AssignedJobs")
+  coAssignedJobs      Job[]            @relation("CoAssignedJobs")
+  gasUsageRecords     GasUsageRecord[] @relation("GasUsageByUser")
+  crmRecords          CRMRecord[]
+  consumables         Consumable[]     @relation("ConsumableRecordedBy")
+  auditLogs           AuditLog[]       @relation("AuditLogByUser")
+  uploadedAttachments JobAttachment[]  @relation("JobAttachmentUploadedBy")
 
   @@map("users")
 }
@@ -241,60 +248,61 @@ model Customer {
 }
 
 model Job {
-  id          String     @id @default(cuid())
+  id          String      @id @default(cuid())
   source      JobSource
-  customerId  String     @map("customer_id")
+  customerId  String      @map("customer_id")
   title       String
   type        JobType
-  unitType    UnitType   @map("unit_type")
+  unitType    UnitType    @map("unit_type")
   issue       IssueType
   priority    JobPriority
   date        String
   time        String
   status      JobStatus
-  clockIn     String?    @map("clock_in")
-  clockOut    String?    @map("clock_out")
+  clockIn     String?     @map("clock_in")
+  clockOut    String?     @map("clock_out")
   description String
   photos      String[]
   signature   String?
-  jobCardRef  String     @unique @map("job_card_ref")
+  jobCardRef  String      @unique @map("job_card_ref")
   alerts      AlertType[]
-  version     Int        @default(0)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  version     Int         @default(0)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  
+
   technicians   User[] @relation("AssignedJobs")
   coTechnicians User[] @relation("CoAssignedJobs")
-  
-  diagnostics   Diagnostics?
-  comments      Comment[]
-  history       HistoryEntry[]
-  recurring     RecurringSchedule?
-   gasUsageRecords GasUsageRecord[] @relation("GasUsageOfJob")
-   consumables   Consumable[]   @relation("ConsumableOfJob")
-   auditLogs     AuditLog[]     @relation("AuditLogOfJob")
+
+  diagnostics     Diagnostics?
+  comments        Comment[]
+  history         HistoryEntry[]
+  recurring       RecurringSchedule?
+  gasUsageRecords GasUsageRecord[]   @relation("GasUsageOfJob")
+  consumables     Consumable[]       @relation("ConsumableOfJob")
+  auditLogs       AuditLog[]         @relation("AuditLogOfJob")
+  attachments     JobAttachment[]    @relation("JobAttachmentOfJob")
 
   @@map("jobs")
 }
 
 model Diagnostics {
-  id                   String          @id @default(cuid())
-  jobId                String          @unique @map("job_id")
+  id                   String           @id @default(cuid())
+  jobId                String           @unique @map("job_id")
   voltage              String?
   current              String?
-  avgTemp              String?         @map("avg_temp")
-  maxTemp              String?         @map("max_temp")
+  avgTemp              String?          @map("avg_temp")
+  maxTemp              String?          @map("max_temp")
   suction              String?
   discharge            String?
   refrigerantType      RefrigerantType? @map("refrigerant_type")
-  refrigerantRecovered Float?          @map("refrigerant_recovered")
-  refrigerantUsed      Float?          @map("refrigerant_used")
-  refrigerantReused    Float?          @map("refrigerant_reused")
+  refrigerantRecovered Float?           @map("refrigerant_recovered")
+  refrigerantUsed      Float?           @map("refrigerant_used")
+  refrigerantReused    Float?           @map("refrigerant_reused")
   status               SystemStatus?
   notes                String?
-  deltaT               String?         @map("delta_t")
+  deltaT               String?          @map("delta_t")
   brand                String?
   serial               String?
 
@@ -340,27 +348,27 @@ model RecurringSchedule {
 }
 
 model GasStockItem {
-  id           String   @id @default(cuid())
-  gasType      String   @map("gas_type")
-  brand        String
-  quantity     Float
-  remaining    Float
-  unit         String
-  supplier     String
-  supplierRef  String   @map("supplier_ref")
-  addedBy      String   @map("added_by")
-  date         String
-  notes        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  gasType     String   @map("gas_type")
+  brand       String
+  quantity    Float
+  remaining   Float
+  unit        String
+  supplier    String
+  supplierRef String   @map("supplier_ref")
+  addedBy     String   @map("added_by")
+  date        String
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   usageRecords GasUsageRecord[] @relation("GasUsageRecords")
+  // CHECK constraints added via migration
+  // @@check([remaining >= 0])
+  // @@check([quantity >= 0])
 
-   @@map("gas_stock")
-   // CHECK constraints added via migration
-   // @@check([remaining >= 0])
-   // @@check([quantity >= 0])
- }
+  @@map("gas_stock")
+}
 
 model GasUsageRecord {
   id           String   @id @default(cuid())
@@ -379,28 +387,28 @@ model GasUsageRecord {
   user      User?         @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
   job       Job?          @relation("GasUsageOfJob", fields: [jobId], references: [id], onDelete: SetNull)
 
-  @@map("gas_usage")
   // CHECK constraints added via migration
   // @@check([quantityUsed >= 0])
   @@index([jobId])
   @@index([stockId])
   @@index([usedBy])
+  @@map("gas_usage")
 }
 
 model CRMRecord {
-  id           String      @id @default(cuid())
-  customerId   String      @map("customer_id")
+  id           String     @id @default(cuid())
+  customerId   String     @map("customer_id")
   type         CRMType
   subject      String
   body         String
   date         String
   time         String
   by           String
-  followUp     String?     @map("follow_up")
-  followUpDone Boolean     @default(false) @map("follow_up_done")
+  followUp     String?    @map("follow_up")
+  followUpDone Boolean    @default(false) @map("follow_up_done")
   outcome      CRMOutcome
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [by], references: [id], onDelete: Cascade)
@@ -409,8 +417,8 @@ model CRMRecord {
 }
 
 model Consumable {
-  id         String          @id @default(cuid())
-  jobId      String?         @map("job_id")
+  id         String         @id @default(cuid())
+  jobId      String?        @map("job_id")
   type       ConsumableType
   name       String
   brand      String?
@@ -418,16 +426,36 @@ model Consumable {
   quantity   Float
   unit       String
   notes      String?
-  recordedBy String?         @map("recorded_by")
-  recordedAt DateTime        @default(now()) @map("recorded_at")
+  recordedBy String?        @map("recorded_by")
+  recordedAt DateTime       @default(now()) @map("recorded_at")
 
   job  Job?  @relation("ConsumableOfJob", fields: [jobId], references: [id], onDelete: SetNull)
   user User? @relation("ConsumableRecordedBy", fields: [recordedBy], references: [id], onDelete: SetNull)
+  // @@check([quantity >= 0])
 
   @@index([jobId])
   @@index([recordedBy])
   @@map("consumables")
-  // @@check([quantity >= 0])
+}
+
+model JobAttachment {
+  id          String   @id @default(cuid())
+  jobId       String   @map("job_id")
+  fileName    String   @map("file_name")
+  contentType String   @map("content_type")
+  size        Int?
+  dataUrl     String?  @map("data_url") @db.Text
+  url         String?  @db.Text
+  note        String?
+  uploadedBy  String?  @map("uploaded_by")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+  job  Job   @relation("JobAttachmentOfJob", fields: [jobId], references: [id], onDelete: Cascade)
+  user User? @relation("JobAttachmentUploadedBy", fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([jobId, uploadedAt])
+  @@index([uploadedBy])
+  @@map("job_attachments")
 }
 
 model AuditLog {
@@ -445,9 +473,29 @@ model AuditLog {
   createdAt DateTime    @default(now()) @map("created_at")
 
   user User? @relation("AuditLogByUser", fields: [userId], references: [id], onDelete: SetNull)
-  job  Job? @relation("AuditLogOfJob", fields: [jobId], references: [id], onDelete: SetNull)
+  job  Job?  @relation("AuditLogOfJob", fields: [jobId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([jobId])
   @@map("audit_logs")
+}
+
+model EmailDeliveryLog {
+  id              String              @id @default(cuid())
+  recipient       String
+  recipients      String[]            @default([])
+  subject         String
+  category        String?
+  status          EmailDeliveryStatus
+  resendMessageId String?             @map("resend_message_id")
+  resendData      Json?               @map("resend_data")
+  resendError     Json?               @map("resend_error")
+  errorMessage    String?             @map("error_message") @db.Text
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+  @@index([recipient, createdAt])
+  @@map("email_delivery_logs")
 }

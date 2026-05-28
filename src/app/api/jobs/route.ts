@@ -1,35 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, filterFinancialArray, authorizeRole } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 
-// GET /api/jobs - List all jobs
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userRole = (session.user as any).role;
+    const userId = (session.user as any).id;
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const techId = searchParams.get('techId');
     const customerId = searchParams.get('customerId');
 
     const where: any = {};
-    
+
+    if (userRole !== 'admin') {
+      where.OR = [
+        { technicians: { some: { id: userId } } },
+        { coTechnicians: { some: { id: userId } } },
+      ];
+    }
+
     if (status) {
       where.status = status;
     }
-    
+
     if (techId) {
       where.OR = [
         { technicians: { some: { id: techId } } },
-        { coTechnicians: { some: { id: techId } } }
+        { coTechnicians: { some: { id: techId } } },
       ];
     }
-    
+
     if (customerId) {
       where.customerId = customerId;
     }
@@ -40,11 +47,15 @@ export async function GET(request: NextRequest) {
         customer: true,
         technicians: { select: { id: true, name: true, email: true } },
         coTechnicians: { select: { id: true, name: true, email: true } },
+        diagnostics: true,
       },
       orderBy: { date: 'asc' }
     });
 
-    return NextResponse.json(jobs.map(j => jobToClient(j as Record<string, unknown>)));
+    const clientJobs = jobs.map(j => jobToClient(j as Record<string, unknown>));
+    const filtered = filterFinancialArray(session, clientJobs);
+
+    return NextResponse.json(filtered);
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return NextResponse.json(
@@ -54,28 +65,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/jobs - Create new job
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
-    if (!session || !['admin', 'tech'].includes((session.user as any).role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const body = await request.json();
-    // Strip client-side-only / relation fields — only pass scalar Prisma fields
     const {
       techIds, coTechIds,
-      // nested relations that must not be passed as scalars
       diagnostics, recurring, comments, history, gasUsageRecords, consumables, auditLogs,
       customer,
-      // client-generated id (let DB generate its own)
       id,
       ...jobData
     } = body;
 
-    // Map display enum values → Prisma enum keys
     const prismaData = jobFromClient({
       ...jobData,
       source: (jobData.source as string) || 'admin',
@@ -84,7 +90,6 @@ export async function POST(request: NextRequest) {
       alerts: (jobData.alerts as string[]) || [],
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const job = await prisma.job.create({
       data: {
         ...(prismaData as any),

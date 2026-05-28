@@ -1139,7 +1139,7 @@ tbody tr:last-child td {
    ============================================ */
 
 .ods-banner { 
-  background: linear-gradient(135deg, #004d40, #00695c); 
+  background: #00695c; 
   border: 1px solid #00897b; 
   padding: var(--cds-spacing-06); 
   margin-bottom: var(--cds-spacing-06); 
@@ -1344,7 +1344,7 @@ tbody tr:last-child td {
 }
 
 .cp-hero { 
-  background: linear-gradient(135deg, #042626 0%, #005d5d 100%); 
+  background: #042626; 
   border: 1px solid #005d5d; 
   padding: 32px; 
   margin-bottom: 24px; 

@@ -5,6 +5,7 @@ import { Job, User, Customer } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, TECH_STATUS } from '@/app/lib/config';
 import { Avatar } from './ui';
 import { ChevronLeft, ChevronRight } from '@carbon/icons-react';
+import { canViewAllJobs } from '@/app/lib/permissions';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -36,7 +37,7 @@ function addMonths(base: Date, n: number): Date {
 }
 
 export default function CalendarView({ jobs, techs, customers, currentUser, onJobClick }: CalendarViewProps) {
-  const isAdmin = currentUser.role === 'admin';
+  const userRole = currentUser.role;
   const [view, setView] = useState<ViewMode>('week');
   const [offset, setOffset] = useState(0);
 
@@ -50,8 +51,8 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const shownTechs = isAdmin ? techs : techs.filter(t => t.id === currentUser.id);
-  const visJobs = isAdmin ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
+  const shownTechs = canViewAllJobs(userRole) ? techs : techs.filter(t => t.id === currentUser.id);
+  const visJobs = canViewAllJobs(userRole) ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
 
   // ── Computed dates per view ────────────────────────────────────────────────
   // Day view: single date
@@ -432,9 +433,9 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}
       >
         <div>
-          <h1>{isAdmin ? 'Master Calendar' : 'My Schedule'}</h1>
+          <h1>{canViewAllJobs(userRole) ? 'Master Calendar' : 'My Schedule'}</h1>
           <p style={{ margin: 0, fontSize: '13px', color: 'var(--cds-text-secondary)' }}>
-            {isAdmin ? 'Side-by-side technician grid. Conflict detection active.' : 'Your schedule view.'}
+            {canViewAllJobs(userRole) ? 'Side-by-side technician grid. Conflict detection active.' : 'Your schedule view.'}
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 import { getResend, FROM_EMAIL, isEmailEnabled } from './resend';
 import { render } from '@react-email/components';
+import { prisma } from '@/app/lib/db';
 import {
   JobScheduledEmail,
   JobCompletedEmail,
@@ -14,7 +15,6 @@ import {
   generateEmailHeaders,
   generateListUnsubscribeHeader,
   checkRateLimit,
-  generatePreviewText,
   EMAIL_CONFIG,
 } from './standards';
 
@@ -37,6 +37,72 @@ interface SendEmailOptions {
   isTransactional?: boolean;
   campaignId?: string;
   attachments?: EmailAttachment[];
+}
+
+type EmailDeliveryStatus = 'sent' | 'failed' | 'skipped';
+
+function getResendMessageId(data: unknown): string | undefined {
+  if (data && typeof data === 'object' && 'id' in data) {
+    const id = (data as { id?: unknown }).id;
+    return typeof id === 'string' ? id : undefined;
+  }
+  return undefined;
+}
+
+function safeJsonValue(value: unknown): unknown {
+  if (value == null) return undefined;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return { message: String(value) };
+  }
+}
+
+function getErrorMessage(error: unknown): string | undefined {
+  if (!error) return undefined;
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    return typeof message === 'string' ? message : String(message);
+  }
+  return String(error);
+}
+
+async function recordEmailDeliveryLog({
+  recipients,
+  subject,
+  category,
+  status,
+  resendData,
+  resendError,
+  errorMessage,
+}: {
+  recipients: string[];
+  subject: string;
+  category?: string;
+  status: EmailDeliveryStatus;
+  resendData?: unknown;
+  resendError?: unknown;
+  errorMessage?: string;
+}): Promise<void> {
+  try {
+    await prisma.emailDeliveryLog.create({
+      data: {
+        recipient: recipients[0] || '',
+        recipients,
+        subject,
+        category: category || null,
+        status,
+        resendMessageId: getResendMessageId(resendData) || null,
+        resendData: safeJsonValue(resendData),
+        resendError: safeJsonValue(resendError),
+        errorMessage: errorMessage || getErrorMessage(resendError) || null,
+      },
+    });
+  } catch (logError) {
+    console.error('[email-log] Failed to record delivery log:', getErrorMessage(logError));
+  }
 }
 
 /**
@@ -68,6 +134,13 @@ export async function sendEmailWithBestPractices({
   
   if (!isEmailEnabled()) {
     console.log('📧 [Email Disabled] Email would be sent to:', primaryRecipient);
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'skipped',
+      errorMessage: 'Email not configured',
+    });
     return { success: false, error: 'Email not configured' };
   }
 
@@ -75,6 +148,13 @@ export async function sendEmailWithBestPractices({
   const validation = validateEmailContent({ to: primaryRecipient, subject, html });
   if (!validation.valid) {
     console.error('[sendEmailWithBestPractices] Validation failed:', validation.errors);
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'failed',
+      errorMessage: `Validation failed: ${validation.errors.join(', ')}`,
+    });
     return { success: false, error: `Validation failed: ${validation.errors.join(', ')}` };
   }
 
@@ -82,6 +162,13 @@ export async function sendEmailWithBestPractices({
   const rateLimit = checkRateLimit(primaryRecipient);
   if (!rateLimit.allowed) {
     console.error('[sendEmailWithBestPractices] Rate limit exceeded for:', primaryRecipient);
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'failed',
+      errorMessage: `Rate limit exceeded. Try again in ${rateLimit.retryAfter} minutes.`,
+    });
     return { 
       success: false, 
       error: `Rate limit exceeded. Try again in ${rateLimit.retryAfter} minutes.` 
@@ -106,6 +193,13 @@ export async function sendEmailWithBestPractices({
 
     const resendClient = getResend();
     if (!resendClient) {
+      await recordEmailDeliveryLog({
+        recipients,
+        subject,
+        category,
+        status: 'failed',
+        errorMessage: 'Email client not available',
+      });
       return { success: false, error: 'Email client not available' };
     }
 
@@ -128,13 +222,36 @@ export async function sendEmailWithBestPractices({
 
     if (error) {
       console.error('❌ Failed to send email:', error);
+      await recordEmailDeliveryLog({
+        recipients,
+        subject,
+        category,
+        status: 'failed',
+        resendError: error,
+        errorMessage: getErrorMessage(error),
+      });
       return { success: false, error };
     }
 
     console.log('✅ Email sent successfully to:', primaryRecipient);
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'sent',
+      resendData: data,
+    });
     return { success: true, data };
   } catch (error: unknown) {
     console.error('❌ Error sending email:', error);
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'failed',
+      resendError: error,
+      errorMessage: getErrorMessage(error),
+    });
     return { success: false, error: String(error) };
   }
 }

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// GET /api/customers - List all customers
 export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -21,18 +20,17 @@ export async function GET(): Promise<NextResponse> {
   }
 }
 
-// POST /api/customers - Create a new customer
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const body = await request.json();
     const { name, address, siteAddress, phone, whatsapp, email } = body;
 
-    // Validate required fields
     if (!name || !address || !phone || !email) {
       return NextResponse.json(
         { error: 'Name, address, phone, and email are required' },
@@ -40,7 +38,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Check for existing customer with same email
     const existing = await prisma.customer.findUnique({
       where: { email },
     });
@@ -52,7 +49,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-   // Generate portal code
    const portalCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
    const user = session.user as { id: string; name?: string | null };
@@ -69,7 +65,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
      },
    });
 
-   // Audit log
    await prisma.auditLog.create({
      data: {
        userId: user.id,

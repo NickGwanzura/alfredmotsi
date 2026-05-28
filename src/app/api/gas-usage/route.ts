@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { Prisma } from '@prisma/client';
 
-// GET /api/gas-usage - List all gas usage records
 export async function GET(): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -21,18 +21,17 @@ export async function GET(): Promise<NextResponse> {
   }
 }
 
-// POST /api/gas-usage - Record gas usage
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    if (forbidden) return forbidden;
 
     const body = await request.json();
     const { stockId, gasType, quantityUsed, customer, jobId, purpose } = body;
 
-    // Validate required fields
     if (!stockId || !gasType || !quantityUsed || !customer || !jobId) {
       return NextResponse.json(
         { error: 'Stock ID, gas type, quantity used, customer, and job ID are required' },
@@ -51,7 +50,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let usageRecord: any;
     try {
       usageRecord = await prisma.$transaction(async (tx) => {
-        // Atomic conditional update: decrement only if remaining >= qty
         const affected = await tx.$executeRaw`
           UPDATE "gas_stock"
           SET "remaining" = "remaining" - ${qty}
@@ -72,8 +70,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           throw e;
         }
 
-        // Create usage record
-        return await tx.gasUsageRecord.create({
+        const created = await tx.gasUsageRecord.create({
           data: {
             stockId,
             gasType,
@@ -86,6 +83,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             purpose: purpose || '',
           },
         });
+
+        const purposeLower = (purpose || '').toLowerCase();
+
+        let diagKind: 'recovered' | 'used' | 'reused' = 'used';
+        if (/(recover|recovered|recovery)/.test(purposeLower)) diagKind = 'recovered';
+        else if (/(reuse|reused)/.test(purposeLower)) diagKind = 'reused';
+
+        const existingDiag = await tx.diagnostics.findUnique({ where: { jobId } });
+
+        const shouldSetType = !existingDiag?.refrigerantType;
+
+        const increment = (value: number | null | undefined) => (value ?? 0) + qty;
+
+        const update: Prisma.DiagnosticsUncheckedUpdateInput = {};
+        if (shouldSetType) {
+          update.refrigerantType = gasType as any;
+        }
+
+        if (diagKind === 'recovered') {
+          update.refrigerantRecovered = increment(existingDiag?.refrigerantRecovered);
+        } else if (diagKind === 'used') {
+          update.refrigerantUsed = increment(existingDiag?.refrigerantUsed);
+        } else {
+          update.refrigerantReused = increment(existingDiag?.refrigerantReused);
+        }
+
+        const create: Prisma.DiagnosticsUncheckedCreateInput = {
+          jobId,
+          refrigerantType: gasType as any,
+        };
+
+        if (diagKind === 'recovered') {
+          create.refrigerantRecovered = qty;
+        } else if (diagKind === 'used') {
+          create.refrigerantUsed = qty;
+        } else {
+          create.refrigerantReused = qty;
+        }
+
+        await tx.diagnostics.upsert({
+          where: { jobId },
+          update: update as any,
+          create: create as any,
+        });
+
+        return created;
       });
     } catch (txError: any) {
       if ((txError as any).code === 'STOCK_NOT_FOUND') {
@@ -96,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const unit = (txError as any).unit ?? 'kg';
         return NextResponse.json({ error: `Insufficient stock. Only ${remaining} ${unit} remaining` }, { status: 400 });
       }
-      throw txError; // rethrow for outer catch
+      throw txError;
     }
 
     return NextResponse.json(usageRecord, { status: 201 });

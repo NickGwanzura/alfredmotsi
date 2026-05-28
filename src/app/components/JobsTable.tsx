@@ -6,6 +6,7 @@ import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag } from './ui';
 import { Add, WarningAltFilled } from '@carbon/icons-react';
+import { canViewAllJobs, canManageJobs } from '@/app/lib/permissions';
 
 interface JobsTableProps {
   jobs: Job[];
@@ -18,12 +19,12 @@ interface JobsTableProps {
 }
 
 export default function JobsTable({ jobs, techs, customers, currentUser, gasUsage = [], onJobClick, onAddJob }: JobsTableProps) {
-  const isAdmin = currentUser.role === "admin";
+  const userRole = currentUser.role;
   const [sf, setSF] = useState<JobStatus | "all">("all");
   const [tf, setTF] = useState<JobType | "all">("all");
   const [q, setQ] = useState("");
   
-  const base = isAdmin ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
+  const base = canViewAllJobs(userRole) ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
   const rows = base.filter(j => {
     if (sf !== "all" && j.status !== sf) return false;
     if (tf !== "all" && j.type !== tf) return false;
@@ -38,10 +39,10 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
     <div className="fi-anim">
       <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <h1>{isAdmin ? "All Jobs" : "My Jobs"}</h1>
+          <h1>{canViewAllJobs(userRole) ? "All Jobs" : "My Jobs"}</h1>
           <p>{rows.length} records</p>
         </div>
-        {isAdmin && onAddJob && (
+        {canManageJobs(userRole) && onAddJob && (
           <button
             className="btn btn-p btn-sm"
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -89,7 +90,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
               <th>Title</th>
               <th>Customer</th>
               <th>Date</th>
-              {isAdmin && <th>Lead Tech</th>}
+              {canViewAllJobs(userRole) && <th>Lead Tech</th>}
               <th>Type</th>
               <th>Priority</th>
               <th>Status</th>
@@ -109,7 +110,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
                   <td className="mono" style={{ color: "var(--cds-text-secondary)", whiteSpace: "nowrap" }}>
                     {j.date}<br/>{j.time}
                   </td>
-                  {isAdmin && <td style={{ color: "var(--cds-text-secondary)" }}>{tech?.name || "—"}</td>}
+                  {canViewAllJobs(userRole) && <td style={{ color: "var(--cds-text-secondary)" }}>{tech?.name || "—"}</td>}
                   <td>
                     <span style={{ color: typeConfig?.color, fontWeight: 500 }}>
                       {typeConfig?.icon} {typeConfig?.label}

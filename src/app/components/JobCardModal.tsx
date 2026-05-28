@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Job,
   User,
@@ -15,6 +15,7 @@ import {
   Consumable,
   ConsumableType,
   GasUsageRecord,
+  JobAttachment,
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
@@ -24,6 +25,7 @@ import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
+import { canDeleteJobs, canManageJobs } from '@/app/lib/permissions';
 import { Close, PlayFilled, StopFilled, Printer, Camera, Download, Add, TrashCan } from '@carbon/icons-react';
 
 interface JobCardModalProps {
@@ -60,12 +62,13 @@ const REFRIGERANT_OPTIONS: (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 
 export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onDelete, onPrint }: JobCardModalProps) {
   const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
-  const isAdmin = currentUser.role === "admin";
+  const userRole = currentUser.role;
   const isAssigned = job.techIds.includes(currentUser.id);
-  const canEdit = isAdmin || isAssigned;
+  const canEdit = userRole === 'admin' || isAssigned;
 
   const [tab, setTab] = useState<Tab>("details");
   const [status, setStatus] = useState<JobStatus>(job.status);
+  const [pendingStatus, setPendingStatus] = useState<JobStatus | null>(null);
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState<Comment[]>(job.comments || []);
   const [jobCardRef, setJCR] = useState(job.jobCardRef || "");
@@ -73,6 +76,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [photos, setPhotos] = useState<string[]>(job.photos || []);
   const [clockIn, setCIn] = useState<string | null>(job.clockIn);
   const [clockOut, setCOut] = useState<string | null>(job.clockOut);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachments, setAttachments] = useState<JobAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   const blankDiag: Diagnostics = { 
     voltage: "", 
@@ -143,6 +151,20 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         .catch(() => null)
         .finally(() => setConsumablesLoading(false));
     }
+  }, [tab, job.id]);
+
+  useEffect(() => {
+    if (tab !== 'media') return;
+    setAttachmentsLoading(true);
+    setAttachmentError(null);
+    fetch(`/api/jobs/${job.id}/attachments`)
+      .then(async r => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(data?.error || 'Failed to load attachments.');
+        if (Array.isArray(data)) setAttachments(data);
+      })
+      .catch(err => setAttachmentError(err instanceof Error ? err.message : 'Failed to load attachments.'))
+      .finally(() => setAttachmentsLoading(false));
   }, [tab, job.id]);
 
   const handleAddConsumable = async () => {
@@ -297,6 +319,46 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     setPhotos(p => [...p, `photo_${Date.now()}.jpg`]);
   };
 
+  const handleUploadAttachment = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+
+    setAttachmentError(null);
+    if (file.size > 6 * 1024 * 1024) {
+      setAttachmentError('Choose a file that is 6 MB or smaller.');
+      return;
+    }
+
+    setUploadingAttachment(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Could not read the selected file.'));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`/api/jobs/${job.id}/attachments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream',
+          size: file.size,
+          dataUrl,
+        }),
+      });
+      const created = await res.json();
+      if (!res.ok) throw new Error(created?.error || 'Failed to upload attachment.');
+      setAttachments(p => [created, ...p]);
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : 'Failed to upload attachment.');
+    } finally {
+      setUploadingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleWhatsAppReminder = () => {
     const msg = reminderMsg(job, cust, false);
     const url = buildWA(cust.whatsapp || cust.phone, msg);
@@ -382,40 +444,70 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         {/* Time Tracking Bar */}
         {canEdit && job.type !== "sales" && (
           <div style={{ 
-            background: "var(--l2)", 
+            background: "var(--l2)",
             borderBottom: "1px solid var(--bs1)", 
-            padding: "var(--s3) var(--s7)", 
+            padding: "var(--s4) var(--s7)",
             display: "flex", 
             alignItems: "center", 
-            gap: "var(--s6)", 
+            gap: "var(--s4)",
             flexWrap: "wrap" 
           }}>
-            <span className="sec-title" style={{ marginBottom: 0 }}>Time Tracking</span>
+            <div style={{ minWidth: 150 }}>
+              <span className="sec-title" style={{ marginBottom: 2 }}>Technician workflow</span>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--ts)" }}>
+                {clockIn ? `Clocked in ${clockIn}` : 'Start when arriving on site'}
+              </p>
+            </div>
             {!clockIn ? (
               <button 
-                className="btn btn-ok btn-sm" 
+                className="btn btn-ok"
                 onClick={handleClockIn}
-                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44 }}
               >
-                <PlayFilled size={14} />
+                <PlayFilled size={16} />
                 Clock In
               </button>
             ) : (
-              <span className="mono" style={{ color: "var(--ss)" }}>IN {clockIn}</span>
+              <span className="mono" style={{ color: "var(--ss)", fontWeight: 600 }}>IN {clockIn}</span>
             )}
             {clockIn && !clockOut ? (
               <button 
-                className="btn btn-d btn-sm" 
+                className="btn btn-d"
                 onClick={handleClockOut}
-                style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44 }}
               >
-                <StopFilled size={14} />
+                <StopFilled size={16} />
                 Clock Out
               </button>
             ) : clockOut && (
-              <span className="mono" style={{ color: "var(--se)" }}>OUT {clockOut}</span>
+              <span className="mono" style={{ color: "var(--se)", fontWeight: 600 }}>OUT {clockOut}</span>
             )}
             {dur && <span className="mono" style={{ color: "var(--ts)" }}>Duration: {dur}</span>}
+          </div>
+        )}
+
+        {canEdit && (
+          <div style={{
+            borderBottom: "1px solid var(--bs1)",
+            padding: "var(--s3) var(--s7)",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+            gap: "var(--s3)",
+            background: "#fff"
+          }}>
+            <button className="btn btn-s" style={{ minHeight: 44 }} onClick={() => setTab('diagnostics')}>
+              Diagnostics {diagDone ? 'started' : 'start'}
+            </button>
+            <button className="btn btn-s" style={{ minHeight: 44 }} onClick={() => setTab('ods')}>
+              Gas usage
+            </button>
+            <button className="btn btn-s" style={{ minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => setTab('media')}>
+              <Camera size={16} />
+              Photos
+            </button>
+            <button className="btn btn-s" style={{ minHeight: 44 }} onClick={() => setTab('sign-off')}>
+              {sig ? 'Signed' : 'Signature'}
+            </button>
           </div>
         )}
 
@@ -802,37 +894,130 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           {tab === "media" && (
             <div className="fi-anim">
               <div className="tile" style={{ marginBottom: "var(--s5)" }}>
-                <SectionTitle>Before and After Photos</SectionTitle>
-                {photos.length === 0 && (
-                  <p style={{ color: "var(--th)", fontSize: "14px", marginBottom: "var(--s4)" }}>
-                    No photos attached yet.
-                  </p>
-                )}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s3)", marginBottom: "var(--s4)" }}>
-                  {photos.map((p, i) => (
-                    <div 
-                      key={i} 
-                      style={{ 
-                        width: 80, 
-                        height: 80, 
-                        background: "var(--l2)", 
-                        border: "1px solid var(--bg1)", 
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "center", 
-                        fontSize: "12px", 
-                        color: "var(--th)", 
-                        textAlign: "center", 
-                        padding: 4 
-                      }}
-                    >
-                      📷 {p}
-                    </div>
-                  ))}
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--s3)", alignItems: "center", flexWrap: "wrap", marginBottom: "var(--s4)" }}>
+                  <div>
+                    <SectionTitle>Job Photos and Evidence</SectionTitle>
+                    <p style={{ color: "var(--ts)", fontSize: 13, margin: 0 }}>
+                      Capture before, after, serial plate, and customer evidence while on site.
+                    </p>
+                  </div>
+                  {canEdit && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        capture="environment"
+                        style={{ display: "none" }}
+                        onChange={e => handleUploadAttachment(e.target.files)}
+                      />
+                      <button
+                        className="btn btn-p"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAttachment}
+                        style={{ display: "flex", alignItems: "center", gap: 6, minHeight: 44 }}
+                      >
+                        <Camera size={16} />
+                        {uploadingAttachment ? 'Uploading...' : 'Add Photo'}
+                      </button>
+                    </>
+                  )}
                 </div>
+
+                {attachmentError && (
+                  <Notification kind="e" title="Attachment issue" body={attachmentError} />
+                )}
+
+                {attachmentsLoading ? (
+                  <p style={{ color: "var(--th)", fontSize: "14px", marginBottom: "var(--s4)" }}>
+                    Loading attachments...
+                  </p>
+                ) : attachments.length === 0 ? (
+                  <p style={{ color: "var(--th)", fontSize: "14px", marginBottom: "var(--s4)" }}>
+                    No uploaded evidence yet.
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "var(--s3)", marginBottom: "var(--s4)" }}>
+                    {attachments.map(a => {
+                      const href = a.dataUrl || a.url || undefined;
+                      const isImage = a.contentType.startsWith('image/');
+                      return (
+                        <a
+                          key={a.id}
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            border: "1px solid var(--bs1)",
+                            borderRadius: 6,
+                            overflow: "hidden",
+                            color: "inherit",
+                            textDecoration: "none",
+                            background: "var(--l1)",
+                            minHeight: 170,
+                            display: "flex",
+                            flexDirection: "column"
+                          }}
+                        >
+                          <div style={{ aspectRatio: "4 / 3", background: "var(--l2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {isImage && href ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={href} alt={a.fileName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            ) : (
+                              <Camera size={28} />
+                            )}
+                          </div>
+                          <div style={{ padding: "var(--s3)", display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, overflowWrap: "anywhere" }}>{a.fileName}</span>
+                            <span style={{ fontSize: 12, color: "var(--ts)" }}>
+                              {a.uploader?.name || 'Uploaded'} · {new Date(a.uploadedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {photos.length > 0 && (
+                  <div style={{ borderTop: "1px solid var(--bs1)", paddingTop: "var(--s4)" }}>
+                    <p style={{ color: "var(--ts)", fontSize: 13, marginBottom: "var(--s3)" }}>
+                      Legacy photo references
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s3)", marginBottom: "var(--s4)" }}>
+                      {photos.map((p, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            minWidth: 120,
+                            minHeight: 44,
+                            background: "var(--l2)",
+                            border: "1px solid var(--bg1)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: "12px",
+                            color: "var(--th)",
+                            padding: "var(--s2)"
+                          }}
+                        >
+                          <Camera size={14} />
+                          <span style={{ overflowWrap: "anywhere" }}>{p}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {canEdit && (
-                  <button className="btn btn-s btn-sm" onClick={handleAddPhoto}>
-                    + Attach Photo
+                  <button
+                    className="btn btn-s btn-sm"
+                    onClick={handleAddPhoto}
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    title="Add a legacy text photo reference"
+                  >
+                    <Add size={14} />
+                    Add Reference
                   </button>
                 )}
               </div>
@@ -868,7 +1053,14 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   <select 
                     className="sel" 
                     value={status} 
-                    onChange={e => setStatus(e.target.value as JobStatus)} 
+                    onChange={e => {
+                      const next = e.target.value as JobStatus;
+                      if (status === 'completed' && next !== 'completed') {
+                        setPendingStatus(next);
+                      } else {
+                        setStatus(next);
+                      }
+                    }} 
                     style={{ maxWidth: 240 }}
                   >
                     {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -879,6 +1071,20 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 )}
                 {diag.status === "critical" && (
                   <Notification kind="e" title="Critical failure detected" body="Admin has been alerted. Do not close job until reviewed." />
+                )}
+                {pendingStatus && (
+                  <div className="notif notif-w" role="alert" style={{ marginTop: 12 }}>
+                    <div>
+                      <div className="notif-title">Confirm status change</div>
+                      <div className="notif-body" style={{ marginTop: 4 }}>
+                        This job was marked completed. Changing to "{STATUS_CFG[pendingStatus]?.label}" will undo completion.
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <button className="btn btn-s btn-sm" onClick={() => setPendingStatus(null)}>Cancel</button>
+                        <button className="btn btn-d btn-sm" onClick={() => { setStatus(pendingStatus); setPendingStatus(null); }}>Confirm change</button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -902,7 +1108,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           {/* ODS Tab */}
           {tab === "ods" && (
             <div className="fi-anim">
-              <div className="tile" style={{ marginBottom: "var(--s5)", background: "linear-gradient(135deg, #004d40, #00695c)", borderColor: "#00897b" }}>
+              <div className="tile" style={{ marginBottom: "var(--s5)", background: "#00695c", borderColor: "#00897b" }}>
                 <h3 style={{ color: "#fff", fontSize: "20px", fontWeight: 300, marginBottom: "var(--s3)" }}>
                   Ozone Depleting Substances (ODS) Tracking
                 </h3>
@@ -1218,7 +1424,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         </div>
         <div className="modal-foot">
           <button className="btn btn-g" onClick={onClose}>Cancel</button>
-          {isAdmin && onDelete && (
+          {canDeleteJobs(userRole) && onDelete && (
             <button
               className="btn btn-d"
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}

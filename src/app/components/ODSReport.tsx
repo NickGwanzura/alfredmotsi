@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Job, Customer, RefrigerantType } from '@/app/types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Job, Customer, RefrigerantType, User } from '@/app/types';
 import { SectionTitle } from './ui';
+import { canViewODSReport } from '@/app/lib/permissions';
 
 interface ODSReportProps {
   jobs: Job[];
   customers: Customer[];
+  currentUser: User;
   onExport?: () => void;
 }
 
@@ -105,12 +107,33 @@ function getStatusStyle(status: string): React.CSSProperties {
 export default function ODSReport({
   jobs,
   customers,
+  currentUser,
   onExport,
 }: ODSReportProps) {
+  if (!canViewODSReport(currentUser.role)) return null;
   const [selectedRefrigerant, setSelectedRefrigerant] = useState<string>('all');
+  const [liveJobs, setLiveJobs] = useState<Job[]>(jobs);
+
+  // Always refresh on mount so ODS reflects gas usage logged elsewhere (e.g. JobCardModal)
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/jobs')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!alive || !Array.isArray(data)) return;
+        setLiveJobs(data as Job[]);
+      })
+      .catch(() => {
+        // Keep fallback to props if refresh fails
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Get jobs with refrigerant data
-  const odsJobs = useMemo(() => getJobsWithRefrigerantData(jobs), [jobs]);
+  const odsJobs = useMemo(() => getJobsWithRefrigerantData(liveJobs), [liveJobs]);
 
   // Filter jobs by refrigerant type
   const filteredJobs = useMemo(() => {

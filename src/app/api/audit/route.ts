@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
-// POST /api/audit - Record an audit event (silent, fire-and-forget from client)
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await auth();
@@ -46,24 +45,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
-    // Audit failures must never surface to the user — log and swallow
     console.error('Audit log error:', error);
     return NextResponse.json({ ok: false }, { status: 200 });
   }
 }
 
-// GET /api/audit - Admin-only audit log viewer
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Guard: if migration hasn't run yet, return empty result instead of crashing
     try { await prisma.auditLog.count(); } catch {
       return NextResponse.json({ logs: [], total: 0, page: 1, pages: 0 });
     }
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = session.user as { id: string; role: string };
-    if (user.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

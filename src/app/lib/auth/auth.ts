@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { canViewFinancials } from "@/app/lib/permissions";
+import { stripJobFinancialFields } from "@/app/lib/jobTransform";
 
 export { auth };
 
-// Middleware helper for route protection in API routes
 export async function requireAuth(req: NextRequest, allowedRoles?: string[]) {
   try {
     const session = await auth();
@@ -21,6 +22,34 @@ export async function requireAuth(req: NextRequest, allowedRoles?: string[]) {
     console.error("Auth check error:", error);
     return NextResponse.json({ error: "Authentication error" }, { status: 500 });
   }
+}
+
+export function authenticate(session: unknown): { error: NextResponse | null; session: any } {
+  if (!session) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }), session: null };
+  }
+  return { error: null, session };
+}
+
+export function authorizeRole(session: any, allowedRoles: string[]): NextResponse | null {
+  if (!allowedRoles.includes((session.user as any).role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  return null;
+}
+
+export function filterFinancialData<T extends Record<string, unknown>>(session: any, data: T): T {
+  if (!canViewFinancials((session.user as any).role)) {
+    return stripJobFinancialFields(data);
+  }
+  return data;
+}
+
+export function filterFinancialArray<T extends Record<string, unknown>>(session: any, data: T[]): T[] {
+  if (!canViewFinancials((session.user as any).role)) {
+    return data.map(stripJobFinancialFields);
+  }
+  return data;
 }
 
 export function isAdmin(role: string) { return role === "admin"; }

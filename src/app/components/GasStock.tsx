@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GasStockItem } from '@/app/types';
+import { GasStockItem, User } from '@/app/types';
 import { SectionTitle } from './ui';
+import { canManageGasStock } from '@/app/lib/permissions';
 
 interface GasStockProps {
   stock: GasStockItem[];
+  currentUser: User;
   onAdd?: (item: GasStockItem) => void;
   onRefresh?: () => void;
 }
@@ -42,8 +44,9 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export default function GasStock({ stock, onAdd, onRefresh }: GasStockProps) {
+export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasStockProps) {
   const [adjustId, setAdjustId] = useState<string | null>(null);
+  if (!canManageGasStock(currentUser.role)) return null;
   const [adjustVal, setAdjustVal] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjusting, setAdjusting] = useState(false);
