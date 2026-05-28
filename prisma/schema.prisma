@@ -497,11 +497,6 @@ model EmailDeliveryLog {
   @@index([status, createdAt])
   @@index([category, createdAt])
   @@index([recipient, createdAt])
-  @@index([category, createdAt])
-  @@index([recipient, createdAt])
-  @@index([status, createdAt])
-  @@index([category, createdAt])
-  @@index([recipient, createdAt])
   @@map("email_delivery_logs")
 }
 
