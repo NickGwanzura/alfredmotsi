@@ -644,7 +644,62 @@ export function TechAssignmentEmail({
   );
 }
 
-// 5. USER INVITE EMAIL (for new technicians/staff)
+// 5. PASSWORD RESET EMAIL
+interface PasswordResetEmailProps {
+  userName: string;
+  resetUrl: string;
+}
+
+export function PasswordResetEmail({ userName, resetUrl }: PasswordResetEmailProps) {
+  return (
+    <Html>
+      <Head />
+      <Preview>Reset your Splash Air password</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Section style={header}>
+            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Text style={tagline}>Professional HVAC Services</Text>
+          </Section>
+
+          <Section style={content}>
+            <Heading style={h1}>Reset your password</Heading>
+
+            <Text style={paragraph}>Hi {userName},</Text>
+
+            <Text style={paragraph}>
+              We received a request to reset your Splash Air password. Click the button below to set a new password. This link expires in 1 hour.
+            </Text>
+
+            <Section style={{ textAlign: 'center', margin: '32px 0 16px' }}>
+              <Button href={resetUrl} style={button}>Reset password</Button>
+            </Section>
+
+            <Text style={paragraph}>
+              If you didn&apos;t request this, you can safely ignore this email. Your password will stay the same.
+            </Text>
+
+            <Text style={{ ...paragraph, marginTop: '32px' }}>
+              Best regards,<br />
+              <strong>The Splash Air Team</strong>
+            </Text>
+
+            <Hr style={divider} />
+
+            <Text style={footer}>
+              <strong>Splashair Air Conditioning (Pvt) Ltd</strong><br />
+              661 Lorraine Drive, Bluffhill, Harare<br />
+              Phone: 0715212141 & 0773034528<br />
+              <a href="mailto:alfred@splashaircrmzw.site" style={footerLink}>alfred@splashaircrmzw.site</a>
+            </Text>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+// 6. USER INVITE EMAIL (for new technicians/staff)
 interface UserInviteEmailProps {
   userName: string;
   userEmail: string;

@@ -37,6 +37,10 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
 
   const validateForm = () => {
     if (!email.trim()) {
@@ -321,20 +325,67 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
             </button>
           </form>
 
-          {/* Help Links */}
-          <div style={styles.helpSection}>
-            {mode === 'staff' ? (
-              <>
-                <a href="#" onClick={(e) => { e.preventDefault(); alert('Contact your administrator to reset your password.'); }} style={styles.helpLink}>Forgot password?</a>
-                <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
-              </>
-            ) : (
-              <>
-                <span style={styles.helpText}>Don&apos;t have a portal code?</span>
-                <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
-              </>
-            )}
-          </div>
+          {forgotMode ? (
+            <div style={styles.helpSection}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cds-text-primary)', marginBottom: 12 }}>Reset your password</p>
+              {resetSent ? (
+                <div className="notif notif-s" role="status" style={{ marginBottom: 12 }}>
+                  <div>
+                    <div className="notif-title">Check your email</div>
+                    <div className="notif-body" style={{ marginTop: 4 }}>If an account exists for {resetEmail}, you&apos;ll receive a reset link.</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 12 }}>
+                  <input
+                    className="inp"
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    style={{ marginBottom: 8 }}
+                  />
+                  <button
+                    className="btn btn-p"
+                    style={{ width: '100%' }}
+                    disabled={resetSending || !resetEmail.trim()}
+                    onClick={async () => {
+                      setResetSending(true);
+                      try {
+                        await fetch('/api/auth/forgot-password', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: resetEmail }),
+                        });
+                        setResetSent(true);
+                      } catch {
+                        setResetSent(true);
+                      } finally {
+                        setResetSending(false);
+                      }
+                    }}
+                  >
+                    {resetSending ? 'Sending...' : 'Send reset link'}
+                  </button>
+                </div>
+              )}
+              <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(false); setResetSent(false); setResetEmail(''); }} style={styles.helpLink}>Back to sign in</a>
+            </div>
+          ) : (
+            <div style={styles.helpSection}>
+              {mode === 'staff' ? (
+                <>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); }} style={styles.helpLink}>Forgot password?</a>
+                  <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
+                </>
+              ) : (
+                <>
+                  <span style={styles.helpText}>Don&apos;t have a portal code?</span>
+                  <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

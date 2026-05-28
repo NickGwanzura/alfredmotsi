@@ -497,5 +497,23 @@ model EmailDeliveryLog {
   @@index([status, createdAt])
   @@index([category, createdAt])
   @@index([recipient, createdAt])
+  @@index([category, createdAt])
+  @@index([recipient, createdAt])
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+  @@index([recipient, createdAt])
   @@map("email_delivery_logs")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([email])
+  @@map("password_reset_tokens")
 }

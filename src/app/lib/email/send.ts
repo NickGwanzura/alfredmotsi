@@ -8,6 +8,7 @@ import {
   TechAssignmentEmail,
   UserInviteEmail,
   StatusUpdateEmail,
+  PasswordResetEmail,
 } from './templates-new';
 import {
   validateEmailContent,
@@ -632,6 +633,40 @@ export async function sendUserInviteEmail({
     });
   } catch (error: unknown) {
     console.error('❌ Error sending user invite email:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+// ============================================
+// PASSWORD RESET EMAIL
+// ============================================
+
+interface SendPasswordResetEmailParams {
+  to: string;
+  userName: string;
+  resetUrl: string;
+}
+
+export async function sendPasswordResetEmail({
+  to,
+  userName,
+  resetUrl,
+}: SendPasswordResetEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
+  if (!to || !userName || !resetUrl) {
+    return { success: false, error: 'Missing required fields' };
+  }
+
+  try {
+    const html = await render(PasswordResetEmail({ userName, resetUrl }));
+    return await sendEmailWithBestPractices({
+      to,
+      subject: 'Reset your Splash Air password',
+      html,
+      category: 'password-reset',
+      isTransactional: true,
+    });
+  } catch (error: unknown) {
+    console.error('Error sending password reset email:', error);
     return { success: false, error: String(error) };
   }
 }
