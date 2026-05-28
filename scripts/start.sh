@@ -22,20 +22,12 @@ else
 fi
 echo ""
 
-# Run migrations — resolve any already-applied migrations, then deploy
-echo "📦 Running database migrations..."
+# Sync database schema (db push avoids migration conflicts from schema drift)
+echo "📦 Syncing database schema..."
 if [ -x "./node_modules/.bin/prisma" ]; then
-  ./node_modules/.bin/prisma migrate deploy 2>&1 || {
-    echo "⚠️ Deploy failed, attempting to resolve failed migrations..."
-    # Resolve any failed migrations by marking them as applied
-    ./node_modules/.bin/prisma migrate resolve --applied 20240328000000_init 2>/dev/null || true
-    ./node_modules/.bin/prisma migrate deploy 2>&1 || {
-      echo "⚠️ Deploy still failing — using db push as fallback..."
-      ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
-    }
-  }
+  ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ Schema sync failed, continuing..."
 else
-  echo "⚠️ Prisma CLI not found in image, skipping migrations"
+  echo "⚠️ Prisma CLI not found in image, skipping schema sync"
 fi
 echo ""
 
