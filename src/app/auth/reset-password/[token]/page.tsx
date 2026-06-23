@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -39,6 +40,8 @@ export default function ResetPasswordPage() {
         setError(data.error || 'Something went wrong');
       } else {
         setSuccess(true);
+        // Auto-redirect to login after 3 seconds
+        setTimeout(() => router.push('/'), 3000);
       }
     } catch {
       setError('Network error — please try again');
