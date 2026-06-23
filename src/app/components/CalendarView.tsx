@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, TECH_STATUS } from '@/app/lib/config';
 import { Avatar } from './ui';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { canViewAllJobs } from '@/app/lib/permissions';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -112,47 +112,48 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
     navLabel = monthRef.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
   }
 
+  // Job type color dot helper
+  const getJobTypeDot = (type: string): { color: string; label: string } => {
+    const cfg = TYPE_CFG[type as keyof typeof TYPE_CFG];
+    return cfg ? { color: cfg.color, label: cfg.label } : { color: '#888', label: type };
+  };
+
   // ── Job card (reusable) ────────────────────────────────────────────────────
   const JobCard = ({ j }: { j: Job }) => {
     const sc = STATUS_CFG[j.status] || STATUS_CFG.scheduled;
-    const col = TYPE_CFG[j.type]?.color || '#888';
+    const typeInfo = getJobTypeDot(j.type);
+    const borderColor = j.alerts && j.alerts.length ? '#ef4444' : typeInfo.color;
     return (
       <div
-        className="mb-1 rounded cursor-pointer text-xs"
-        style={{
-          background: sc.bg,
-          color: sc.txt,
-          borderLeftWidth: '3px',
-          borderLeftStyle: 'solid',
-          borderLeftColor: j.alerts && j.alerts.length ? 'var(--color-support-error)' : col,
-          padding: '6px 8px',
-        }}
+        className="mb-1.5 rounded-lg cursor-pointer text-xs bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all duration-150"
+        style={{ borderLeftWidth: '3px', borderLeftStyle: 'solid', borderLeftColor: borderColor }}
         onClick={() => onJobClick(j)}
       >
-        <p className="font-semibold truncate m-0">{j.time} {j.title}</p>
-        <p className="truncate m-0" style={{ opacity: 0.75 }}>
-          {customers.find(c => c.id === j.customerId)?.name?.split(' ').slice(0, 2).join(' ')}
-        </p>
-        {j.alerts && j.alerts.length > 0 && (
-          <p className="text-support-error m-0" style={{ marginTop: '2px' }}>⚡ Alert</p>
-        )}
+        <div className="px-2.5 py-1.5">
+          <p className="font-semibold truncate text-gray-900 m-0">{j.time} {j.title}</p>
+          <p className="truncate text-gray-500 m-0 text-[11px]">
+            {customers.find(c => c.id === j.customerId)?.name?.split(' ').slice(0, 2).join(' ')}
+          </p>
+          {j.alerts && j.alerts.length > 0 && (
+            <p className="text-red-500 m-0 text-[10px] font-medium mt-0.5">Alert</p>
+          )}
+        </div>
       </div>
     );
   };
 
   // ── Segmented control ──────────────────────────────────────────────────────
   const SegControl = () => (
-    <div className="inline-flex rounded overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)' }}>
-      {(['day', 'week', 'month'] as ViewMode[]).map(v => (
+    <div className="inline-flex rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+      {(['day', 'week', 'month'] as ViewMode[]).map((v, i) => (
         <button
           key={v}
           onClick={() => handleViewChange(v)}
-          className="px-3.5 py-1.5 text-xs font-semibold cursor-pointer border-none capitalize transition-[background,color] duration-150"
-          style={{
-            borderRight: v !== 'month' ? '1px solid var(--color-border-subtle)' : 'none',
-            background: view === v ? 'var(--color-interactive)' : 'var(--color-surface-hover)',
-            color: view === v ? '#fff' : 'var(--color-text-secondary)',
-          }}
+          className={`px-4 py-1.5 text-xs font-semibold cursor-pointer border-none capitalize transition-all duration-150 ${
+            view === v
+              ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white'
+              : 'bg-white text-gray-500 hover:bg-gray-50'
+          } ${i !== 2 ? 'border-r border-gray-200' : ''}`}
         >
           {v}
         </button>
@@ -162,27 +163,27 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── DAY VIEW ──────────────────────────────────────────────────────────────
   const DayView = () => (
-    <div className="flex flex-col gap-4">
+    <div className="space-y-4">
       {shownTechs.map(t => {
         const dayJobs = getDayTechJobs(t.id, dayDateStr);
         return (
-          <div key={t.id} className="bg-layer rounded-md overflow-hidden">
-            <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-border-subtle" style={{ background: 'var(--color-surface-hover)' }}>
+          <div key={t.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/50">
               <Avatar name={t.name} size={28} />
               <div>
-                <p className="text-sm font-semibold text-text-primary m-0">{t.name}</p>
+                <p className="text-sm font-semibold text-gray-900 m-0">{t.name}</p>
                 <p className="text-xs m-0" style={{ color: TECH_STATUS[t.status || 'available']?.color || '#888' }}>
                   {TECH_STATUS[t.status || 'available']?.label}
                 </p>
               </div>
-              <span className="ml-auto text-xs text-text-secondary">
+              <span className="ml-auto text-xs text-gray-500 font-medium">
                 {dayJobs.length} job{dayJobs.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className="px-3 py-2.5">
+            <div className="p-3">
               {dayJobs.length > 0
                 ? dayJobs.map(j => <JobCard key={j.id} j={j} />)
-                : <p className="text-sm text-text-secondary m-0 opacity-50">\u2014</p>
+                : <p className="text-sm text-gray-400 m-0 text-center py-4">No jobs scheduled for this day.</p>
               }
             </div>
           </div>
@@ -193,61 +194,58 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── WEEK VIEW ─────────────────────────────────────────────────────────────
   const WeekView = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse" style={{ minWidth: shownTechs.length * 180 + 160 }}>
-        <thead>
-          <tr>
-            <th className="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider border border-border-subtle bg-surface-hover" style={{ width: 140 }}>
-              Date
-            </th>
-            {shownTechs.map(t => (
-              <th key={t.id} className="px-4 py-3 border border-border-subtle text-left bg-surface-hover">
-                <div className="flex items-center gap-2">
-                  <Avatar name={t.name} size={28} />
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary m-0">{t.name.split(' ')[0]}</p>
-                    <p className="text-xs m-0" style={{ color: TECH_STATUS[t.status || 'available']?.color || '#888' }}>
-                      {TECH_STATUS[t.status || 'available']?.label}
-                    </p>
-                  </div>
-                </div>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse" style={{ minWidth: shownTechs.length * 200 + 160 }}>
+          <thead>
+            <tr>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-100 bg-gray-50 text-left" style={{ width: 140 }}>
+                Date
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weekDays.map(d => {
-            const isToday = d === todayStr;
-            const dl = new Date(d + 'T12:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
-            return (
-              <tr key={d}>
-                <td className="px-3 py-2 border border-border-subtle align-top" style={{ width: 140, background: isToday ? 'rgba(69,137,255,.06)' : 'var(--color-surface)' }}>
-                  <p className="text-sm m-0" style={{ fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--color-interactive)' : 'var(--color-text-secondary)' }}>
-                    {dl}
-                  </p>
-                  {isToday && <p className="text-[11px] text-interactive font-semibold m-0">TODAY</p>}
-                </td>
-                {shownTechs.map(t => {
-                  const dayJobs = getDayTechJobs(t.id, d);
-                  return (
-                    <td
-                      key={t.id}
-                      className="border border-border-subtle align-top p-2"
-                    >
-                      {dayJobs.map(j => <JobCard key={j.id} j={j} />)}
-                      {dayJobs.length === 0 && (
-                        <p className="text-xs text-center pt-4 m-0" style={{ color: 'var(--color-border-subtle)' }}>
-                          \u2014
-                        </p>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+              {shownTechs.map(t => (
+                <th key={t.id} className="px-4 py-3 border-b border-gray-100 text-left bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <Avatar name={t.name} size={26} />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 m-0">{t.name.split(' ')[0]}</p>
+                      <p className="text-[11px] m-0" style={{ color: TECH_STATUS[t.status || 'available']?.color || '#888' }}>
+                        {TECH_STATUS[t.status || 'available']?.label}
+                      </p>
+                    </div>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {weekDays.map(d => {
+              const isToday = d === todayStr;
+              const dl = new Date(d + 'T12:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
+              return (
+                <tr key={d}>
+                  <td className={`px-3 py-2 align-top border-b border-gray-100 ${isToday ? 'bg-brand-50' : 'bg-white'}`} style={{ width: 140 }}>
+                    <p className={`text-sm m-0 ${isToday ? 'font-bold text-brand-600' : 'font-medium text-gray-600'}`}>
+                      {dl}
+                    </p>
+                    {isToday && <p className="text-[10px] text-brand-600 font-semibold m-0 uppercase tracking-wider">Today</p>}
+                  </td>
+                  {shownTechs.map(t => {
+                    const dayJobs = getDayTechJobs(t.id, d);
+                    return (
+                      <td key={t.id} className="border-b border-gray-100 align-top p-2">
+                        {dayJobs.map(j => <JobCard key={j.id} j={j} />)}
+                        {dayJobs.length === 0 && (
+                          <p className="text-xs text-center pt-3 m-0 text-gray-300">\u2014</p>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -255,108 +253,127 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
   const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const MonthView = () => (
-    <div className="overflow-x-auto">
-      <table className="border-collapse w-full" style={{ minWidth: 420 }}>
-        <thead>
-          <tr>
-            {DOW_LABELS.map(d => (
-              <th key={d} className="px-1 py-2 text-[11px] font-semibold text-text-secondary uppercase tracking-wider text-center border border-border-subtle bg-surface-hover">
-                {d}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: totalCells / 7 }, (_, row) => (
-            <tr key={row}>
-              {monthGrid.slice(row * 7, row * 7 + 7).map(cellDate => {
-                const ds = isoDate(cellDate);
-                const inMonth = cellDate.getMonth() === monthMonth;
-                const isToday = ds === todayStr;
-                const cellJobs = getDayAllJobs(ds);
-                const mostStatus = getMostCommonStatus(cellJobs);
-                const statusColor = mostStatus ? ((STATUS_CFG as Record<string, { bg: string; txt: string; label: string }>)[mostStatus]?.bg || 'transparent') : 'transparent';
-                const hasAlert = cellJobs.some(j => j.alerts && j.alerts.length > 0);
-
-                return (
-                  <td
-                    key={ds}
-                    onClick={() => { handleViewChange('day'); setOffset(Math.round((cellDate.getTime() - todayBase.getTime()) / 86400000)); }}
-                    className="border border-border-subtle align-top p-1.5 cursor-pointer transition-[background] duration-100"
-                    style={{
-                      minHeight: '80px',
-                      height: '80px',
-                      background: isToday ? 'rgba(69,137,255,.06)' : inMonth ? 'var(--color-surface)' : 'var(--color-layer)',
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="inline-flex items-center justify-center text-sm"
-                        style={{
-                          fontWeight: isToday ? 700 : 400,
-                          color: isToday ? '#fff' : inMonth ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                          opacity: inMonth ? 1 : 0.4,
-                          width: isToday ? 22 : 'auto',
-                          height: isToday ? 22 : 'auto',
-                          borderRadius: isToday ? '50%' : 0,
-                          background: isToday ? 'var(--color-interactive)' : 'transparent',
-                        }}
-                      >
-                        {cellDate.getDate()}
-                      </span>
-                      {hasAlert && (
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0 inline-block" style={{ background: 'var(--color-support-error)' }} />
-                      )}
-                    </div>
-                    {cellJobs.length > 0 && (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-primary">
-                          <span className="w-2 h-2 rounded-sm shrink-0 inline-block" style={{ background: statusColor }} />
-                          {cellJobs.length} job{cellJobs.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="border-collapse w-full" style={{ minWidth: 420 }}>
+          <thead>
+            <tr>
+              {DOW_LABELS.map(d => (
+                <th key={d} className="px-1 py-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 text-center border-b border-gray-100 bg-gray-50">
+                  {d}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {Array.from({ length: totalCells / 7 }, (_, row) => (
+              <tr key={row}>
+                {monthGrid.slice(row * 7, row * 7 + 7).map(cellDate => {
+                  const ds = isoDate(cellDate);
+                  const inMonth = cellDate.getMonth() === monthMonth;
+                  const isToday = ds === todayStr;
+                  const cellJobs = getDayAllJobs(ds);
+                  const mostStatus = getMostCommonStatus(cellJobs);
+                  const statusColor = mostStatus ? ((STATUS_CFG as Record<string, { bg: string; txt: string; label: string }>)[mostStatus]?.bg || 'transparent') : 'transparent';
+                  const hasAlert = cellJobs.some(j => j.alerts && j.alerts.length > 0);
+
+                  return (
+                    <td
+                      key={ds}
+                      onClick={() => { handleViewChange('day'); setOffset(Math.round((cellDate.getTime() - todayBase.getTime()) / 86400000)); }}
+                      className="border-b border-r border-gray-50 align-top p-1.5 cursor-pointer transition-all duration-100 hover:bg-gray-50"
+                      style={{
+                        minHeight: '90px',
+                        height: '90px',
+                        background: inMonth ? 'white' : 'bg-gray-50/50',
+                      }}
+                    >
+                      <div className={`flex items-center justify-between mb-1 ${inMonth ? '' : 'opacity-40'}`}>
+                        <span
+                          className={`inline-flex items-center justify-center text-sm font-medium ${
+                            isToday
+                              ? 'w-7 h-7 rounded-full bg-brand-50 text-brand-600 font-bold'
+                              : 'text-gray-700'
+                          } ${!inMonth ? 'text-gray-400' : ''}`}
+                        >
+                          {cellDate.getDate()}
+                        </span>
+                        {hasAlert && (
+                          <span className="w-2 h-2 rounded-full shrink-0 inline-block bg-red-500" />
+                        )}
+                      </div>
+                      {cellJobs.length > 0 && (
+                        <div className="flex flex-col gap-1 mt-1">
+                          {cellJobs.slice(0, 3).map(j => {
+                            const typeInfo = getJobTypeDot(j.type);
+                            return (
+                              <div
+                                key={j.id}
+                                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); onJobClick(j); }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: typeInfo.color }} />
+                                <span className="truncate text-gray-600">{j.title}</span>
+                              </div>
+                            );
+                          })}
+                          {cellJobs.length > 3 && (
+                            <span className="text-[10px] text-gray-400 font-medium pl-2">+{cellJobs.length - 3} more</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="animate-fade-in">
-      <div className="flex justify-between items-end flex-wrap gap-3 mb-4">
+    <div className="animate-fade-in max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-semibold m-0">{canViewAllJobs(userRole) ? 'Master Calendar' : 'My Schedule'}</h1>
-          <p className="m-0 text-sm text-text-secondary">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{canViewAllJobs(userRole) ? 'Master Calendar' : 'My Schedule'}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             {canViewAllJobs(userRole) ? 'Side-by-side technician grid. Conflict detection active.' : 'Your schedule view.'}
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-3">
           <SegControl />
-          <div className="flex items-center gap-0">
+        </div>
+      </div>
+
+      {/* Navigation bar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <button
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded-l"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={prev}
             >
               <ChevronLeft size={16} />
-              Prev
             </button>
-            <button className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border-t border-b border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors" onClick={goToday}>Today</button>
             <button
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded-r"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
+              onClick={goToday}
+            >
+              Today
+            </button>
+            <button
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={next}
             >
-              Next
               <ChevronRight size={16} />
             </button>
           </div>
-          <span className="text-sm font-medium text-text-primary text-right">{navLabel}</span>
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">{navLabel}</h2>
         </div>
       </div>
 
@@ -364,13 +381,17 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
       {view === 'week' && <WeekView />}
       {view === 'month' && <MonthView />}
 
-      <div className="mt-4 flex gap-4 flex-wrap">
-        {Object.entries(STATUS_CFG).map(([k, v]) => (
-          <div key={k} className="flex items-center gap-1.5 text-xs text-text-secondary">
-            <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0" style={{ background: v.bg }} />
-            {v.label}
-          </div>
-        ))}
+      {/* Legend */}
+      <div className="mt-5 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Status Legend</p>
+        <div className="flex gap-4 flex-wrap">
+          {Object.entries(STATUS_CFG).map(([k, v]) => (
+            <div key={k} className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span className="w-2.5 h-2.5 rounded inline-block shrink-0" style={{ background: v.bg }} />
+              {v.label}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

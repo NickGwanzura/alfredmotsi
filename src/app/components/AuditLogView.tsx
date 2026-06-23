@@ -1,40 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, User as UserIcon, Clock, FileText, Filter } from 'lucide-react';
+import { MapPin, User as UserIcon, Clock, FileText, Filter, Activity } from 'lucide-react';
 import { User, AuditLogEntry, AuditAction } from '@/app/types';
 
-interface AuditLogViewProps {
-  techs: User[];
-}
-
-interface AuditLogResponse {
-  logs: AuditLogEntry[];
-  total: number;
-  page: number;
-  pages: number;
-}
+interface AuditLogViewProps { techs: User[]; }
+interface AuditLogResponse { logs: AuditLogEntry[]; total: number; page: number; pages: number; }
 
 const PAGE_SIZE = 50;
 
-const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; group: string }> = {
-  login:            { label: 'Login',              color: '#0043ce', group: 'Access' },
-  view_job:         { label: 'Viewed Job',         color: '#198038', group: 'Jobs' },
-  edit_job:         { label: 'Edited Job',         color: '#f1c21b', group: 'Jobs' },
-  complete_job:     { label: 'Completed Job',      color: '#8a3ffc', group: 'Jobs' },
-  delete_job:       { label: 'Deleted Job',        color: '#da1e28', group: 'Jobs' },
-  adjust_stock:     { label: 'Adjusted Stock',     color: '#ff832b', group: 'Stock' },
-  create_customer:  { label: 'Created Customer',   color: '#1192e8', group: 'Customers' },
-  update_customer:  { label: 'Updated Customer',   color: '#0f62fe', group: 'Customers' },
-  delete_customer:  { label: 'Deleted Customer',   color: '#da1e28', group: 'Customers' },
-  create_gas_stock: { label: 'Created Gas Stock',  color: '#007d79', group: 'Stock' },
-  update_gas_stock: { label: 'Updated Gas Stock',  color: '#005d5d', group: 'Stock' },
-  delete_gas_stock: { label: 'Deleted Gas Stock',  color: '#da1e28', group: 'Stock' },
-  create_consumable:{ label: 'Added Consumable',   color: '#007d79', group: 'Consumables' },
-  delete_consumable:{ label: 'Deleted Consumable', color: '#da1e28', group: 'Consumables' },
-  create_user:      { label: 'Created User',       color: '#6929c4', group: 'Users' },
-  update_user:      { label: 'Updated User',       color: '#8a3ffc', group: 'Users' },
-  delete_user:      { label: 'Deleted User',       color: '#da1e28', group: 'Users' },
+const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; bg: string; group: string }> = {
+  login:            { label: 'Login',              color: '#0043ce', bg: 'bg-blue-100', group: 'Access' },
+  view_job:         { label: 'Viewed Job',         color: '#198038', bg: 'bg-emerald-100', group: 'Jobs' },
+  edit_job:         { label: 'Edited Job',         color: '#f1c21b', bg: 'bg-amber-100', group: 'Jobs' },
+  complete_job:     { label: 'Completed Job',      color: '#8a3ffc', bg: 'bg-purple-100', group: 'Jobs' },
+  delete_job:       { label: 'Deleted Job',        color: '#da1e28', bg: 'bg-red-100', group: 'Jobs' },
+  adjust_stock:     { label: 'Adjusted Stock',     color: '#ff832b', bg: 'bg-orange-100', group: 'Stock' },
+  create_customer:  { label: 'Created Customer',   color: '#1192e8', bg: 'bg-sky-100', group: 'Customers' },
+  update_customer:  { label: 'Updated Customer',   color: '#0f62fe', bg: 'bg-blue-100', group: 'Customers' },
+  delete_customer:  { label: 'Deleted Customer',   color: '#da1e28', bg: 'bg-red-100', group: 'Customers' },
+  create_gas_stock: { label: 'Created Gas Stock',  color: '#007d79', bg: 'bg-teal-100', group: 'Stock' },
+  update_gas_stock: { label: 'Updated Gas Stock',  color: '#005d5d', bg: 'bg-teal-100', group: 'Stock' },
+  delete_gas_stock: { label: 'Deleted Gas Stock',  color: '#da1e28', bg: 'bg-red-100', group: 'Stock' },
+  create_consumable:{ label: 'Added Consumable',   color: '#007d79', bg: 'bg-teal-100', group: 'Consumables' },
+  delete_consumable:{ label: 'Deleted Consumable', color: '#da1e28', bg: 'bg-red-100', group: 'Consumables' },
+  create_user:      { label: 'Created User',       color: '#6929c4', bg: 'bg-purple-100', group: 'Users' },
+  update_user:      { label: 'Updated User',       color: '#8a3ffc', bg: 'bg-purple-100', group: 'Users' },
+  delete_user:      { label: 'Deleted User',       color: '#da1e28', bg: 'bg-red-100', group: 'Users' },
 };
 
 const ACTION_OPTIONS = Object.entries(ACTION_CONFIG) as Array<[AuditAction, typeof ACTION_CONFIG[AuditAction]]>;
@@ -44,28 +36,18 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center p-12 text-text-secondary gap-2.5">
-      <div className="w-5 h-5 border-2 border-border-subtle border-t-interactive rounded-full animate-spin" />
-      <span className="text-sm">Loading audit records…</span>
-    </div>
-  );
-}
-
 export default function AuditLogView({ techs }: AuditLogViewProps) {
-  const [logs, setLogs]       = useState<AuditLogEntry[]>([]);
-  const [total, setTotal]     = useState(0);
-  const [pages, setPages]     = useState(1);
-  const [page, setPage]       = useState(1);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [err, setErr]         = useState('');
-
-  const [filterUser,   setFilterUser]   = useState('');
+  const [err, setErr] = useState('');
+  const [filterUser, setFilterUser] = useState('');
   const [filterAction, setFilterAction] = useState('');
-  const [filterFrom,   setFilterFrom]   = useState('');
-  const [filterTo,     setFilterTo]     = useState('');
-  const [filterJobId,  setFilterJobId]  = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterJobId, setFilterJobId] = useState('');
 
   const fetchLogs = useCallback(async (targetPage: number) => {
     setLoading(true); setErr('');
@@ -81,12 +63,11 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       if (!res.ok) throw new Error('Failed to load audit logs');
       const data: AuditLogResponse = await res.json();
       setLogs(data.logs); setTotal(data.total); setPages(data.pages); setPage(data.page);
-    } catch { setErr('Could not load audit records. Please try again.'); }
+    } catch { setErr('Could not load audit records.'); }
     finally { setLoading(false); }
   }, [filterUser, filterAction, filterFrom, filterTo, filterJobId]);
 
   useEffect(() => { fetchLogs(1); }, [fetchLogs]);
-
   function handleRefresh() { fetchLogs(page); }
   function handlePrev() { if (page > 1) fetchLogs(page - 1); }
   function handleNext() { if (page < pages) fetchLogs(page + 1); }
@@ -99,147 +80,126 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const loadedUsers = new Set(logs.map(log => log.userId)).size;
   const latestLog = logs[0]?.createdAt;
 
-  const tb = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs';
-
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-start justify-between mb-4">
+    <div className="animate-fade-in max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Audit Log</h1>
-          <p className="text-sm text-text-secondary">Track all user activity across the platform.</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Audit Log</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Track all user activity across the platform.</p>
         </div>
-        <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={handleRefresh}>
-          <Clock size={14} /> Refresh
+        <button onClick={handleRefresh} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors border-none cursor-pointer">
+          <Clock size={16} /> Refresh
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{total}</div>
-          <div className="text-xs text-text-secondary mt-1">{hasFilters ? 'Matching records' : 'Total records'}</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{loadedUsers}</div>
-          <div className="text-xs text-text-secondary mt-1">Users on page</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{loadedWithLocation}</div>
-          <div className="text-xs text-text-secondary mt-1">With location</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-support-error">
-          <div className="text-3xl font-bold text-text-primary">{loadedDestructive}</div>
-          <div className="text-xs text-text-secondary mt-1">Destructive actions</div>
-        </div>
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        {[
+          { label: 'Total Records', value: total, icon: Activity, color: 'from-blue-500 to-blue-600' },
+          { label: 'Users on Page', value: loadedUsers, icon: UserIcon, color: 'from-violet-500 to-violet-600' },
+          { label: 'With Location', value: loadedWithLocation, icon: MapPin, color: 'from-emerald-500 to-emerald-600' },
+          { label: 'Destructive', value: loadedDestructive, icon: FileText, color: loadedDestructive > 0 ? 'from-red-500 to-red-600' : 'from-gray-400 to-gray-500' },
+        ].map((s, i) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-500">{s.label}</span>
+              <div className={`p-2 rounded-lg bg-gradient-to-br ${s.color} text-white shadow-sm`}><s.icon size={18} /></div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 tracking-tight">{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="bg-layer p-4 border border-border-subtle mb-4 flex flex-wrap gap-2 items-end">
-        <div className="flex items-center gap-1.5 text-text-secondary mr-1">
-          <Filter size={14} />
-          <span className="text-xs font-medium uppercase tracking-wide">Filters</span>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex items-center gap-1.5 text-gray-400 mr-2 self-center">
+            <Filter size={14} /><span className="text-xs font-medium uppercase tracking-wider">Filters</span>
+          </div>
+          <div className="flex gap-1">
+            {[{ label: 'Today', days: 1 }, { label: '7 days', days: 7 }, { label: '30 days', days: 30 }].map(({ label, days }) => (
+              <button key={label} onClick={() => applyDateRange(days)} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">{label}</button>
+            ))}
+          </div>
+          <div className="min-w-[160px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><UserIcon size={12} className="inline mr-1" />User</label>
+            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+              <option value="">All users</option>
+              {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="min-w-[160px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Action</label>
+            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+              <option value="">All actions</option>
+              {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} \u00b7 {cfg.label}</option>)}
+            </select>
+          </div>
+          <div className="min-w-[160px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Job ID</label>
+            <input type="search" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
+          </div>
+          <div className="min-w-[140px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />From</label>
+            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
+          </div>
+          <div className="min-w-[140px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />To</label>
+            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterTo} onChange={e => setFilterTo(e.target.value)} />
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer self-end">Clear</button>
+          )}
         </div>
-        <div className="flex gap-1 self-end">
-          {[
-            { label: 'Today', days: 1 },
-            { label: '7 days', days: 7 },
-            { label: '30 days', days: 30 },
-          ].map(({ label, days }) => (
-            <button key={label} className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} type="button" onClick={() => applyDateRange(days)}>{label}</button>
-          ))}
-        </div>
-        <div className="flex flex-col gap-0.5 min-w-[160px]">
-          <label className="text-[11px] text-text-secondary flex items-center gap-1"><UserIcon size={11} /> User</label>
-          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[160px]" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
-            <option value="">All users</option>
-            {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-col gap-0.5 min-w-[160px]">
-          <label className="text-[11px] text-text-secondary flex items-center gap-1"><FileText size={11} /> Action</label>
-          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[160px]" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
-            <option value="">All actions</option>
-            {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} · {cfg.label}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-col gap-0.5 min-w-[180px]">
-          <label className="text-[11px] text-text-secondary flex items-center gap-1"><FileText size={11} /> Job ID</label>
-          <input type="search" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[180px]" value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <label className="text-[11px] text-text-secondary flex items-center gap-1"><Clock size={11} /> From</label>
-          <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[140px]" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <label className="text-[11px] text-text-secondary flex items-center gap-1"><Clock size={11} /> To</label>
-          <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[140px]" value={filterTo} onChange={e => setFilterTo(e.target.value)} />
-        </div>
-        {hasFilters && (
-          <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors self-end`} onClick={clearFilters}>Clear</button>
-        )}
       </div>
 
       {!loading && logs.length > 0 && (
-        <div className="flex items-start gap-3 p-4 mb-4 bg-blue-50 border-l-4 border-l-support-info">
-          <div>
-            <div className="font-semibold text-sm text-text-primary">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</div>
-            <div className="text-sm text-text-secondary">Latest activity {latestLog ? formatDateTime(latestLog) : '—'} · Page {page} of {pages || 1}</div>
+        <div className="flex items-start gap-3 p-4 mb-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div className="text-sm">
+            <p className="font-semibold text-blue-800">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</p>
+            <p className="text-blue-600 mt-0.5">Latest activity {latestLog ? formatDateTime(latestLog) : '\u2014'} \u00b7 Page {page} of {pages || 1}</p>
           </div>
         </div>
       )}
 
-      {err && (
-        <div className="p-4 mb-4 bg-red-50 border border-support-error text-support-error text-sm">{err}</div>
-      )}
+      {err && <div className="p-4 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
 
-      <div className="overflow-x-auto border border-border-subtle">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-surface">
+            <tr className="bg-gray-50">
               {[
-                { icon: Clock, label: 'Time', minW: 150 },
-                { icon: UserIcon, label: 'User', minW: 140 },
-                { icon: FileText, label: 'Action', minW: 130 },
-                { label: 'Job ID', minW: 110 },
-                { label: 'Reason', minW: 180 },
-                { icon: MapPin, label: 'Location', minW: 120 },
-                { label: 'IP Address', minW: 130 },
+                { icon: Clock, label: 'Time' }, { icon: UserIcon, label: 'User' },
+                { icon: FileText, label: 'Action' }, { label: 'Job ID' },
+                { label: 'Reason' }, { icon: MapPin, label: 'Location' }, { label: 'IP Address' },
               ].map(col => (
-                <th key={col.label} className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle" style={{ minWidth: col.minW }}>
-                  <span className="flex items-center gap-1.5">
-                    {col.icon && <col.icon size={13} />} {col.label}
-                  </span>
+                <th key={col.label} className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100 whitespace-nowrap">
+                  <span className="flex items-center gap-1.5">{col.icon && <col.icon size={13} />} {col.label}</span>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} className="p-0 border-0"><Spinner /></td></tr>}
+            {loading && <tr><td colSpan={7} className="text-center text-gray-400 py-10 text-sm">Loading audit records...</td></tr>}
             {!loading && logs.length === 0 && (
-              <tr><td colSpan={7} className="text-center p-12 text-text-secondary text-sm">No audit records found.</td></tr>
+              <tr><td colSpan={7}><div className="flex flex-col items-center justify-center py-10 text-gray-400"><Activity size={40} className="mb-3 opacity-30" /><p className="text-sm">No audit records found.</p></div></td></tr>
             )}
             {!loading && logs.map(log => {
-              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: 'var(--color-text-secondary)', group: 'Other' };
+              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: '#6f6f6f', bg: 'bg-gray-100', group: 'Other' };
               const hasLocation = log.latitude != null && log.longitude != null;
               return (
-                <tr key={log.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors">
-                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
-                  <td className="px-4 py-3 font-medium text-sm text-text-primary">{log.userName}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center h-6 px-2 text-[11px] font-semibold tracking-wide border" style={{ background: `${action.color}22`, color: action.color, borderColor: `${action.color}44` }}>{action.label}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-text-secondary font-mono">{log.jobId ?? '—'}</td>
-                  <td className="px-4 py-3 text-xs text-text-secondary max-w-[260px]" title={log.reason ?? undefined}>
-                    {log.reason ? (
-                      <span className="inline-block max-w-[240px] overflow-hidden text-ellipsis whitespace-nowrap align-middle">{log.reason}</span>
-                    ) : '—'}
-                  </td>
+                <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.userName}</td>
+                  <td className="px-4 py-3"><span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${action.bg}`} style={{ color: action.color }}>{action.label}</span></td>
+                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.jobId ?? '\u2014'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 max-w-[260px] truncate" title={log.reason ?? undefined}>{log.reason || '\u2014'}</td>
                   <td className="px-4 py-3 text-xs">
                     {hasLocation ? (
-                      <a href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-interactive no-underline text-xs">
+                      <a href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-600 no-underline hover:underline">
                         <MapPin size={12} /> View Map
                       </a>
-                    ) : <span className="text-text-secondary">—</span>}
+                    ) : <span className="text-gray-400">\u2014</span>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-secondary font-mono">{log.ipAddress ?? '—'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ipAddress ?? '\u2014'}</td>
                 </tr>
               );
             })}
@@ -248,11 +208,11 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       </div>
 
       {!loading && logs.length > 0 && (
-        <div className="flex items-center justify-between mt-4 px-0.5">
-          <span className="text-xs text-text-secondary">Page {page} of {pages} · {total} record{total !== 1 ? 's' : ''} total</span>
+        <div className="flex items-center justify-between mt-4 px-1">
+          <span className="text-xs text-gray-400">Page {page} of {pages} \u00b7 {total} record{total !== 1 ? 's' : ''} total</span>
           <div className="flex gap-1">
-            <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors ${page <= 1 ? 'opacity-40 cursor-not-allowed' : ''}`} onClick={handlePrev} disabled={page <= 1}>← Prev</button>
-            <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors ${page >= pages ? 'opacity-40 cursor-not-allowed' : ''}`} onClick={handleNext} disabled={page >= pages}>Next →</button>
+            <button onClick={handlePrev} disabled={page <= 1} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">\u2190 Prev</button>
+            <button onClick={handleNext} disabled={page >= pages} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next \u2192</button>
           </div>
         </div>
       )}

@@ -7,7 +7,7 @@ import { canManageCustomers } from '@/app/lib/permissions';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
 import { sendPortalInviteEmail } from '@/app/lib/email/client';
 import { StatusTag, SectionTitle, Avatar, Notification } from './ui';
-import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck } from 'lucide-react';
+import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck, Search, Phone, Briefcase } from 'lucide-react';
 
 interface CustomerDBProps {
   customers: Customer[];
@@ -27,6 +27,10 @@ function avatarColor(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function getActiveJobCount(customerId: string, jobs: Job[]): number {
+  return jobs.filter(j => j.customerId === customerId && j.status !== 'completed' && j.status !== 'cancelled').length;
 }
 
 export default function CustomerDB({ customers, jobs, currentUser, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
@@ -168,7 +172,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   const openEmpty = () => onAddCustomer?.({ id: '', name: '', address: '', siteAddress: '', phone: '', whatsapp: '', email: '', portalCode: '', portalEnabled: false });
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in max-w-7xl mx-auto">
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[9999] min-w-[280px] max-w-[360px]">
@@ -177,14 +181,14 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-end mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold m-0">Customers</h1>
-          <p className="text-sm text-text-secondary m-0">{filtered.length} records</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Customers</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} records</p>
         </div>
         {onAddCustomer && (
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 border-none cursor-pointer hover:bg-interactive-hover transition-colors rounded"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all duration-200 border-none cursor-pointer"
             onClick={openEmpty}
           >
             <Plus size={16} /> Add Customer
@@ -192,79 +196,110 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
         )}
       </div>
 
-      {/* Two-panel layout */}
-      <div className="grid gap-4 items-start" style={{ gridTemplateColumns: '340px 1fr' }}>
-
-        {/* ── Left panel ── */}
-        <div className="flex flex-col gap-0">
+      {/* Search */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
-            className="w-full px-3 py-2 text-sm bg-layer border-none outline-none text-text-primary placeholder-text-placeholder"
-            placeholder="Search customers\u2026"
+            className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"
+            placeholder="Search by name, address, phone, or email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ borderBottom: '1px solid var(--color-border-strong)' }}
           />
-          <div className="overflow-x-auto border border-border-subtle">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-layer">
-                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Customer</th>
-                  <th className="text-right px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle" style={{ width: 56 }}>Jobs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(c => (
-                  <tr
-                    key={c.id}
-                    onClick={() => setSelected(c)}
-                    className="cursor-pointer transition-colors hover:bg-layer-hover"
-                    style={{ background: active?.id === c.id ? 'var(--color-layer-selected)' : undefined }}
-                  >
-                    <td className="px-3 py-2.5 border-b border-border-subtle">
-                      <div className="flex items-center gap-2.5">
+        </div>
+      </div>
+
+      {/* Two-panel layout */}
+      <div className="grid gap-6 items-start" style={{ gridTemplateColumns: '360px 1fr' }}>
+
+        {/* ── Left panel: Customer cards ── */}
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center py-12 text-gray-400">
+              <Search size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium text-gray-500">No customers found.</p>
+            </div>
+          ) : (
+            filtered.map(c => {
+              const activeJobs = getActiveJobCount(c.id, jobs);
+              const accentColor = activeJobs > 0 ? '#f59e0b' : '#10b981';
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => setSelected(c)}
+                  className={`bg-white rounded-lg border p-4 hover:border-gray-200 hover:shadow-sm cursor-pointer transition-all duration-200 ${
+                    active?.id === c.id ? 'border-brand-500 ring-1 ring-brand-500/20' : 'border-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-1 self-stretch rounded-full shrink-0`} style={{ background: accentColor }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
                         <Avatar name={c.name} size={28} color={avatarColor(c.name)} />
                         <div>
-                          <div className="font-medium leading-tight text-text-primary">{c.name}</div>
-                          <div className="text-[11px] text-text-secondary">{c.address}</div>
+                          <p className="font-semibold text-sm text-gray-900 leading-tight">{c.name}</p>
+                          <p className="text-xs text-gray-500 leading-tight truncate">{c.address}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-3 py-2.5 border-b border-border-subtle text-right text-text-secondary text-xs">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        {jobCount(c.id)}
-                        {active?.id === c.id && <ChevronRight size={12} />}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filtered.length === 0 && (
-              <div className="p-8 text-center text-text-helper text-sm">
-                No customers match your search.
-              </div>
-            )}
-          </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1">
+                          <Phone size={12} />
+                          {c.phone}
+                        </span>
+                        {jobCount(c.id) > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <Briefcase size={12} />
+                            {jobCount(c.id)} job{jobCount(c.id) !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <a
+                          href={buildWA(c.whatsapp || c.phone, `Hi ${c.name}, `)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                          onClick={e => e.stopPropagation()}
+                          title="WhatsApp"
+                        >
+                          <MessageCircle size={14} />
+                        </a>
+                        <a
+                          href={`mailto:${c.email}`}
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          onClick={e => e.stopPropagation()}
+                          title="Email"
+                        >
+                          <Mail size={14} />
+                        </a>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-gray-300 mt-1 shrink-0" />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* ── Right panel ── */}
         {active ? (
-          <div className="flex flex-col gap-4">
+          <div className="space-y-5">
 
             {/* Identity card */}
-            <div className="bg-layer p-4">
-              <div className="flex items-start gap-3.5 mb-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-start gap-4 mb-5">
                 <Avatar name={active.name} size={48} color={avatarColor(active.name)} />
                 <div className="flex-1 min-w-0">
-                  <h3 className="m-0 mb-0.5 text-base font-semibold text-text-primary">{active.name}</h3>
-                  <div className="text-sm text-text-secondary">{active.address}</div>
+                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">{active.name}</h3>
+                  <p className="text-sm text-gray-500">{active.address}</p>
                   {active.siteAddress && (
-                    <div className="text-[11px] text-text-helper">Site: {active.siteAddress}</div>
+                    <p className="text-xs text-gray-400 mt-0.5">Site: {active.siteAddress}</p>
                   )}
                 </div>
                 {onEditCustomer && (
                   <button
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
                     onClick={() => onEditCustomer(active)}
                   >
                     <FileEdit size={14} /> Edit
@@ -272,54 +307,73 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                 )}
               </div>
 
-              {/* Contact + Portal */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Contact + Portal grid */}
+              <div className="grid grid-cols-2 gap-6 mb-5">
                 <div>
-                  <SectionTitle>Contact</SectionTitle>
-                  <div className="flex flex-col gap-1">
-                    <Row label="Phone" value={active.phone} />
-                    <Row label="Email" value={active.email} />
-                    {active.whatsapp && <Row label="WhatsApp" value={active.whatsapp} />}
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone size={14} className="text-gray-400 shrink-0" />
+                      <span className="text-gray-600">{active.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail size={14} className="text-gray-400 shrink-0" />
+                      <span className="text-gray-600">{active.email}</span>
+                    </div>
+                    {active.whatsapp && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <MessageCircle size={14} className="text-gray-400 shrink-0" />
+                        <span className="text-gray-600">{active.whatsapp}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
-                  <SectionTitle>Portal</SectionTitle>
-                  <div className="flex flex-col gap-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Portal</p>
+                  <div className="space-y-2">
                     <Row label="Code" value={active.portalCode ?? '\u2014'} mono />
                     <Row label="Status"
                       value={active.portalEnabled ? 'Enabled' : 'Disabled'}
-                      valueColor={active.portalEnabled ? 'var(--color-support-success)' : 'var(--color-support-error)'}
+                      valueColor={active.portalEnabled ? '#10b981' : '#ef4444'}
                     />
                   </div>
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2 flex-wrap" style={{ marginBottom: compose ? 'var(--color-spacing-05, 16px)' : 0 }}>
+              <div className="flex gap-2 flex-wrap" style={{ marginBottom: compose ? '16px' : 0 }}>
                 <button
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-none cursor-pointer transition-colors rounded ${compose === 'wa' ? 'bg-brand-600 text-white' : 'bg-support-success text-white'}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border-none cursor-pointer transition-all duration-200 ${
+                    compose === 'wa'
+                      ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-sm'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  }`}
                   onClick={openWACompose}
                 >
-                  <MessageCircle size={16} /> WhatsApp {compose === 'wa' ? <X size={14} /> : null}
+                  <MessageCircle size={15} /> WhatsApp {compose === 'wa' ? <X size={14} /> : null}
                 </button>
                 <button
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-none cursor-pointer transition-colors rounded ${compose === 'email' ? 'bg-brand-600 text-white' : 'bg-support-info text-white'}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border-none cursor-pointer transition-all duration-200 ${
+                    compose === 'email'
+                      ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-sm'
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
                   onClick={openEmailCompose}
                 >
-                  <Mail size={16} /> Email {compose === 'email' ? <X size={14} /> : null}
+                  <Mail size={15} /> Email {compose === 'email' ? <X size={14} /> : null}
                 </button>
                 <button
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                   onClick={() => window.open(buildWA(active.whatsapp || active.phone, portalInviteText(active)), '_blank')}
                 >
-                  <Users size={16} /> Portal Invite
+                  <Users size={15} /> Portal Invite
                 </button>
               </div>
 
               {/* ── WhatsApp Compose Panel ── */}
               {compose === 'wa' && (
-                <div className="animate-fade-in border-t border-border-subtle pt-4">
-                  <p className="text-[11px] text-text-secondary mb-2 font-semibold">WHATSAPP COMPOSE</p>
+                <div className="border-t border-gray-100 pt-4 animate-fade-in">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">WHATSAPP COMPOSE</p>
 
                   {/* Template picker */}
                   <div className="flex gap-1.5 flex-wrap mb-3">
@@ -331,7 +385,11 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                     ] as { id: WATemplate; label: string }[]).map(t => (
                       <button
                         key={t.id}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-none cursor-pointer transition-colors rounded ${waTemplate === t.id ? 'bg-brand-600 text-white' : 'bg-layer text-text-secondary border border-border-subtle hover:bg-layer-hover'}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border-none cursor-pointer transition-all ${
+                          waTemplate === t.id
+                            ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-sm'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
                         onClick={() => handleWATemplateChange(t.id)}
                       >
                         {t.label}
@@ -340,18 +398,18 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   </div>
 
                   <textarea
-                    className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary resize-y mb-2.5"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white outline-none text-gray-900 resize-y mb-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                     rows={5}
                     value={waTemplate === 'custom' ? waMsg : buildWAMessage(active, waTemplate)}
                     onChange={e => { setWATemplate('custom'); setWAMsg(e.target.value); }}
                   />
 
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-text-helper">
+                    <span className="text-xs text-gray-400">
                       Sending to: {active.whatsapp || active.phone}
                     </span>
                     <button
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-support-success border-none cursor-pointer hover:bg-[#166331] transition-colors rounded"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
                       onClick={launchWhatsApp}
                     >
                       <Send size={14} /> Open WhatsApp
@@ -362,8 +420,8 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
               {/* ── Email Compose Panel ── */}
               {compose === 'email' && (
-                <div className="animate-fade-in border-t border-border-subtle pt-4">
-                  <p className="text-[11px] text-text-secondary mb-2 font-semibold">EMAIL COMPOSE</p>
+                <div className="border-t border-gray-100 pt-4 animate-fade-in">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">EMAIL COMPOSE</p>
 
                   {/* Template picker */}
                   <div className="flex gap-1.5 flex-wrap mb-3">
@@ -374,7 +432,11 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                     ] as { id: EmailTemplate; label: string }[]).map(t => (
                       <button
                         key={t.id}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-none cursor-pointer transition-colors rounded ${emailTemplate === t.id ? 'bg-brand-600 text-white' : 'bg-layer text-text-secondary border border-border-subtle hover:bg-layer-hover'}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border-none cursor-pointer transition-all ${
+                          emailTemplate === t.id
+                            ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-sm'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
                         onClick={() => handleEmailTemplateChange(t.id)}
                       >
                         {t.label}
@@ -383,7 +445,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   </div>
 
                   {emailTemplate === 'portal-invite' && (
-                    <div className="mb-2.5">
+                    <div className="mb-3">
                       {!active.portalCode ? (
                         <Notification
                           kind="w"
@@ -402,7 +464,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
                   {emailTemplate !== 'portal-invite' && (
                     <input
-                      className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary placeholder-text-placeholder mb-2"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white outline-none text-gray-900 placeholder-gray-400 mb-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                       placeholder="Subject"
                       value={emailSubject}
                       onChange={e => setEmailSubject(e.target.value)}
@@ -411,7 +473,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
                   {emailTemplate !== 'portal-invite' && (
                     <textarea
-                      className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary placeholder-text-placeholder resize-y mb-2.5"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white outline-none text-gray-900 placeholder-gray-400 resize-y mb-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                       rows={6}
                       value={emailBody}
                       onChange={e => setEmailBody(e.target.value)}
@@ -419,18 +481,18 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   )}
 
                   {emailTemplate === 'portal-invite' && (
-                    <div className="mb-2.5 text-sm text-text-secondary">
+                    <div className="mb-3 text-sm text-gray-600 space-y-1">
                       <Row label="To" value={active.email} />
                       <Row label="Code" value={active.portalCode ?? '(not set)'} mono />
                     </div>
                   )}
 
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-text-helper">
+                    <span className="text-xs text-gray-400">
                       {emailTemplate === 'portal-invite' ? 'Sends via Resend' : 'Opens in your email client'}
                     </span>
                     <button
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-support-info border-none cursor-pointer hover:bg-blue-700 transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={sendEmail}
                       disabled={emailSending || (emailTemplate === 'portal-invite' && !active.portalCode)}
                     >
@@ -442,43 +504,51 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
             </div>
 
             {/* Service history */}
-            <div>
-              <SectionTitle>Service History ({customerJobs.length})</SectionTitle>
-              <div className="overflow-x-auto border border-border-subtle">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-layer">
-                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Job</th>
-                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Date</th>
-                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Type</th>
-                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerJobs.map(j => {
-                      const tc = TYPE_CFG[j.type];
-                      return (
-                        <tr key={j.id} onClick={() => onJobClick(j)} className="cursor-pointer transition-colors hover:bg-layer-hover">
-                          <td className="px-3 py-2.5 border-b border-border-subtle font-medium text-text-primary">{j.title}</td>
-                          <td className="px-3 py-2.5 border-b border-border-subtle text-text-secondary whitespace-nowrap font-mono text-xs">{fmtDate(j.date)}</td>
-                          <td className="px-3 py-2.5 border-b border-border-subtle"><span className="font-medium" style={{ color: tc?.color }}>{tc?.icon} {tc?.label}</span></td>
-                          <td className="px-3 py-2.5 border-b border-border-subtle"><StatusTag status={j.status} /></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {customerJobs.length === 0 && (
-                  <div className="p-6 text-center text-text-helper text-sm">
-                    No jobs on record.
-                  </div>
-                )}
-              </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Service History ({customerJobs.length})</p>
+              {customerJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                  <Briefcase size={36} className="mb-3 opacity-30" />
+                  <p className="text-sm text-gray-500">No jobs on record.</p>
+                </div>
+              ) : (
+                <div className="overflow-hidden">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 py-2.5 border-b border-gray-100">Job</th>
+                        <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 py-2.5 border-b border-gray-100">Date</th>
+                        <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 py-2.5 border-b border-gray-100">Type</th>
+                        <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 py-2.5 border-b border-gray-100">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerJobs.map(j => {
+                        const tc = TYPE_CFG[j.type];
+                        return (
+                          <tr key={j.id} onClick={() => onJobClick(j)} className="cursor-pointer hover:bg-gray-50 transition-colors duration-150">
+                            <td className="px-3 py-2.5 border-b border-gray-100 font-medium text-sm text-gray-900">{j.title}</td>
+                            <td className="px-3 py-2.5 border-b border-gray-100 text-gray-500 whitespace-nowrap font-mono text-xs">{fmtDate(j.date)}</td>
+                            <td className="px-3 py-2.5 border-b border-gray-100">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-50 text-gray-700">
+                                <span style={{ color: tc?.color }}>{tc?.icon}</span>
+                                {tc?.label}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 border-b border-gray-100"><StatusTag status={j.status} /></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className="bg-layer p-8 text-center text-text-helper text-sm">
-            Select a customer to view details.
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center py-16 text-gray-400">
+            <Users size={48} className="mb-4 opacity-30" />
+            <p className="text-sm font-medium text-gray-500">Select a customer to view details.</p>
           </div>
         )}
       </div>
@@ -488,9 +558,9 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
 function Row({ label, value, mono, valueColor }: { label: string; value: string; mono?: boolean; valueColor?: string }) {
   return (
-    <div className="flex gap-1.5 text-sm">
-      <span className="text-text-secondary shrink-0" style={{ minWidth: 60 }}>{label}</span>
-      <span className={mono ? 'font-mono text-xs' : ''} style={valueColor ? { color: valueColor } : {}}>{value}</span>
+    <div className="flex gap-2 text-sm">
+      <span className="text-gray-500 shrink-0" style={{ minWidth: 60 }}>{label}</span>
+      <span className={mono ? 'font-mono text-xs text-gray-600' : 'text-gray-600'} style={valueColor ? { color: valueColor } : {}}>{value}</span>
     </div>
   );
 }

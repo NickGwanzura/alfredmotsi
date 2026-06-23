@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { CRMRecord, Customer, CRMType, CRMOutcome } from '@/app/types';
 import { SectionTitle, CRMOutcomeTag } from './ui';
+import { MessageSquare, Building2, AlertTriangle, Mail, DollarSign, Users, CalendarDays, Plus, Clock } from 'lucide-react';
 
 interface CRMProps {
   records: CRMRecord[];
@@ -10,12 +11,12 @@ interface CRMProps {
   onAdd?: (record: CRMRecord) => void;
 }
 
-const CRM_TYPE_CONFIG: Record<CRMType, { label: string; icon: string; color: string }> = {
-  call: { label: 'Call', icon: '📞', color: '#0f62fe' },
-  visit: { label: 'Visit', icon: '🏢', color: '#198038' },
-  complaint: { label: 'Complaint', icon: '⚠', color: '#da1e28' },
-  email: { label: 'Email', icon: '✉', color: '#8a3ffc' },
-  quote: { label: 'Quote', icon: '$', color: '#b28600' },
+const CRM_TYPE_CONFIG: Record<CRMType, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+  call: { label: 'Call', icon: <MessageSquare size={14} />, color: 'text-blue-700', bg: 'bg-blue-100' },
+  visit: { label: 'Visit', icon: <Building2 size={14} />, color: 'text-emerald-700', bg: 'bg-emerald-100' },
+  complaint: { label: 'Complaint', icon: <AlertTriangle size={14} />, color: 'text-red-700', bg: 'bg-red-100' },
+  email: { label: 'Email', icon: <Mail size={14} />, color: 'text-purple-700', bg: 'bg-purple-100' },
+  quote: { label: 'Quote', icon: <DollarSign size={14} />, color: 'text-amber-700', bg: 'bg-amber-100' },
 };
 
 function formatDate(dateStr: string): string {
@@ -59,14 +60,15 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
   }, [records, typeFilter, outcomeFilter]);
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex justify-between items-center mb-4">
+    <div className="animate-fade-in max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Customer Relationship Management</h1>
-          <p className="text-sm text-text-secondary">{filteredRecords.length} records</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Customer Relationship Management</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{filteredRecords.length} records</p>
         </div>
         {onAdd && customers.length > 0 && (
-          <button className="inline-flex items-center px-4 py-2 text-sm bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors"
+          <button
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
             onClick={() => {
               const now = new Date();
               onAdd({
@@ -77,102 +79,101 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
               });
             }}
           >
-            + Add Record
+            <Plus size={16} /> Add Record
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{stats.total}</div>
-          <div className="text-xs text-text-secondary mt-1">Total Interactions</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{stats.thisMonth}</div>
-          <div className="text-xs text-text-secondary mt-1">This Month</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-support-warning">
-          <div className="text-3xl font-bold" style={{ color: stats.overdueFollowUps > 0 ? 'var(--color-support-error)' : undefined }}>
-            {stats.pendingFollowUps}
+      <div className="grid grid-cols-3 gap-5 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-gray-500">Total Interactions</span>
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm"><Users size={18} /></div>
           </div>
-          <div className="text-xs text-text-secondary mt-1">Pending Follow-ups</div>
-          {stats.overdueFollowUps > 0 && (
-            <div className="text-xs text-support-error mt-1">{stats.overdueFollowUps} overdue</div>
-          )}
+          <p className="text-3xl font-bold text-gray-900 tracking-tight">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-gray-500">This Month</span>
+            <div className="p-2 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-sm"><CalendarDays size={18} /></div>
+          </div>
+          <p className="text-3xl font-bold text-gray-900 tracking-tight">{stats.thisMonth}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-medium text-gray-500">Pending Follow-ups</span>
+            <div className={`p-2 rounded-lg shadow-sm text-white ${stats.overdueFollowUps > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-amber-500 to-amber-600'}`}>
+              <Clock size={18} />
+            </div>
+          </div>
+          <p className={`text-3xl font-bold tracking-tight ${stats.overdueFollowUps > 0 ? 'text-red-600' : 'text-gray-900'}`}>{stats.pendingFollowUps}</p>
+          {stats.overdueFollowUps > 0 && <p className="text-xs text-red-500 font-semibold mt-1">{stats.overdueFollowUps} overdue</p>}
         </div>
       </div>
 
-      <div className="bg-layer p-4 border border-border-subtle mb-6 flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <SectionTitle>Filter by Type</SectionTitle>
-          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors"
-            value={typeFilter} onChange={e => setTypeFilter(e.target.value as CRMType | 'all')}>
-            <option value="all">All Types</option>
-            {(['call', 'visit', 'complaint', 'email', 'quote'] as CRMType[]).map(t => <option key={t} value={t}>{CRM_TYPE_CONFIG[t].label}</option>)}
-          </select>
-        </div>
-        <div className="flex-1 min-w-[200px]">
-          <SectionTitle>Filter by Outcome</SectionTitle>
-          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors"
-            value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value as CRMOutcome | 'all')}>
-            <option value="all">All Outcomes</option>
-            <option value="positive">Positive</option>
-            <option value="negative">Negative</option>
-            <option value="pending">Pending</option>
-            <option value="resolved">Resolved</option>
-          </select>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex gap-4 flex-wrap items-end">
+          <div className="min-w-[180px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Filter by Type</label>
+            <select className="h-9 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+              value={typeFilter} onChange={e => setTypeFilter(e.target.value as CRMType | 'all')}>
+              <option value="all">All Types</option>
+              {(['call', 'visit', 'complaint', 'email', 'quote'] as CRMType[]).map(t => <option key={t} value={t}>{CRM_TYPE_CONFIG[t].label}</option>)}
+            </select>
+          </div>
+          <div className="min-w-[180px]">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Filter by Outcome</label>
+            <select className="h-9 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+              value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value as CRMOutcome | 'all')}>
+              <option value="all">All Outcomes</option>
+              <option value="positive">Positive</option><option value="negative">Negative</option>
+              <option value="pending">Pending</option><option value="resolved">Resolved</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-border-subtle">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-surface">
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Date</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Customer</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Type</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Subject</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">By</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Follow-up</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Outcome</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRecords.map(record => {
-              const followUpOverdue = !record.followUpDone && isOverdue(record.followUp);
-              const typeConfig = CRM_TYPE_CONFIG[record.type];
-              return (
-                <tr key={record.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors">
-                  <td className="px-4 py-3 text-sm text-text-primary">{formatDate(record.date)}</td>
-                  <td className="px-4 py-3 text-sm text-text-primary">{getCustomerName(record.customerId, customers)}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center h-6 px-2 text-[11px] font-medium rounded" style={{ background: `${typeConfig.color}22`, color: typeConfig.color }}>
-                      {typeConfig.icon} {typeConfig.label}
+      {filteredRecords.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10">
+          <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+            <MessageSquare size={40} className="mb-3 opacity-30" />
+            <p className="text-sm">No records found matching your filters.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredRecords.map(record => {
+            const followUpOverdue = !record.followUpDone && isOverdue(record.followUp);
+            const typeConfig = CRM_TYPE_CONFIG[record.type];
+            return (
+              <div key={record.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`p-2 rounded-lg ${typeConfig.bg} ${typeConfig.color} shrink-0`}>{typeConfig.icon}</div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-gray-900 truncate">{record.subject}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{getCustomerName(record.customerId, customers)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <CRMOutcomeTag outcome={record.outcome} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                  <span>{formatDate(record.date)}</span>
+                  <span>by {record.by}</span>
+                  {record.followUp && (
+                    <span className={followUpOverdue ? 'text-red-500 font-semibold' : ''}>
+                      Follow-up: {formatDate(record.followUp)}{followUpOverdue ? ' (Overdue)' : ''}
+                      {record.followUpDone && <span className="text-emerald-500 ml-1">\u2713</span>}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-text-primary">{record.subject}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{record.by}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {record.followUp ? (
-                      <span style={{ color: followUpOverdue ? 'var(--color-support-error)' : undefined, fontWeight: followUpOverdue ? 600 : 400 }}>
-                        {formatDate(record.followUp)}
-                        {record.followUpDone && <span className="text-support-success ml-1">✓</span>}
-                        {followUpOverdue && <span className="ml-1">(Overdue)</span>}
-                      </span>
-                    ) : (
-                      <span className="text-text-helper">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><CRMOutcomeTag outcome={record.outcome} /></td>
-                </tr>
-              );
-            })}
-            {filteredRecords.length === 0 && (
-              <tr><td colSpan={7} className="text-center text-text-helper p-6 text-sm">No records found</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
