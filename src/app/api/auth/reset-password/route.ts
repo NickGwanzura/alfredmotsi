@@ -14,39 +14,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<{ email: string; expires_at: Date; used: boolean }[]>(
-      `SELECT email, expires_at, used FROM password_reset_tokens WHERE token = $1 LIMIT 1`,
-      token
-    );
+    // Use Prisma Client instead of raw SQL
+    const record = await prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
 
-    if (!rows || rows.length === 0) {
+    if (!record) {
       return NextResponse.json({ error: 'Invalid or expired reset link' }, { status: 400 });
     }
-
-    const record = rows[0];
 
     if (record.used) {
       return NextResponse.json({ error: 'This reset link has already been used' }, { status: 400 });
     }
 
-    if (new Date() > new Date(record.expires_at)) {
+    if (new Date() > new Date(record.expiresAt)) {
       return NextResponse.json({ error: 'This reset link has expired' }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await prisma.user.update({
-      where: { email: record.email },
-      data: {
-        password: hashedPassword,
-        passwordChanged: true,
-      },
-    });
-
-    await prisma.$executeRawUnsafe(
-      `UPDATE password_reset_tokens SET used = TRUE WHERE token = $1`,
-      token
-    );
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { email: record.email },
+        data: {
+          password: hashedPassword,
+          passwordChanged: true,
+        },
+      }),
+      prisma.passwordResetToken.update({
+        where: { token },
+        data: { used: true },
+      }),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

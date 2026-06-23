@@ -77,7 +77,7 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Left Side - Brand Panel */}
-      <div className="hidden lg:flex w-[480px] flex-col justify-between px-14 py-12 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #00695c 0%, #004d40 50%, #00332a 100%)' }}>
+      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #00695c 0%, #004d40 50%, #00332a 100%)' }}>
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
             <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
@@ -93,7 +93,13 @@ export default function Login({ onLogin }: LoginProps) {
             ))}
           </div>
         </div>
-        <div className="relative z-10">
+        <div className="relative z-10 space-y-4">
+          <p className="text-[11px] opacity-50 leading-relaxed">
+            System developed &amp; maintained by<br />
+            <a href="https://www.spiritusglobal.tech" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white underline underline-offset-2">
+              Spiritus Systems
+            </a>
+          </p>
           <span className="block text-[11px] font-semibold tracking-[1px] opacity-60 mb-1">Version 10.0</span>
           <span className="block text-[11px] opacity-40">&copy; 2026 Splash Air Conditioning</span>
         </div>
