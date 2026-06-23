@@ -355,15 +355,21 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                     disabled={resetSending || !resetEmail.trim()}
                     onClick={async () => {
                       setResetSending(true);
+                      setErr("");
                       try {
-                        await fetch('/api/auth/forgot-password', {
+                        const res = await fetch('/api/auth/forgot-password', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ email: resetEmail }),
                         });
-                        setResetSent(true);
+                        if (res.ok) {
+                          setResetSent(true);
+                        } else {
+                          const data = await res.json().catch(() => ({}));
+                          setErr(data.error || 'Failed to send reset email. Please try again.');
+                        }
                       } catch {
-                        setResetSent(true);
+                        setErr('Network error — please check your connection and try again.');
                       } finally {
                         setResetSending(false);
                       }

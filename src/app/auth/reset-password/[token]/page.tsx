@@ -104,6 +104,9 @@ export default function ResetPasswordPage() {
             >
               {loading ? 'Resetting...' : 'Reset password'}
             </button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <a href="/" style={{ fontSize: 13, color: 'var(--cds-link-primary)', textDecoration: 'none' }}>Back to sign in</a>
+            </div>
           </form>
         )}
       </div>
