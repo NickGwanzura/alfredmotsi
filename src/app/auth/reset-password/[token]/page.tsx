@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import SplashLogo from '@/app/components/SplashLogo';
 import { KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPasswordPage() {
@@ -55,7 +56,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/logos.svg" alt="Splash Air" className="w-28 h-auto" />
+          <SplashLogo className="w-24 h-auto" />
         </div>
 
         {/* Card */}

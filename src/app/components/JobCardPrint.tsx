@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Job, Customer, User } from '@/app/types';
 import { STATUS_CFG } from '@/app/lib/config';
 import { fmtDate } from '@/app/lib/utils';
+import SplashLogo from './SplashLogo';
 import { X, Printer } from 'lucide-react';
 
 interface JobCardPrintProps {
@@ -371,7 +372,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           <!-- Header -->
           <div class="print-header">
             <div class="print-logo">
-              <img src="https://splashaircrmzw.site/logos.svg" alt="Splash Air" style="width: 48px; height: 48px; object-fit: contain;" />
+              <img src="https://splashaircrmzw.site/logos.svg" alt="Splash Air" style="width: 48px; height: 48px; object-fit: contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><div style="display:none"><!-- fallback: logo from component --></div>
               <div>
                 <div class="print-logo-text">Splash Air</div>
                 <div class="print-logo-tagline">Air Conditioning Specialists</div>
@@ -674,7 +675,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             {/* Preview Header */}
             <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-interactive">
               <div className="flex items-center gap-3">
-                <img src="/logos.svg" alt="Splash Air" className="w-10 h-10" />
+                <SplashLogo className="w-10 h-10 shrink-0" />
                 <div>
                   <div className="text-2xl font-light text-text-primary">Splash Air</div>
                   <div className="text-[11px] text-text-secondary uppercase tracking-[0.08em]">

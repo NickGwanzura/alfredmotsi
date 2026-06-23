@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { signIn, signOut } from "next-auth/react";
+import SplashLogo from './SplashLogo';
 import {
   User,
   Building2,
@@ -84,7 +85,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-[#00695c]/90 via-[#004d40]/85 to-[#00332a]/90 z-[1]" />
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
-            <img src="/logos.svg" alt="Splash Air" className="w-full max-w-[120px] h-auto" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
+            <SplashLogo className="w-full max-w-[100px] h-auto" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
           </div>
           <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
           <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>
@@ -114,7 +115,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="w-full max-w-[420px] bg-white p-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <img src="/logos.svg" alt="Splash Air" className="w-20 h-auto" />
+            <SplashLogo className="w-16 h-auto" />
           </div>
 
           {/* Mode Toggle */}
