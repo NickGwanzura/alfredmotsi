@@ -469,7 +469,6 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               <div style={styles.helpSection}>
                 {mode !== 'portal' ? (
                   <>
-                    <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); }} style={styles.helpLink}>Forgot password?</a>
                     <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
                   </>
                 ) : (
