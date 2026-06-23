@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { signIn, signOut } from "next-auth/react";
-import SplashLogo from './SplashLogo';
 import {
   User,
   Building2,
@@ -78,45 +77,45 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Left Side - Brand Panel */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white">
-        {/* Background Image - behind gradient */}
+      <div className="hidden lg:flex w-1/2 flex-col justify-end px-14 py-12 relative overflow-hidden text-white">
+        {/* Background Image - fully visible */}
         <img src="/commercial-comfort.jpg" alt="" className="absolute inset-0 w-full h-full object-cover z-0" />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#00695c]/90 via-[#004d40]/85 to-[#00332a]/90 z-[1]" />
-        <div className="relative z-10">
-          <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
-            <SplashLogo className="w-full max-w-[100px] h-auto" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
-          </div>
-          <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
-          <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>
-          <div className="flex flex-col gap-4">
+        {/* Subtle bottom gradient only for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent z-[1]" />
+        <div className="relative z-10 space-y-4">
+          <div className="flex flex-col gap-3 mb-6">
             {['Field Service Management', 'Real-time Job Tracking', 'Digital Job Cards', 'Customer Portal'].map((text) => (
-              <div key={text} className="flex items-center gap-3 text-sm opacity-85">
-                <CheckCheck size={20} className="opacity-90 shrink-0" />
+              <div key={text} className="flex items-center gap-3 text-sm opacity-90">
+                <CheckCheck size={18} className="shrink-0" />
                 <span>{text}</span>
               </div>
             ))}
           </div>
-        </div>
-        <div className="relative z-10 space-y-4">
           <p className="text-[11px] opacity-50 leading-relaxed">
             System developed &amp; maintained by<br />
             <a href="https://www.spiritusglobal.tech" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white underline underline-offset-2">
               Spiritus Systems
             </a>
           </p>
-          <span className="block text-[11px] font-semibold tracking-[1px] opacity-60 mb-1">Version 10.0</span>
+          <span className="block text-[11px] font-semibold tracking-[1px] opacity-60">Version 10.0</span>
           <span className="block text-[11px] opacity-40">&copy; 2026 Splash Air Conditioning</span>
         </div>
       </div>
 
       {/* Right Side - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-surface p-6 relative z-10">
-        <div className="w-full max-w-[420px] bg-white p-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <SplashLogo className="w-16 h-auto" />
+        <div className="w-full max-w-[440px]">
+          {/* Logo floating on top of the modal card — clip SVG bottom whitespace */}
+          <div className="flex justify-center -mb-5 relative z-20">
+            <div style={{ overflow: 'hidden', height: '110px', width: '280px' }}>
+              <img
+                src="/logos.svg"
+                alt="Splash Air"
+                style={{ width: '280px', height: 'auto', display: 'block', filter: 'drop-shadow(0 4px 16px rgba(9,58,104,0.18))' }}
+              />
+            </div>
           </div>
+          <div className="w-full bg-white pt-14 pb-12 px-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] relative z-10">
 
           {/* Mode Toggle */}
           <div className="flex mb-8 border-b-2 border-[var(--color-border-subtle)]">
@@ -179,7 +178,7 @@ export default function Login({ onLogin }: LoginProps) {
                     value={resetEmail}
                     onChange={e => setResetEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)]"
                     onFocus={() => setFocusedField('resetEmail')}
                     onBlur={() => setFocusedField(null)}
                     disabled={resetSending}
@@ -218,7 +217,7 @@ export default function Login({ onLogin }: LoginProps) {
                   onChange={e => setEmail(e.target.value)}
                   onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)}
                   placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
-                  className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                  className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)]"
                   autoComplete="email" disabled={loading}
                   style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
                 />
@@ -233,7 +232,7 @@ export default function Login({ onLogin }: LoginProps) {
                     onChange={e => setPortalCode(e.target.value.toUpperCase())}
                     onFocus={() => setFocusedField('portalCode')} onBlur={() => setFocusedField(null)}
                     placeholder="XXXX-XXXX" maxLength={9}
-                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)] tracking-[2px] uppercase"
+                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)] tracking-[2px] uppercase"
                     disabled={loading}
                     style={{ fontFamily: "'IBM Plex Mono', monospace" }}
                   />
@@ -248,7 +247,7 @@ export default function Login({ onLogin }: LoginProps) {
                       onChange={e => setPassword(e.target.value)}
                       onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
                       placeholder="Enter your password"
-                      className="w-full h-12 px-4 pr-12 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                      className="w-full h-12 px-4 pr-12 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)]"
                       autoComplete="current-password" disabled={loading}
                       style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
                     />
@@ -279,6 +278,7 @@ export default function Login({ onLogin }: LoginProps) {
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 
