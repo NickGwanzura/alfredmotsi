@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   Snowflake,
+  Container,
 } from 'lucide-react';
 
 interface LoginProps {
@@ -19,7 +20,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLogin, onPortalLogin }: LoginProps) {
-  const [mode, setMode] = useState<'staff' | 'portal'>('staff');
+  const [mode, setMode] = useState<'staff' | 'portal' | 'standalone'>('staff');
   
   // Check if we need to clear any existing session (from invite email link)
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
       setErr("Please enter your email address");
       return false;
     }
-    if (mode === 'staff' && !password.trim()) {
+    if (mode !== 'portal' && !password.trim()) {
       setErr("Please enter your password");
       return false;
     }
@@ -92,7 +93,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
     }
   };
 
-  const switchMode = (newMode: 'staff' | 'portal') => {
+  const switchMode = (newMode: 'staff' | 'portal' | 'standalone') => {
     setMode(newMode);
     setErr("");
     setEmail("");
@@ -167,6 +168,18 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
             </button>
             <button
               type="button"
+              onClick={() => switchMode('standalone')}
+              style={{
+                ...styles.modeButton,
+                ...(mode === 'standalone' ? styles.modeButtonActive : {}),
+              }}
+              aria-pressed={mode === 'standalone'}
+            >
+              <Container size={18} />
+              <span>Standalone</span>
+            </button>
+            <button
+              type="button"
               onClick={() => switchMode('portal')}
               style={{
                 ...styles.modeButton,
@@ -182,11 +195,13 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           {/* Form Header */}
           <div style={styles.formHeader}>
             <h2 style={styles.formTitle}>
-              {mode === 'staff' ? 'Welcome Back' : 'Client Portal'}
+              {mode === 'staff' ? 'Welcome Back' : mode === 'standalone' ? 'Standalone Access' : 'Client Portal'}
             </h2>
             <p style={styles.formSubtitle}>
               {mode === 'staff' 
                 ? 'Sign in to access your dashboard' 
+                : mode === 'standalone'
+                ? 'Sign in to standalone tools'
                 : 'Track your service requests online'}
             </p>
           </div>
@@ -231,7 +246,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               </div>
             </div>
 
-            {mode === 'staff' ? (
+            {mode !== 'portal' ? (
               /* Password Field */
               <div style={styles.fieldGroup}>
                 <label 
@@ -270,7 +285,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : mode === 'portal' ? (
               /* Portal Code Field */
               <div style={styles.fieldGroup}>
                 <label 
@@ -304,7 +319,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                   Found on your service invoice or email
                 </span>
               </div>
-            )}
+            ) : null}
 
             {/* Submit Button */}
             <button
@@ -383,7 +398,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
             </div>
           ) : (
             <div style={styles.helpSection}>
-              {mode === 'staff' ? (
+              {mode !== 'portal' ? (
                 <>
                   <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); }} style={styles.helpLink}>Forgot password?</a>
                   <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
