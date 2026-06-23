@@ -19,14 +19,24 @@ echo ""
 # Run database migrations (safe, versioned)
 echo "📦 Running database migrations..."
 if [ -x "./node_modules/.bin/prisma" ]; then
-  # First try to resolve any failed migration so we can apply new ones
-  ./node_modules/.bin/prisma migrate resolve --applied 20260528000000_init 2>/dev/null || true
+  # Clean up stale migration tracking for fresh databases
+  echo "   Checking if schema needs to be pushed..."
   
+  # Try migrate deploy first
   if ./node_modules/.bin/prisma migrate deploy 2>&1; then
     echo "✅ Migrations applied successfully"
   else
-    echo "⚠️ Migration deploy failed — attempting db push as fallback..."
-    ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+    echo "⚠️ Migrate deploy failed — checking if tables exist..."
+    # Check if users table exists; if not, force push schema
+    if node -e "const {PrismaClient} = require('@prisma/client'); (async()=>{try{await new PrismaClient().\$queryRawUnsafe('SELECT 1 FROM \"users\" LIMIT 1'); console.log('TABLES_EXIST')}catch(e){console.log('NO_TABLES')}; await new PrismaClient().\$disconnect()})()" 2>&1 | grep -q "NO_TABLES"; then
+      echo "   Tables don't exist — forcing schema push (accept-data-loss)..."
+      # Reset migration tracking first
+      ./node_modules/.bin/prisma migrate resolve --applied 20260528000000_init 2>/dev/null || true
+      ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+    else
+      echo "   Tables exist — attempting db push as fallback..."
+      ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+    fi
   fi
 else
   echo "⚠️ Prisma CLI not found in image, skipping migrations"
