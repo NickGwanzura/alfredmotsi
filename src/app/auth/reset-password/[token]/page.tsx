@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Snowflake, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import { KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -52,15 +52,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/20">
-              <Snowflake className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-brand-800 font-grift">Splash Air</h1>
-              <p className="text-xs text-brand-600">Service Platform</p>
-            </div>
-          </div>
+          <img src="/logo.png" alt="Splash Air" className="w-28 h-auto rounded-xl" />
         </div>
 
         {/* Card */}

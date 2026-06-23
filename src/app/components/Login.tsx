@@ -10,7 +10,6 @@ import {
   CheckCheck,
   Eye,
   EyeOff,
-  Snowflake,
   Container,
 } from 'lucide-react';
 
@@ -110,11 +109,9 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
       {/* Left Side - Brand Panel */}
       <div style={styles.brandPanel}>
         <div style={styles.brandContent}>
-          {/* Logo Animation */}
+          {/* Logo */}
           <div style={styles.logoContainer}>
-            <div style={styles.logoRing} />
-            <div style={styles.logoRing2} />
-            <Snowflake size={48} style={styles.logoIcon} />
+            <img src="/logo.png" alt="Splash Air" style={{ width: 100, height: 'auto', borderRadius: 12 }} />
           </div>
           
           <h1 style={styles.brandTitle}>Splash Air</h1>
