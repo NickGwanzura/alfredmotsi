@@ -107,7 +107,7 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
     navLabel = dayDate.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   } else if (view === 'week') {
     const wEnd = addDays(weekStart, 6);
-    navLabel = `${weekStart.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })} – ${wEnd.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    navLabel = `${weekStart.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })} \u2013 ${wEnd.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   } else {
     navLabel = monthRef.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
   }
@@ -118,29 +118,23 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
     const col = TYPE_CFG[j.type]?.color || '#888';
     return (
       <div
-        className="cal-ev"
+        className="mb-1 rounded cursor-pointer text-xs"
         style={{
           background: sc.bg,
           color: sc.txt,
           borderLeftWidth: '3px',
           borderLeftStyle: 'solid',
-          borderLeftColor: j.alerts && j.alerts.length ? 'var(--cds-support-error, #fa4d56)' : col,
+          borderLeftColor: j.alerts && j.alerts.length ? 'var(--color-support-error)' : col,
           padding: '6px 8px',
-          marginBottom: '4px',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '12px',
         }}
         onClick={() => onJobClick(j)}
       >
-        <p style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-          {j.time} {j.title}
-        </p>
-        <p style={{ opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+        <p className="font-semibold truncate m-0">{j.time} {j.title}</p>
+        <p className="truncate m-0" style={{ opacity: 0.75 }}>
           {customers.find(c => c.id === j.customerId)?.name?.split(' ').slice(0, 2).join(' ')}
         </p>
         {j.alerts && j.alerts.length > 0 && (
-          <p style={{ color: 'var(--cds-support-error, #fa4d56)', margin: '2px 0 0 0' }}>⚡ Alert</p>
+          <p className="text-support-error m-0" style={{ marginTop: '2px' }}>⚡ Alert</p>
         )}
       </div>
     );
@@ -148,22 +142,16 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── Segmented control ──────────────────────────────────────────────────────
   const SegControl = () => (
-    <div style={{ display: 'flex', gap: 0, borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--cds-border-subtle)' }}>
+    <div className="inline-flex rounded overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)' }}>
       {(['day', 'week', 'month'] as ViewMode[]).map(v => (
         <button
           key={v}
           onClick={() => handleViewChange(v)}
+          className="px-3.5 py-1.5 text-xs font-semibold cursor-pointer border-none capitalize transition-[background,color] duration-150"
           style={{
-            padding: '6px 14px',
-            fontSize: '12px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            border: 'none',
-            borderRight: v !== 'month' ? '1px solid var(--cds-border-subtle)' : 'none',
-            background: view === v ? 'var(--cds-interactive)' : 'var(--cds-layer-02)',
-            color: view === v ? '#fff' : 'var(--cds-text-secondary)',
-            textTransform: 'capitalize',
-            transition: 'background 0.15s, color 0.15s',
+            borderRight: v !== 'month' ? '1px solid var(--color-border-subtle)' : 'none',
+            background: view === v ? 'var(--color-interactive)' : 'var(--color-surface-hover)',
+            color: view === v ? '#fff' : 'var(--color-text-secondary)',
           }}
         >
           {v}
@@ -174,34 +162,27 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── DAY VIEW ──────────────────────────────────────────────────────────────
   const DayView = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="flex flex-col gap-4">
       {shownTechs.map(t => {
         const dayJobs = getDayTechJobs(t.id, dayDateStr);
         return (
-          <div key={t.id} style={{ background: 'var(--cds-layer)', borderRadius: '6px', overflow: 'hidden' }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '10px 14px',
-              background: 'var(--cds-layer-02)',
-              borderBottom: '1px solid var(--cds-border-subtle)',
-            }}>
+          <div key={t.id} className="bg-layer rounded-md overflow-hidden">
+            <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-border-subtle" style={{ background: 'var(--color-surface-hover)' }}>
               <Avatar name={t.name} size={28} />
               <div>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cds-text-primary)', margin: 0 }}>
-                  {t.name}
-                </p>
-                <p style={{ fontSize: '12px', color: TECH_STATUS[t.status || 'available']?.color || '#888', margin: 0 }}>
+                <p className="text-sm font-semibold text-text-primary m-0">{t.name}</p>
+                <p className="text-xs m-0" style={{ color: TECH_STATUS[t.status || 'available']?.color || '#888' }}>
                   {TECH_STATUS[t.status || 'available']?.label}
                 </p>
               </div>
-              <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--cds-text-secondary)' }}>
+              <span className="ml-auto text-xs text-text-secondary">
                 {dayJobs.length} job{dayJobs.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <div style={{ padding: '10px 12px' }}>
+            <div className="px-3 py-2.5">
               {dayJobs.length > 0
                 ? dayJobs.map(j => <JobCard key={j.id} j={j} />)
-                : <p style={{ fontSize: '13px', color: 'var(--cds-text-secondary)', margin: 0, opacity: 0.5 }}>—</p>
+                : <p className="text-sm text-text-secondary m-0 opacity-50">\u2014</p>
               }
             </div>
           </div>
@@ -212,37 +193,20 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── WEEK VIEW ─────────────────────────────────────────────────────────────
   const WeekView = () => (
-    <div className="cal-grid" style={{ overflowX: 'auto' }}>
-      <table style={{ minWidth: shownTechs.length * 180 + 160, borderCollapse: 'collapse', width: '100%' }}>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse" style={{ minWidth: shownTechs.length * 180 + 160 }}>
         <thead>
-          <tr className="cal-day-hdr">
-            <th style={{
-              padding: '12px 16px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--cds-text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '.08em',
-              border: '1px solid var(--cds-border-subtle)',
-              width: 140,
-              background: 'var(--cds-layer-02)',
-            }}>
+          <tr>
+            <th className="px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider border border-border-subtle bg-surface-hover" style={{ width: 140 }}>
               Date
             </th>
             {shownTechs.map(t => (
-              <th key={t.id} style={{
-                padding: '12px 16px',
-                border: '1px solid var(--cds-border-subtle)',
-                textAlign: 'left',
-                background: 'var(--cds-layer-02)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <th key={t.id} className="px-4 py-3 border border-border-subtle text-left bg-surface-hover">
+                <div className="flex items-center gap-2">
                   <Avatar name={t.name} size={28} />
                   <div>
-                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cds-text-primary)', margin: 0 }}>
-                      {t.name.split(' ')[0]}
-                    </p>
-                    <p style={{ fontSize: '12px', color: TECH_STATUS[t.status || 'available']?.color || '#888', margin: 0 }}>
+                    <p className="text-sm font-semibold text-text-primary m-0">{t.name.split(' ')[0]}</p>
+                    <p className="text-xs m-0" style={{ color: TECH_STATUS[t.status || 'available']?.color || '#888' }}>
                       {TECH_STATUS[t.status || 'available']?.label}
                     </p>
                   </div>
@@ -257,45 +221,23 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
             const dl = new Date(d + 'T12:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' });
             return (
               <tr key={d}>
-                <td style={{
-                  padding: '8px 12px',
-                  border: '1px solid var(--cds-border-subtle)',
-                  background: isToday ? 'rgba(69,137,255,.06)' : 'var(--cds-background)',
-                  verticalAlign: 'top',
-                  width: 140,
-                }}>
-                  <p className={isToday ? 'cal-num today-num' : 'cal-num'} style={{
-                    fontSize: '14px',
-                    fontWeight: isToday ? 700 : 400,
-                    color: isToday ? 'var(--cds-interactive)' : 'var(--cds-text-secondary)',
-                    margin: 0,
-                  }}>
+                <td className="px-3 py-2 border border-border-subtle align-top" style={{ width: 140, background: isToday ? 'rgba(69,137,255,.06)' : 'var(--color-surface)' }}>
+                  <p className="text-sm m-0" style={{ fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--color-interactive)' : 'var(--color-text-secondary)' }}>
                     {dl}
                   </p>
-                  {isToday && <p style={{ fontSize: '11px', color: 'var(--cds-interactive)', fontWeight: 600, margin: 0 }}>TODAY</p>}
+                  {isToday && <p className="text-[11px] text-interactive font-semibold m-0">TODAY</p>}
                 </td>
                 {shownTechs.map(t => {
                   const dayJobs = getDayTechJobs(t.id, d);
                   return (
                     <td
                       key={t.id}
-                      className={isToday ? 'cal-cell today' : 'cal-cell'}
-                      style={{
-                        border: '1px solid var(--cds-border-subtle)',
-                        verticalAlign: 'top',
-                        padding: '8px',
-                      }}
+                      className="border border-border-subtle align-top p-2"
                     >
                       {dayJobs.map(j => <JobCard key={j.id} j={j} />)}
                       {dayJobs.length === 0 && (
-                        <p style={{
-                          fontSize: '12px',
-                          color: 'var(--cds-border-subtle)',
-                          textAlign: 'center',
-                          paddingTop: '16px',
-                          margin: 0,
-                        }}>
-                          —
+                        <p className="text-xs text-center pt-4 m-0" style={{ color: 'var(--color-border-subtle)' }}>
+                          \u2014
                         </p>
                       )}
                     </td>
@@ -313,22 +255,12 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
   const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const MonthView = () => (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 420 }}>
+    <div className="overflow-x-auto">
+      <table className="border-collapse w-full" style={{ minWidth: 420 }}>
         <thead>
           <tr>
             {DOW_LABELS.map(d => (
-              <th key={d} style={{
-                padding: '8px 4px',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--cds-text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '.06em',
-                textAlign: 'center',
-                border: '1px solid var(--cds-border-subtle)',
-                background: 'var(--cds-layer-02)',
-              }}>
+              <th key={d} className="px-1 py-2 text-[11px] font-semibold text-text-secondary uppercase tracking-wider text-center border border-border-subtle bg-surface-hover">
                 {d}
               </th>
             ))}
@@ -350,67 +282,36 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
                   <td
                     key={ds}
                     onClick={() => { handleViewChange('day'); setOffset(Math.round((cellDate.getTime() - todayBase.getTime()) / 86400000)); }}
+                    className="border border-border-subtle align-top p-1.5 cursor-pointer transition-[background] duration-100"
                     style={{
-                      border: '1px solid var(--cds-border-subtle)',
-                      verticalAlign: 'top',
-                      padding: '6px 8px',
                       minHeight: '80px',
                       height: '80px',
-                      background: isToday ? 'rgba(69,137,255,.06)' : inMonth ? 'var(--cds-background)' : 'var(--cds-layer)',
-                      cursor: 'pointer',
-                      transition: 'background 0.1s',
+                      background: isToday ? 'rgba(69,137,255,.06)' : inMonth ? 'var(--color-surface)' : 'var(--color-layer)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div className="flex items-center justify-between mb-1">
                       <span
-                        className={isToday ? 'cal-num today-num' : 'cal-num'}
+                        className="inline-flex items-center justify-center text-sm"
                         style={{
-                          fontSize: '13px',
                           fontWeight: isToday ? 700 : 400,
-                          color: isToday
-                            ? '#fff'
-                            : inMonth
-                            ? 'var(--cds-text-primary)'
-                            : 'var(--cds-text-secondary)',
+                          color: isToday ? '#fff' : inMonth ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                           opacity: inMonth ? 1 : 0.4,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
                           width: isToday ? 22 : 'auto',
                           height: isToday ? 22 : 'auto',
                           borderRadius: isToday ? '50%' : 0,
-                          background: isToday ? 'var(--cds-interactive)' : 'transparent',
+                          background: isToday ? 'var(--color-interactive)' : 'transparent',
                         }}
                       >
                         {cellDate.getDate()}
                       </span>
                       {hasAlert && (
-                        <span style={{
-                          width: 6, height: 6,
-                          borderRadius: '50%',
-                          background: 'var(--cds-support-error, #fa4d56)',
-                          display: 'inline-block',
-                          flexShrink: 0,
-                        }} />
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0 inline-block" style={{ background: 'var(--color-support-error)' }} />
                       )}
                     </div>
                     {cellJobs.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          color: 'var(--cds-text-primary)',
-                        }}>
-                          <span style={{
-                            width: 8, height: 8,
-                            borderRadius: '2px',
-                            background: statusColor,
-                            display: 'inline-block',
-                            flexShrink: 0,
-                          }} />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-primary">
+                          <span className="w-2 h-2 rounded-sm shrink-0 inline-block" style={{ background: statusColor }} />
                           {cellJobs.length} job{cellJobs.length !== 1 ? 's' : ''}
                         </span>
                       </div>
@@ -427,42 +328,35 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="fi-anim">
-      <div
-        className="page-hdr"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}
-      >
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-end flex-wrap gap-3 mb-4">
         <div>
-          <h1>{canViewAllJobs(userRole) ? 'Master Calendar' : 'My Schedule'}</h1>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--cds-text-secondary)' }}>
+          <h1 className="text-xl font-semibold m-0">{canViewAllJobs(userRole) ? 'Master Calendar' : 'My Schedule'}</h1>
+          <p className="m-0 text-sm text-text-secondary">
             {canViewAllJobs(userRole) ? 'Side-by-side technician grid. Conflict detection active.' : 'Your schedule view.'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+        <div className="flex flex-col items-end gap-2">
           <SegControl />
-          <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+          <div className="flex items-center gap-0">
             <button
-              className="btn btn-s btn-sm"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded-l"
               onClick={prev}
-              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
             >
               <ChevronLeft size={16} />
               Prev
             </button>
-            <button className="btn btn-s btn-sm" onClick={goToday}>Today</button>
+            <button className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border-t border-b border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors" onClick={goToday}>Today</button>
             <button
-              className="btn btn-s btn-sm"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded-r"
               onClick={next}
-              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
             >
               Next
               <ChevronRight size={16} />
             </button>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--cds-text-primary)', textAlign: 'right' }}>
-            {navLabel}
-          </span>
+          <span className="text-sm font-medium text-text-primary text-right">{navLabel}</span>
         </div>
       </div>
 
@@ -470,10 +364,10 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
       {view === 'week' && <WeekView />}
       {view === 'month' && <MonthView />}
 
-      <div style={{ marginTop: '16px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="mt-4 flex gap-4 flex-wrap">
         {Object.entries(STATUS_CFG).map(([k, v]) => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--cds-text-secondary)' }}>
-            <span style={{ width: 10, height: 10, background: v.bg, display: 'inline-block', borderRadius: '2px' }} />
+          <div key={k} className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0" style={{ background: v.bg }} />
             {v.label}
           </div>
         ))}

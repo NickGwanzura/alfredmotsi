@@ -29,151 +29,99 @@ export default function GasUsage({ usage, currentUser, onExport, onAdd, stock, c
     return usage.filter(u => u.gasType === gasFilter);
   }, [usage, gasFilter]);
 
-  const totalUsage = useMemo(() => {
-    return filteredUsage.reduce((sum, u) => sum + u.quantityUsed, 0);
-  }, [filteredUsage]);
-
+  const totalUsage = useMemo(() => filteredUsage.reduce((sum, u) => sum + u.quantityUsed, 0), [filteredUsage]);
   const thisMonthUsage = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    return filteredUsage
-      .filter(u => {
-        const d = new Date(u.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      })
-      .reduce((sum, u) => sum + u.quantityUsed, 0);
+    return filteredUsage.filter(u => { const d = new Date(u.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((sum, u) => sum + u.quantityUsed, 0);
   }, [filteredUsage]);
-
   const topGasType = useMemo(() => {
     const byType: Record<string, number> = {};
-    filteredUsage.forEach(u => {
-      byType[u.gasType] = (byType[u.gasType] || 0) + u.quantityUsed;
-    });
-    
-    let maxType = '—';
-    let maxQty = 0;
-    
-    Object.entries(byType).forEach(([type, qty]) => {
-      if (qty > maxQty) {
-        maxQty = qty;
-        maxType = type;
-      }
-    });
-    
+    filteredUsage.forEach(u => { byType[u.gasType] = (byType[u.gasType] || 0) + u.quantityUsed; });
+    let maxType = '—', maxQty = 0;
+    Object.entries(byType).forEach(([type, qty]) => { if (qty > maxQty) { maxQty = qty; maxType = type; } });
     return maxType;
   }, [filteredUsage]);
 
   const sortedUsage = useMemo(() => {
-    return [...filteredUsage].sort((a, b) => {
-      const dateA = new Date(`${a.date}T${a.time}`).getTime();
-      const dateB = new Date(`${b.date}T${b.time}`).getTime();
-      return dateB - dateA;
-    });
+    return [...filteredUsage].sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
   }, [filteredUsage]);
 
   return (
-    <div className="fi-anim">
-      <div className="page-hdr">
-        <h1>Gas Usage Log</h1>
-        <p>{filteredUsage.length} records</p>
+    <div className="animate-fade-in">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-text-primary">Gas Usage Log</h1>
+        <p className="text-sm text-text-secondary">{filteredUsage.length} records</p>
       </div>
 
-      <div className="g3" style={{ marginBottom: 'var(--cds-spacing-06)' }}>
-        <div className="tile">
-          <div className="stat-v">{totalUsage.toFixed(2)}</div>
-          <div className="stat-l">Total Usage (kg)</div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{totalUsage.toFixed(2)}</div>
+          <div className="text-xs text-text-secondary mt-1">Total Usage (kg)</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{thisMonthUsage.toFixed(2)}</div>
-          <div className="stat-l">This Month</div>
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{thisMonthUsage.toFixed(2)}</div>
+          <div className="text-xs text-text-secondary mt-1">This Month</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{topGasType}</div>
-          <div className="stat-l">Top Gas Type</div>
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{topGasType}</div>
+          <div className="text-xs text-text-secondary mt-1">Top Gas Type</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--cds-spacing-05)', flexWrap: 'wrap', gap: 'var(--cds-spacing-03)' }}>
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <SectionTitle>Usage Records</SectionTitle>
-        <div style={{ display: 'flex', gap: 'var(--cds-spacing-03)', alignItems: 'center' }}>
-          <select
-            className="sel"
-            style={{ width: 160 }}
-            value={gasFilter}
-            onChange={e => setGasFilter(e.target.value)}
-          >
+        <div className="flex gap-2 items-center">
+          <select className="w-[160px] h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={gasFilter} onChange={e => setGasFilter(e.target.value)}>
             <option value="all">All gas types</option>
-            {gasTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
+            {gasTypes.map(type => <option key={type} value={type}>{type}</option>)}
           </select>
           {onAdd && (
-            <button
-              className="btn btn-p btn-sm"
-              onClick={() => {
-                const emptyRecord: GasUsageRecord = {
-                  id: '',
-                  stockId: stock?.[0]?.id || '',
-                  gasType: stock?.[0]?.gasType || '',
-                  quantityUsed: 0,
-                  usedBy: '',
-                  jobId: '',
-                  customer: '',
-                  date: new Date().toISOString().split('T')[0],
-                  time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                  purpose: '',
-                };
-                onAdd(emptyRecord);
-              }}
-            >
+            <button className="inline-flex items-center px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors" onClick={() => {
+              const emptyRecord: GasUsageRecord = {
+                id: '', stockId: stock?.[0]?.id || '', gasType: stock?.[0]?.gasType || '',
+                quantityUsed: 0, usedBy: '', jobId: '', customer: '',
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                purpose: '',
+              };
+              onAdd(emptyRecord);
+            }}>
               + Record Usage
             </button>
           )}
-          {onExport && (
-            <button className="btn btn-s btn-sm" onClick={onExport}>
-              Export CSV
-            </button>
-          )}
+          {onExport && <button className="inline-flex items-center px-3 py-1.5 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={onExport}>Export CSV</button>}
         </div>
       </div>
 
-      <div className="tbl-wrap">
-        <table>
+      <div className="overflow-x-auto border border-border-subtle">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Gas Type</th>
-              <th>Quantity (kg)</th>
-              <th>Used By</th>
-              <th>Customer</th>
-              <th>Job ID</th>
-              <th>Purpose</th>
+            <tr className="bg-surface">
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Date</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Gas Type</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Quantity (kg)</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Used By</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Customer</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Job ID</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Purpose</th>
             </tr>
           </thead>
           <tbody>
             {sortedUsage.map(u => (
-              <tr key={u.id}>
-                <td className="mono" style={{ whiteSpace: 'nowrap' }}>
-                  {u.date}<br/>{u.time}
-                </td>
-                <td style={{ fontWeight: 500 }}>{u.gasType}</td>
-                <td className="mono">{u.quantityUsed.toFixed(2)}</td>
-                <td>{u.usedBy}</td>
-                <td style={{ color: 'var(--cds-text-secondary)' }}>{u.customer}</td>
-                <td className="mono" style={{ color: 'var(--cds-text-secondary)', fontSize: 'var(--cds-label-01)' }}>
-                  {u.jobId}
-                </td>
-                <td style={{ maxWidth: 200 }}>{u.purpose}</td>
+              <tr key={u.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors">
+                <td className="mono text-xs text-text-secondary px-4 py-3 whitespace-nowrap">{u.date}<br/>{u.time}</td>
+                <td className="px-4 py-3 font-medium text-text-primary">{u.gasType}</td>
+                <td className="mono px-4 py-3 text-text-primary">{u.quantityUsed.toFixed(2)}</td>
+                <td className="px-4 py-3 text-text-secondary">{u.usedBy}</td>
+                <td className="px-4 py-3 text-text-secondary">{u.customer}</td>
+                <td className="mono text-xs text-text-secondary px-4 py-3">{u.jobId}</td>
+                <td className="px-4 py-3 text-text-secondary max-w-[200px]">{u.purpose}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {sortedUsage.length === 0 && (
-          <div style={{ padding: 'var(--cds-spacing-08)', textAlign: 'center', color: 'var(--cds-text-helper)' }}>
-            No usage records match your filter criteria.
-          </div>
+          <div className="p-8 text-center text-text-helper text-sm">No usage records match your filter criteria.</div>
         )}
       </div>
     </div>

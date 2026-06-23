@@ -670,49 +670,27 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           </button>
         </div>
 
-        <div className="modal-body">
-          <div className="fi-anim">
+        <div className="p-6 overflow-y-auto max-h-[60vh] animate-fade-in">
             {/* Preview Header */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'flex-start',
-              marginBottom: 'var(--s6)',
-              paddingBottom: 'var(--s5)',
-              borderBottom: '2px solid var(--bi)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)' }}>
-                <div style={{ 
-                  width: 48, 
-                  height: 48, 
-                  background: '#0f62fe',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: 24
-                }}>
+            <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-interactive">
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-12 flex items-center justify-center text-white text-2xl" style={{ background: '#0f62fe' }}>
                   ❄
                 </div>
                 <div>
-                  <div style={{ fontSize: 24, fontWeight: 300 }}>Splash Air</div>
-                  <div style={{ fontSize: 11, color: 'var(--ts)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  <div className="text-2xl font-light text-text-primary">Splash Air</div>
+                  <div className="text-[11px] text-text-secondary uppercase tracking-[0.08em]">
                     Air Conditioning Specialists
                   </div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 18, fontWeight: 500, color: 'var(--bi)' }}>
+              <div className="text-right">
+                <div className="text-lg font-medium text-interactive" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
                   {job.jobCardRef || job.id}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ts)' }}>
-                  {fmtDate(job.date)} at {job.time}
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <span className="tag" style={{ 
-                    background: statusConfig?.bg, 
-                    color: statusConfig?.txt 
-                  }}>
+                <div className="text-xs text-text-secondary">{fmtDate(job.date)} at {job.time}</div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center h-6 px-2 text-[11px]" style={{ background: statusConfig?.bg, color: statusConfig?.txt }}>
                     {statusConfig?.label || job.status}
                   </span>
                 </div>
@@ -720,43 +698,43 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             </div>
 
             {/* Customer & Job Summary */}
-            <div className="tile" style={{ marginBottom: 'var(--s5)' }}>
-              <div className="g2">
+            <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="sec-title">Customer</p>
-                  <p style={{ fontWeight: 600, marginBottom: 'var(--s2)' }}>{customer?.name || 'N/A'}</p>
-                  <p style={{ fontSize: 14, color: 'var(--ts)' }}>{customer?.phone || 'N/A'}</p>
-                  <p style={{ fontSize: 14, color: 'var(--ts)' }}>{customer?.email || 'N/A'}</p>
+                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Customer</p>
+                  <p className="font-semibold mb-1 text-text-primary">{customer?.name || 'N/A'}</p>
+                  <p className="text-sm text-text-secondary">{customer?.phone || 'N/A'}</p>
+                  <p className="text-sm text-text-secondary">{customer?.email || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="sec-title">Job Details</p>
-                  <p style={{ fontWeight: 600, marginBottom: 'var(--s2)' }}>{job.title}</p>
-                  <p style={{ fontSize: 14, color: 'var(--ts)' }}>Type: {job.type}</p>
-                  <p style={{ fontSize: 14, color: 'var(--ts)' }}>Unit: {job.unitType}</p>
-                  <p style={{ fontSize: 14, color: 'var(--ts)' }}>Technician: {technician?.name || 'Unassigned'}</p>
+                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Job Details</p>
+                  <p className="font-semibold mb-1 text-text-primary">{job.title}</p>
+                  <p className="text-sm text-text-secondary">Type: {job.type}</p>
+                  <p className="text-sm text-text-secondary">Unit: {job.unitType}</p>
+                  <p className="text-sm text-text-secondary">Technician: {technician?.name || 'Unassigned'}</p>
                 </div>
               </div>
             </div>
 
             {/* Diagnostics Preview */}
             {job.diagnostics && (
-              <div className="tile" style={{ marginBottom: 'var(--s5)' }}>
-                <p className="sec-title">Diagnostic Readings</p>
-                <div className="g4" style={{ fontSize: 13 }}>
+              <div className="bg-layer p-4 border border-border-subtle mb-4">
+                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Diagnostic Readings</p>
+                <div className="grid grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span style={{ color: 'var(--ts)', fontSize: 11 }}>Voltage</span>
+                    <span className="text-xs text-text-secondary">Voltage</span>
                     <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.voltage || '--'} V</p>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--ts)', fontSize: 11 }}>Current</span>
+                    <span className="text-xs text-text-secondary">Current</span>
                     <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.current || '--'} A</p>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--ts)', fontSize: 11 }}>Suction</span>
+                    <span className="text-xs text-text-secondary">Suction</span>
                     <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.suction || '--'} PSI</p>
                   </div>
                   <div>
-                    <span style={{ color: 'var(--ts)', fontSize: 11 }}>Discharge</span>
+                    <span className="text-xs text-text-secondary">Discharge</span>
                     <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.discharge || '--'} PSI</p>
                   </div>
                 </div>
@@ -765,64 +743,40 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
 
             {/* ODS Preview */}
             {(job.diagnostics?.refrigerantType || job.diagnostics?.refrigerantUsed) && (
-              <div className="refrig-box" style={{ marginBottom: 'var(--s5)' }}>
-                <p className="sec-title">ODS / Refrigerant Data</p>
-                <div className="g3">
+              <div className="p-4 mb-4 border" style={{ background: '#e0f2f1', borderColor: '#80cbc4' }}>
+                <p className="text-[11px] font-semibold" style={{ color: '#004d40' }}>ODS / Refrigerant Data</p>
+                <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <span style={{ color: '#004d40', fontSize: 11 }}>Refrigerant Type</span>
-                    <p style={{ fontSize: 18, fontWeight: 300, color: '#004d40' }}>
-                      {job.diagnostics?.refrigerantType || 'N/A'}
-                    </p>
+                    <span className="text-xs" style={{ color: '#004d40' }}>Refrigerant Type</span>
+                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantType || 'N/A'}</p>
                   </div>
                   <div>
-                    <span style={{ color: '#004d40', fontSize: 11 }}>Recovered</span>
-                    <p style={{ fontSize: 18, fontWeight: 300, color: '#004d40' }}>
-                      {job.diagnostics?.refrigerantRecovered?.toFixed(1) || '0.0'} kg
-                    </p>
+                    <span className="text-xs" style={{ color: '#004d40' }}>Recovered</span>
+                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantRecovered?.toFixed(1) || '0.0'} kg</p>
                   </div>
                   <div>
-                    <span style={{ color: '#004d40', fontSize: 11 }}>Used</span>
-                    <p style={{ fontSize: 18, fontWeight: 300, color: '#004d40' }}>
-                      {job.diagnostics?.refrigerantUsed?.toFixed(1) || '0.0'} kg
-                    </p>
+                    <span className="text-xs" style={{ color: '#004d40' }}>Used</span>
+                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantUsed?.toFixed(1) || '0.0'} kg</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Signatures Preview */}
-            <div className="g2">
-              <div className="tile" style={{ textAlign: 'center' }}>
-                <p className="sec-title">Technician</p>
-                <div style={{ 
-                  borderBottom: '1px solid var(--tp)', 
-                  paddingBottom: 'var(--s4)',
-                  marginBottom: 'var(--s2)',
-                  minHeight: 40
-                }}>
-                  {technician?.name}
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--ts)' }}>{technician?.name || '____________________'}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-layer p-4 border border-border-subtle text-center">
+                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Technician</p>
+                <div className="border-b border-text-primary pb-3 mb-1 min-h-[40px]">{technician?.name}</div>
+                <p className="text-xs text-text-secondary">{technician?.name || '____________________'}</p>
               </div>
-              <div className="tile" style={{ textAlign: 'center' }}>
-                <p className="sec-title">Customer</p>
-                <div style={{ 
-                  borderBottom: '1px solid var(--tp)', 
-                  paddingBottom: 'var(--s4)',
-                  marginBottom: 'var(--s2)',
-                  minHeight: 40,
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center'
-                }}>
-                  {job.signature ? (
-                    <img src={job.signature} alt="Customer signature" style={{ maxHeight: 36, maxWidth: '100%' }} />
-                  ) : null}
+              <div className="bg-layer p-4 border border-border-subtle text-center">
+                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Customer</p>
+                <div className="border-b border-text-primary pb-3 mb-1 min-h-[40px] flex items-end justify-center">
+                  {job.signature ? <img src={job.signature} alt="Customer signature" style={{ maxHeight: 36, maxWidth: '100%' }} /> : null}
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--ts)' }}>{customer?.name || '____________________'}</p>
+                <p className="text-xs text-text-secondary">{customer?.name || '____________________'}</p>
               </div>
             </div>
-          </div>
         </div>
 
         <div className="modal-foot">

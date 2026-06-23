@@ -18,16 +18,8 @@ const CRM_TYPE_CONFIG: Record<CRMType, { label: string; icon: string; color: str
   quote: { label: 'Quote', icon: '$', color: '#b28600' },
 };
 
-const CRM_OUTCOME_CONFIG: Record<CRMOutcome, { label: string; color: string }> = {
-  positive: { label: 'Positive', color: '#198038' },
-  negative: { label: 'Negative', color: '#da1e28' },
-  pending: { label: 'Pending', color: '#b28600' },
-  resolved: { label: 'Resolved', color: '#0f62fe' },
-};
-
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function isOverdue(dateStr: string): boolean {
@@ -44,8 +36,7 @@ function isThisMonth(dateStr: string): boolean {
 }
 
 function getCustomerName(customerId: string, customers: Customer[]): string {
-  const customer = customers.find((c) => c.id === customerId);
-  return customer?.name || 'Unknown Customer';
+  return customers.find(c => c.id === customerId)?.name || 'Unknown Customer';
 }
 
 export default function CRM({ records, customers, onAdd }: CRMProps) {
@@ -54,47 +45,36 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
 
   const stats = useMemo(() => {
     const total = records.length;
-    const thisMonth = records.filter((r) => isThisMonth(r.date)).length;
-    const pendingFollowUps = records.filter(
-      (r) => !r.followUpDone && new Date(r.followUp) >= new Date()
-    ).length;
-    const overdueFollowUps = records.filter(
-      (r) => !r.followUpDone && isOverdue(r.followUp)
-    ).length;
-
+    const thisMonth = records.filter(r => isThisMonth(r.date)).length;
+    const pendingFollowUps = records.filter(r => !r.followUpDone && new Date(r.followUp) >= new Date()).length;
+    const overdueFollowUps = records.filter(r => !r.followUpDone && isOverdue(r.followUp)).length;
     return { total, thisMonth, pendingFollowUps, overdueFollowUps };
   }, [records]);
 
   const filteredRecords = useMemo(() => {
     return records
-      .filter((r) => (typeFilter === 'all' ? true : r.type === typeFilter))
-      .filter((r) => (outcomeFilter === 'all' ? true : r.outcome === outcomeFilter))
+      .filter(r => typeFilter === 'all' ? true : r.type === typeFilter)
+      .filter(r => outcomeFilter === 'all' ? true : r.outcome === outcomeFilter)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [records, typeFilter, outcomeFilter]);
 
   return (
-    <div className="fi-anim">
-      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Customer Relationship Management</h1>
+    <div className="animate-fade-in">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary">Customer Relationship Management</h1>
+          <p className="text-sm text-text-secondary">{filteredRecords.length} records</p>
+        </div>
         {onAdd && customers.length > 0 && (
-          <button 
-            className="btn btn-p"
+          <button className="inline-flex items-center px-4 py-2 text-sm bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors"
             onClick={() => {
               const now = new Date();
-              const emptyRecord: CRMRecord = {
-                id: '',
-                customerId: customers[0]?.id || '',
-                type: 'call',
-                subject: '',
-                body: '',
+              onAdd({
+                id: '', customerId: customers[0]?.id || '', type: 'call', subject: '', body: '',
                 date: now.toISOString().split('T')[0],
                 time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-                by: '',
-                followUp: '',
-                followUpDone: false,
-                outcome: 'pending',
-              };
-              onAdd(emptyRecord);
+                by: '', followUp: '', followUpDone: false, outcome: 'pending',
+              });
             }}
           >
             + Add Record
@@ -102,56 +82,39 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="g3" style={{ marginBottom: 'var(--s6)' }}>
-        <div className="tile">
-          <div className="stat-v">{stats.total}</div>
-          <div className="stat-l">Total Interactions</div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{stats.total}</div>
+          <div className="text-xs text-text-secondary mt-1">Total Interactions</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{stats.thisMonth}</div>
-          <div className="stat-l">This Month</div>
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{stats.thisMonth}</div>
+          <div className="text-xs text-text-secondary mt-1">This Month</div>
         </div>
-        <div className="tile">
-          <div className="stat-v" style={{ color: stats.overdueFollowUps > 0 ? 'var(--se)' : undefined }}>
+        <div className="bg-layer p-4 border-t-4 border-t-support-warning">
+          <div className="text-3xl font-bold" style={{ color: stats.overdueFollowUps > 0 ? 'var(--color-support-error)' : undefined }}>
             {stats.pendingFollowUps}
           </div>
-          <div className="stat-l">Pending Follow-ups</div>
+          <div className="text-xs text-text-secondary mt-1">Pending Follow-ups</div>
           {stats.overdueFollowUps > 0 && (
-            <div style={{ fontSize: '12px', color: 'var(--se)', marginTop: '4px' }}>
-              {stats.overdueFollowUps} overdue
-            </div>
+            <div className="text-xs text-support-error mt-1">{stats.overdueFollowUps} overdue</div>
           )}
         </div>
       </div>
 
-      {/* Filters */}
-      <div
-        className="tile"
-        style={{ marginBottom: 'var(--s6)', display: 'flex', gap: 'var(--s5)', flexWrap: 'wrap' }}
-      >
-        <div style={{ flex: 1, minWidth: '200px' }}>
+      <div className="bg-layer p-4 border border-border-subtle mb-6 flex gap-4 flex-wrap">
+        <div className="flex-1 min-w-[200px]">
           <SectionTitle>Filter by Type</SectionTitle>
-          <select
-            className="sel"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as CRMType | 'all')}
-          >
+          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors"
+            value={typeFilter} onChange={e => setTypeFilter(e.target.value as CRMType | 'all')}>
             <option value="all">All Types</option>
-            <option value="call">Call</option>
-            <option value="visit">Visit</option>
-            <option value="complaint">Complaint</option>
-            <option value="email">Email</option>
-            <option value="quote">Quote</option>
+            {(['call', 'visit', 'complaint', 'email', 'quote'] as CRMType[]).map(t => <option key={t} value={t}>{CRM_TYPE_CONFIG[t].label}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1, minWidth: '200px' }}>
+        <div className="flex-1 min-w-[200px]">
           <SectionTitle>Filter by Outcome</SectionTitle>
-          <select
-            className="sel"
-            value={outcomeFilter}
-            onChange={(e) => setOutcomeFilter(e.target.value as CRMOutcome | 'all')}
-          >
+          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors"
+            value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value as CRMOutcome | 'all')}>
             <option value="all">All Outcomes</option>
             <option value="positive">Positive</option>
             <option value="negative">Negative</option>
@@ -161,77 +124,51 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
         </div>
       </div>
 
-      {/* Records Table */}
-      <div className="tbl-wrap">
-        <table>
+      <div className="overflow-x-auto border border-border-subtle">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Type</th>
-              <th>Subject</th>
-              <th>By</th>
-              <th>Follow-up</th>
-              <th>Outcome</th>
+            <tr className="bg-surface">
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Date</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Customer</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Type</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Subject</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">By</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Follow-up</th>
+              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Outcome</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRecords.map((record) => {
+            {filteredRecords.map(record => {
               const followUpOverdue = !record.followUpDone && isOverdue(record.followUp);
               const typeConfig = CRM_TYPE_CONFIG[record.type];
-
               return (
-                <tr key={record.id}>
-                  <td>{formatDate(record.date)}</td>
-                  <td>{getCustomerName(record.customerId, customers)}</td>
-                  <td>
-                    <span
-                      className="tag"
-                      style={{
-                        background: `${typeConfig.color}22`,
-                        color: typeConfig.color,
-                      }}
-                    >
+                <tr key={record.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors">
+                  <td className="px-4 py-3 text-sm text-text-primary">{formatDate(record.date)}</td>
+                  <td className="px-4 py-3 text-sm text-text-primary">{getCustomerName(record.customerId, customers)}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center h-6 px-2 text-[11px] font-medium rounded" style={{ background: `${typeConfig.color}22`, color: typeConfig.color }}>
                       {typeConfig.icon} {typeConfig.label}
                     </span>
                   </td>
-                  <td>{record.subject}</td>
-                  <td>{record.by}</td>
-                  <td>
+                  <td className="px-4 py-3 text-sm text-text-primary">{record.subject}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{record.by}</td>
+                  <td className="px-4 py-3 text-sm">
                     {record.followUp ? (
-                      <span
-                        style={{
-                          color: followUpOverdue ? 'var(--se)' : 'var(--tp)',
-                          fontWeight: followUpOverdue ? 600 : 400,
-                        }}
-                      >
+                      <span style={{ color: followUpOverdue ? 'var(--color-support-error)' : undefined, fontWeight: followUpOverdue ? 600 : 400 }}>
                         {formatDate(record.followUp)}
-                        {record.followUpDone && (
-                          <span style={{ color: 'var(--ss)', marginLeft: '4px' }}>✓</span>
-                        )}
-                        {followUpOverdue && (
-                          <span style={{ marginLeft: '4px' }}>(Overdue)</span>
-                        )}
+                        {record.followUpDone && <span className="text-support-success ml-1">✓</span>}
+                        {followUpOverdue && <span className="ml-1">(Overdue)</span>}
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--tt)' }}>-</span>
+                      <span className="text-text-helper">-</span>
                     )}
                   </td>
-                  <td>
-                    <CRMOutcomeTag outcome={record.outcome} />
-                  </td>
+                  <td className="px-4 py-3"><CRMOutcomeTag outcome={record.outcome} /></td>
                 </tr>
               );
             })}
             {filteredRecords.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  style={{ textAlign: 'center', color: 'var(--tt)', padding: 'var(--s6)' }}
-                >
-                  No records found
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="text-center text-text-helper p-6 text-sm">No records found</td></tr>
             )}
           </tbody>
         </table>

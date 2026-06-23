@@ -73,20 +73,20 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && (
-              <div className="notif notif-e" style={{ marginBottom: 'var(--s4)' }}>
+              <div className="notif notif-e" style={{ marginBottom: '12px' }}>
                 <div className="notif-title">Error</div>
                 <div className="notif-body">{error}</div>
               </div>
             )}
 
             {availableStock.length === 0 && (
-              <div className="notif notif-w" style={{ marginBottom: 'var(--s4)' }}>
+              <div className="notif notif-w" style={{ marginBottom: '12px' }}>
                 <div className="notif-title">No Stock Available</div>
                 <div className="notif-body">Please add gas stock first before recording usage.</div>
               </div>
             )}
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Gas Stock *</label>
               <select
                 className="sel"
@@ -104,7 +104,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
               </select>
             </div>
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="g2" style={{ marginBottom: '12px' }}>
               <div>
                 <label className="form-label">Quantity Used ({selectedStock?.unit || 'kg'}) *</label>
                 <input
@@ -120,7 +120,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
                   disabled={!usage.stockId}
                 />
                 {selectedStock && (
-                  <small style={{ color: 'var(--ts)', fontSize: '12px' }}>
+                  <small style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
                     Max: {selectedStock.remaining} {selectedStock.unit}
                   </small>
                 )}
@@ -141,7 +141,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
               </div>
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Job *</label>
               <select
                 className="sel"
@@ -158,7 +158,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
               </select>
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Purpose (optional)</label>
               <input
                 className="inp"

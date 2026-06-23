@@ -104,73 +104,67 @@ export default function AdminDashboard({
         <button
           key={job.id}
           type="button"
-          className="tile tile-click"
+          className="w-full text-left mb-2 p-3 bg-layer hover:bg-layer-hover cursor-pointer border-none border-l-4 border-l-support-warning transition-colors"
           onClick={() => onJobClick(job)}
-          style={{
-            width: '100%',
-            textAlign: 'left',
-            marginBottom: 'var(--s2)',
-            borderLeft: '3px solid var(--cds-support-warning)',
-          }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--s3)', alignItems: 'flex-start' }}>
+          <div className="flex justify-between gap-3 items-start">
             <div>
-              <p style={{ fontWeight: 600, marginBottom: 'var(--s1)' }}>{job.title}</p>
-              <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)' }}>
+              <p className="font-semibold mb-1 text-text-primary">{job.title}</p>
+              <p className="text-sm text-text-secondary">
                 {getCustomerName(customers, job.customerId)} · {job.date} · {job.time}
               </p>
-              <p style={{ fontSize: 12, color: 'var(--cds-text-secondary)', marginTop: 'var(--s1)' }}>{meta(job)}</p>
+              <p className="text-xs text-text-secondary mt-1">{meta(job)}</p>
             </div>
             <StatusTag status={job.status} />
           </div>
         </button>
       ))}
       {items.length === 0 && (
-        <p style={{ color: 'var(--cds-text-secondary)', fontSize: 13 }}>{emptyText}</p>
+        <p className="text-sm text-text-secondary">{emptyText}</p>
       )}
       {focus !== 'ops' && items.length > 4 && (
-        <p style={{ color: 'var(--cds-text-secondary)', fontSize: 12 }}>+{items.length - 4} more in Ops Visibility</p>
+        <p className="text-xs text-text-secondary">+{items.length - 4} more in Ops Visibility</p>
       )}
     </div>
   );
 
   const visibilityPanel = (
-    <div style={{ marginBottom: 'var(--s6)' }}>
-      <div className="page-hdr" style={{ marginBottom: 'var(--s4)', paddingBottom: 0 }}>
-        <h1 style={focus === 'ops' ? undefined : { fontSize: 20 }}>Operational Visibility</h1>
-        <p>Admin checks for missing field data, ODS readiness, and stock risk.</p>
+    <div className="mb-6">
+      <div className="mb-4 pb-0">
+        <h1 className={focus === 'ops' ? undefined : 'text-xl'} style={focus !== 'ops' ? undefined : {}}>Operational Visibility</h1>
+        <p className="text-text-secondary text-sm">Admin checks for missing field data, ODS readiness, and stock risk.</p>
       </div>
 
-      <div className="g4" style={{ marginBottom: 'var(--s5)' }}>
-        <div className="tile" style={{ borderTop: '3px solid var(--cds-support-warning)' }}>
-          <div className="stat-v">{jobsMissingClock.length}</div>
-          <div className="stat-l">Clock gaps</div>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        <div className="bg-layer p-4 border-t-4 border-t-support-warning">
+          <div className="text-3xl font-bold text-text-primary">{jobsMissingClock.length}</div>
+          <div className="text-xs text-text-secondary mt-1">Clock gaps</div>
         </div>
-        <div className="tile" style={{ borderTop: '3px solid var(--cds-support-error)' }}>
-          <div className="stat-v">{completedMissingGas.length}</div>
-          <div className="stat-l">Gas gaps</div>
+        <div className="bg-layer p-4 border-t-4 border-t-support-error">
+          <div className="text-3xl font-bold text-text-primary">{completedMissingGas.length}</div>
+          <div className="text-xs text-text-secondary mt-1">Gas gaps</div>
         </div>
-        <div className="tile" style={{ borderTop: '3px solid #8a3ffc' }}>
-          <div className="stat-v">{completedMissingDiagnostics.length + completedMissingSignature.length}</div>
-          <div className="stat-l">Completion gaps</div>
+        <div className="bg-layer p-4 border-t-4" style={{ borderTopColor: '#8a3ffc' }}>
+          <div className="text-3xl font-bold text-text-primary">{completedMissingDiagnostics.length + completedMissingSignature.length}</div>
+          <div className="text-xs text-text-secondary mt-1">Completion gaps</div>
         </div>
-        <div className="tile" style={{ borderTop: '3px solid var(--cds-support-error)' }}>
-          <div className="stat-v">{lowGasStock.length}</div>
-          <div className="stat-l">Low gas stock</div>
+        <div className="bg-layer p-4 border-t-4 border-t-support-error">
+          <div className="text-3xl font-bold text-text-primary">{lowGasStock.length}</div>
+          <div className="text-xs text-text-secondary mt-1">Low gas stock</div>
         </div>
       </div>
 
       {visibilityIssueCount === 0 && (
-        <div className="notif notif-s" style={{ marginBottom: 'var(--s5)' }}>
+        <div className="flex items-start gap-3 p-4 mb-5 bg-blue-50 border-l-4 border-l-support-info" role="status">
           <div>
-            <div className="notif-title">Operational data looks complete</div>
-            <div className="notif-body">No clock, completion, ODS, or low-stock gaps were found in the loaded data.</div>
+            <div className="font-semibold text-sm text-text-primary">Operational data looks complete</div>
+            <div className="text-sm text-text-secondary">No clock, completion, ODS, or low-stock gaps were found in the loaded data.</div>
           </div>
         </div>
       )}
 
-      <div className="g2">
-        <div className="tile">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-layer p-4">
           <SectionTitle>Jobs Missing Clock Data</SectionTitle>
           {renderJobIssueList(
             jobsMissingClock,
@@ -179,7 +173,7 @@ export default function AdminDashboard({
           )}
         </div>
 
-        <div className="tile">
+        <div className="bg-layer p-4">
           <SectionTitle>Completed Jobs Missing ODS / Sign-off</SectionTitle>
           {renderJobIssueList(
             [...completedMissingGas, ...completedMissingDiagnostics, ...completedMissingSignature]
@@ -197,51 +191,42 @@ export default function AdminDashboard({
           )}
         </div>
 
-        <div className="tile">
+        <div className="bg-layer p-4">
           <SectionTitle>Low Gas Stock</SectionTitle>
           {lowGasStock.slice(0, focus === 'ops' ? 10 : 5).map(item => (
-            <div key={item.id} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 'var(--s3)',
-              padding: 'var(--s3) 0',
-              borderBottom: '1px solid var(--cds-border-subtle)',
-            }}>
+            <div key={item.id} className="flex justify-between gap-3 py-3 border-b border-border-subtle">
               <div>
-                <p style={{ fontWeight: 600 }}>{item.gasType} · {item.brand}</p>
-                <p style={{ fontSize: 12, color: 'var(--cds-text-secondary)' }}>{item.supplier || 'No supplier noted'}</p>
+                <p className="font-semibold text-text-primary">{item.gasType} · {item.brand}</p>
+                <p className="text-xs text-text-secondary">{item.supplier || 'No supplier noted'}</p>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <p className="mono" style={{ color: 'var(--cds-support-error)', fontWeight: 700 }}>
-                  {item.remaining} {item.unit}
-                </p>
-                <p style={{ fontSize: 12, color: 'var(--cds-text-secondary)' }}>of {item.quantity}</p>
+              <div className="text-right">
+                <p className="mono text-support-error font-bold">{item.remaining} {item.unit}</p>
+                <p className="text-xs text-text-secondary">of {item.quantity}</p>
               </div>
             </div>
           ))}
           {lowGasStock.length === 0 && (
-            <p style={{ color: 'var(--cds-text-secondary)', fontSize: 13 }}>No gas stock is below the low-stock threshold.</p>
+            <p className="text-sm text-text-secondary">No gas stock is below the low-stock threshold.</p>
           )}
         </div>
 
-        <div className="tile">
+        <div className="bg-layer p-4">
           <SectionTitle>Recent Fixes & Announcement</SectionTitle>
-          <div className="notif notif-i" style={{ marginBottom: 'var(--s3)' }}>
+          <div className="flex items-start gap-3 p-4 mb-3 bg-blue-50 border-l-4 border-l-support-info">
             <div>
-              <div className="notif-title">Big fixes announcement</div>
-              <div className="notif-body">Send the latest data integrity and audit-trail update to admins and technicians.</div>
+              <div className="font-semibold text-sm text-text-primary">Big fixes announcement</div>
+              <div className="text-sm text-text-secondary">Send the latest data integrity and audit-trail update to admins and technicians.</div>
             </div>
           </div>
-          <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--cds-text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
+          <ul className="m-0 pl-[18px] text-sm text-text-secondary leading-relaxed">
             <li>Gas usage, consumables, and audit records remain visible after user changes.</li>
             <li>Stock adjustments, customer updates, and user management actions are auditable.</li>
             <li>Completed jobs are checked here for diagnostics, gas, and signature gaps.</li>
           </ul>
           <button
-            className="btn btn-p btn-sm"
+            className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover active:bg-interactive-active transition-colors"
             onClick={sendAnnouncement}
             disabled={sending}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'var(--s4)' }}
           >
             <Mail size={16} />
             {sending ? 'Sending…' : 'Send Big Fixes Email'}
@@ -253,14 +238,16 @@ export default function AdminDashboard({
 
   if (focus === 'ops') {
     return (
-      <div className="fi-anim">
+      <div className="animate-fade-in">
         {sendResult && (
-          <div className={`notif ${sendResult.ok ? 'notif-s' : 'notif-e'}`} style={{ marginBottom: 'var(--s4)' }}>
-            <div className="notif-title">{sendResult.ok ? 'Email Sent' : 'Failed to Send'}</div>
-            <div className="notif-body">
-              {sendResult.ok
-                ? `Sent ${sendResult.sent} of ${sendResult.total} emails successfully.`
-                : sendResult.error || 'An error occurred'}
+          <div className={`flex items-start gap-3 p-4 mb-4 border-l-4 ${sendResult.ok ? 'bg-green-50 border-l-support-success' : 'bg-red-50 border-l-support-error'}`}>
+            <div className="text-sm">
+              <div className="font-semibold text-text-primary">{sendResult.ok ? 'Email Sent' : 'Failed to Send'}</div>
+              <div className="text-text-secondary">
+                {sendResult.ok
+                  ? `Sent ${sendResult.sent} of ${sendResult.total} emails successfully.`
+                  : sendResult.error || 'An error occurred'}
+              </div>
             </div>
           </div>
         )}
@@ -270,17 +257,16 @@ export default function AdminDashboard({
   }
 
   return (
-    <div className="fi-anim">
-      <div className="page-hdr" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div className="animate-fade-in">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1>Dashboard</h1>
-          <p>Splash Air Conditioning — field operations overview</p>
+          <h1 className="text-2xl font-semibold text-text-primary">Dashboard</h1>
+          <p className="text-sm text-text-secondary">Splash Air Conditioning — field operations overview</p>
         </div>
         <button
-          className="btn btn-p btn-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover active:bg-interactive-active transition-colors"
           onClick={sendAnnouncement}
           disabled={sending}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
           <Mail size={16} />
           {sending ? 'Sending…' : 'Send Big Fixes Email'}
@@ -288,45 +274,44 @@ export default function AdminDashboard({
       </div>
 
       {sendResult && (
-        <div className={`notif ${sendResult.ok ? 'notif-s' : 'notif-e'}`} style={{ marginBottom: 'var(--s4)' }}>
-          <div className="notif-title">{sendResult.ok ? 'Email Sent' : 'Failed to Send'}</div>
-          <div className="notif-body">
-            {sendResult.ok
-              ? `Sent ${sendResult.sent} of ${sendResult.total} emails successfully.`
-              : sendResult.error || 'An error occurred'}
+        <div className={`flex items-start gap-3 p-4 mb-4 border-l-4 ${sendResult.ok ? 'bg-green-50 border-l-support-success' : 'bg-red-50 border-l-support-error'}`}>
+          <div className="text-sm">
+            <div className="font-semibold text-text-primary">{sendResult.ok ? 'Email Sent' : 'Failed to Send'}</div>
+            <div className="text-text-secondary">
+              {sendResult.ok
+                ? `Sent ${sendResult.sent} of ${sendResult.total} emails successfully.`
+                : sendResult.error || 'An error occurred'}
+            </div>
           </div>
         </div>
       )}
 
       {unallocatedCount > 0 && (
         <div 
-          className="unalloc-badge" 
+          className="flex items-center gap-3 p-4 mb-6 bg-amber-50 border-l-4 border-l-support-warning cursor-pointer"
           onClick={() => {
             const unallocatedJob = jobs.find(j => j.status === "unallocated");
             if (unallocatedJob) onJobClick(unallocatedJob);
           }}
         >
-          <span style={{ fontWeight: 600, color: "var(--sw)" }}>
+          <span className="font-semibold text-[#b28600]">
             {unallocatedCount} unallocated job{unallocatedCount !== 1 ? 's' : ''}
           </span>
-          <span style={{ color: "var(--ts)", marginLeft: "var(--s3)" }}>
-            Click to view
-          </span>
+          <span className="text-text-secondary ml-3">Click to view</span>
         </div>
       )}
       
       {alertJobs.length > 0 && (
-        <div style={{ marginBottom: "var(--s6)" }}>
+        <div className="mb-6">
           {alertJobs.map(j => (
             <div 
               key={j.id} 
-              className="notif notif-e" 
-              style={{ cursor: "pointer" }} 
+              className="flex items-start gap-3 p-4 mb-1 bg-red-50 border-l-4 border-l-support-error cursor-pointer"
               onClick={() => onJobClick(j)}
             >
               <div>
-                <div className="notif-title">Active Alert — {j.title}</div>
-                <div className="notif-body">
+                <div className="font-semibold text-sm text-text-primary">Active Alert — {j.title}</div>
+                <div className="text-sm text-text-secondary">
                   {j.alerts.map(a => ALERT_CFG[a]?.label).join(", ")} · {customers.find(c => c.id === j.customerId)?.name}
                 </div>
               </div>
@@ -335,25 +320,23 @@ export default function AdminDashboard({
         </div>
       )}
 
-      <div className="g4" style={{ marginBottom: "var(--s6)" }}>
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map((s, i) => (
-          <div key={i} className="tile" style={{ borderTop: "3px solid var(--bi)" }}>
-            <div className="stat-v">{s.v}</div>
-            <div className="stat-l">{s.label}</div>
+          <div key={i} className="bg-layer p-4 border-t-4" style={{ borderTopColor: 'var(--color-interactive)' }}>
+            <div className="text-3xl font-bold text-text-primary">{s.v}</div>
+            <div className="text-xs text-text-secondary mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       {visibilityPanel}
 
-      <div className="g2">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <SectionTitle>Today&apos;s Jobs ({todayJobs.length})</SectionTitle>
           {todayJobs.length === 0 && (
-            <div className="tile">
-              <p style={{ color: "var(--ts)", fontSize: "14px" }}>
-                No jobs scheduled for today.
-              </p>
+            <div className="bg-layer p-4">
+              <p className="text-sm text-text-secondary">No jobs scheduled for today.</p>
             </div>
           )}
           {todayJobs.map(j => {
@@ -363,18 +346,18 @@ export default function AdminDashboard({
             return (
               <div 
                 key={j.id} 
-                className="tile tile-click" 
-                style={{ marginBottom: "var(--s2)", borderLeft: `3px solid ${typeColor}` }} 
+                className="bg-layer p-3 mb-2 border-l-4 cursor-pointer hover:bg-layer-hover transition-colors"
+                style={{ borderLeftColor: typeColor }}
                 onClick={() => onJobClick(j)}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div className="flex justify-between items-start">
                   <div>
-                    <p style={{ fontWeight: 600, marginBottom: "var(--s1)" }}>{j.title}</p>
-                    <p style={{ fontSize: "14px", color: "var(--ts)" }}>
+                    <p className="font-semibold mb-1 text-text-primary">{j.title}</p>
+                    <p className="text-sm text-text-secondary">
                       {cust?.name} · {j.time}
                     </p>
                     {tech && (
-                      <p style={{ fontSize: "12px", color: "var(--bi)", marginTop: "var(--s1)" }}>
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-interactive)' }}>
                         {tech.name}
                       </p>
                     )}
@@ -394,20 +377,19 @@ export default function AdminDashboard({
             return (
               <div 
                 key={t.id} 
-                className="tile" 
-                style={{ marginBottom: "var(--s2)", display: "flex", alignItems: "center", gap: "var(--s4)" }}
+                className="bg-layer p-4 mb-2 flex items-center gap-4"
               >
                 <Avatar name={t.name} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 600 }}>{t.name}</p>
-                  <p style={{ fontSize: "14px", color: "var(--ts)" }}>{t.specialty}</p>
+                <div className="flex-1">
+                  <p className="font-semibold text-text-primary">{t.name}</p>
+                  <p className="text-sm text-text-secondary">{t.specialty}</p>
                   {onJob ? (
-                    <p style={{ fontSize: "12px", color: ts.color }}>{onJob.title}</p>
+                    <p className="text-xs" style={{ color: ts.color }}>{onJob.title}</p>
                   ) : (
-                    <p style={{ fontSize: "12px", color: "var(--ss)" }}>Available</p>
+                    <p className="text-xs text-support-success">Available</p>
                   )}
                 </div>
-                <span style={{ width: 8, height: 8, background: ts.color, display: "inline-block", flexShrink: 0 }} />
+                <span className="w-2 h-2 shrink-0 block" style={{ background: ts.color }} />
               </div>
             );
           })}

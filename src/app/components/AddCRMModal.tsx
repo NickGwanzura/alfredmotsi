@@ -67,13 +67,13 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && (
-              <div className="notif notif-e" style={{ marginBottom: 'var(--s4)' }}>
+              <div className="notif notif-e" style={{ marginBottom: '12px' }}>
                 <div className="notif-title">Error</div>
                 <div className="notif-body">{error}</div>
               </div>
             )}
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Customer *</label>
               <select
                 className="sel"
@@ -88,7 +88,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
               </select>
             </div>
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="g2" style={{ marginBottom: '12px' }}>
               <div>
                 <label className="form-label">Type *</label>
                 <select
@@ -122,7 +122,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
               </div>
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Subject *</label>
               <input
                 className="inp"
@@ -133,7 +133,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
               />
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Notes *</label>
               <textarea
                 className="inp"
@@ -145,7 +145,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
               />
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Follow-up Date (optional)</label>
               <input
                 className="inp"

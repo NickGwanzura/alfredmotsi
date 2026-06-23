@@ -18,60 +18,37 @@ interface AuditLogResponse {
 const PAGE_SIZE = 50;
 
 const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; group: string }> = {
-  login:            { label: 'Login',              color: 'var(--cds-interactive)', group: 'Access' },
-  view_job:         { label: 'Viewed Job',         color: 'var(--cds-support-success)', group: 'Jobs' },
+  login:            { label: 'Login',              color: '#0043ce', group: 'Access' },
+  view_job:         { label: 'Viewed Job',         color: '#198038', group: 'Jobs' },
   edit_job:         { label: 'Edited Job',         color: '#f1c21b', group: 'Jobs' },
   complete_job:     { label: 'Completed Job',      color: '#8a3ffc', group: 'Jobs' },
-  delete_job:       { label: 'Deleted Job',        color: 'var(--cds-support-error, #da1e28)', group: 'Jobs' },
+  delete_job:       { label: 'Deleted Job',        color: '#da1e28', group: 'Jobs' },
   adjust_stock:     { label: 'Adjusted Stock',     color: '#ff832b', group: 'Stock' },
   create_customer:  { label: 'Created Customer',   color: '#1192e8', group: 'Customers' },
   update_customer:  { label: 'Updated Customer',   color: '#0f62fe', group: 'Customers' },
-  delete_customer:  { label: 'Deleted Customer',   color: 'var(--cds-support-error, #da1e28)', group: 'Customers' },
+  delete_customer:  { label: 'Deleted Customer',   color: '#da1e28', group: 'Customers' },
   create_gas_stock: { label: 'Created Gas Stock',  color: '#007d79', group: 'Stock' },
   update_gas_stock: { label: 'Updated Gas Stock',  color: '#005d5d', group: 'Stock' },
-  delete_gas_stock: { label: 'Deleted Gas Stock',  color: 'var(--cds-support-error, #da1e28)', group: 'Stock' },
+  delete_gas_stock: { label: 'Deleted Gas Stock',  color: '#da1e28', group: 'Stock' },
   create_consumable:{ label: 'Added Consumable',   color: '#007d79', group: 'Consumables' },
-  delete_consumable:{ label: 'Deleted Consumable', color: 'var(--cds-support-error, #da1e28)', group: 'Consumables' },
+  delete_consumable:{ label: 'Deleted Consumable', color: '#da1e28', group: 'Consumables' },
   create_user:      { label: 'Created User',       color: '#6929c4', group: 'Users' },
   update_user:      { label: 'Updated User',       color: '#8a3ffc', group: 'Users' },
-  delete_user:      { label: 'Deleted User',       color: 'var(--cds-support-error, #da1e28)', group: 'Users' },
+  delete_user:      { label: 'Deleted User',       color: '#da1e28', group: 'Users' },
 };
 
 const ACTION_OPTIONS = Object.entries(ACTION_CONFIG) as Array<[AuditAction, typeof ACTION_CONFIG[AuditAction]]>;
 const DESTRUCTIVE_ACTIONS = new Set<AuditAction>(['delete_job', 'delete_customer', 'delete_gas_stock', 'delete_consumable', 'delete_user']);
 
 function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('en-ZA', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  return new Date(iso).toLocaleString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function Spinner() {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--s8, 48px)',
-      color: 'var(--cds-text-secondary)',
-      gap: 10,
-    }}>
-      <div style={{
-        width: 20,
-        height: 20,
-        border: '2px solid var(--cds-border-subtle)',
-        borderTopColor: 'var(--cds-interactive)',
-        borderRadius: '50%',
-        animation: 'spin 0.7s linear infinite',
-      }} />
-      <span style={{ fontSize: 13 }}>Loading audit records…</span>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    <div className="flex items-center justify-center p-12 text-text-secondary gap-2.5">
+      <div className="w-5 h-5 border-2 border-border-subtle border-t-interactive rounded-full animate-spin" />
+      <span className="text-sm">Loading audit records…</span>
     </div>
   );
 }
@@ -84,7 +61,6 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const [loading, setLoading] = useState(true);
   const [err, setErr]         = useState('');
 
-  // Filters
   const [filterUser,   setFilterUser]   = useState('');
   const [filterAction, setFilterAction] = useState('');
   const [filterFrom,   setFilterFrom]   = useState('');
@@ -92,64 +68,30 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const [filterJobId,  setFilterJobId]  = useState('');
 
   const fetchLogs = useCallback(async (targetPage: number) => {
-    setLoading(true);
-    setErr('');
+    setLoading(true); setErr('');
     try {
       const params = new URLSearchParams();
-      params.set('page', String(targetPage));
-      params.set('limit', String(PAGE_SIZE));
-      if (filterUser)   params.set('userId', filterUser);
+      params.set('page', String(targetPage)); params.set('limit', String(PAGE_SIZE));
+      if (filterUser) params.set('userId', filterUser);
       if (filterAction) params.set('action', filterAction);
-      if (filterFrom)   params.set('from', filterFrom);
-      if (filterTo)     params.set('to', filterTo);
+      if (filterFrom) params.set('from', filterFrom);
+      if (filterTo) params.set('to', filterTo);
       if (filterJobId.trim()) params.set('jobId', filterJobId.trim());
-
       const res = await fetch(`/api/audit?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to load audit logs');
       const data: AuditLogResponse = await res.json();
-      setLogs(data.logs);
-      setTotal(data.total);
-      setPages(data.pages);
-      setPage(data.page);
-    } catch {
-      setErr('Could not load audit records. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setLogs(data.logs); setTotal(data.total); setPages(data.pages); setPage(data.page);
+    } catch { setErr('Could not load audit records. Please try again.'); }
+    finally { setLoading(false); }
   }, [filterUser, filterAction, filterFrom, filterTo, filterJobId]);
 
-  // Re-fetch when filters change (reset to page 1)
-  useEffect(() => {
-    fetchLogs(1);
-  }, [fetchLogs]);
+  useEffect(() => { fetchLogs(1); }, [fetchLogs]);
 
-  function handleRefresh() {
-    fetchLogs(page);
-  }
-
-  function handlePrev() {
-    if (page > 1) fetchLogs(page - 1);
-  }
-
-  function handleNext() {
-    if (page < pages) fetchLogs(page + 1);
-  }
-
-  function clearFilters() {
-    setFilterUser('');
-    setFilterAction('');
-    setFilterFrom('');
-    setFilterTo('');
-    setFilterJobId('');
-  }
-
-  function applyDateRange(days: number) {
-    const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - days + 1);
-    setFilterFrom(from.toISOString().split('T')[0]);
-    setFilterTo(to.toISOString().split('T')[0]);
-  }
+  function handleRefresh() { fetchLogs(page); }
+  function handlePrev() { if (page > 1) fetchLogs(page - 1); }
+  function handleNext() { if (page < pages) fetchLogs(page + 1); }
+  function clearFilters() { setFilterUser(''); setFilterAction(''); setFilterFrom(''); setFilterTo(''); setFilterJobId(''); }
+  function applyDateRange(days: number) { const to = new Date(); const from = new Date(); from.setDate(to.getDate() - days + 1); setFilterFrom(from.toISOString().split('T')[0]); setFilterTo(to.toISOString().split('T')[0]); }
 
   const hasFilters = filterUser || filterAction || filterFrom || filterTo || filterJobId;
   const loadedWithLocation = logs.filter(log => log.latitude != null && log.longitude != null).length;
@@ -157,318 +99,147 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const loadedUsers = new Set(logs.map(log => log.userId)).size;
   const latestLog = logs[0]?.createdAt;
 
+  const tb = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs';
+
   return (
-    <div className="fi-anim">
-      {/* Page Header */}
-      <div className="page-hdr" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div className="animate-fade-in">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <h1>Audit Log</h1>
-          <p>Track all user activity across the platform.</p>
+          <h1 className="text-2xl font-semibold text-text-primary">Audit Log</h1>
+          <p className="text-sm text-text-secondary">Track all user activity across the platform.</p>
         </div>
-        <button
-          className="btn btn-s btn-sm"
-          onClick={handleRefresh}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <Clock size={14} />
-          Refresh
+        <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={handleRefresh}>
+          <Clock size={14} /> Refresh
         </button>
       </div>
 
-      {/* Stats strip */}
-      <div className="g4" style={{ marginBottom: 'var(--s6)' }}>
-        <div className="tile">
-          <div className="stat-v">{total}</div>
-          <div className="stat-l">{hasFilters ? 'Matching records' : 'Total records'}</div>
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{total}</div>
+          <div className="text-xs text-text-secondary mt-1">{hasFilters ? 'Matching records' : 'Total records'}</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{loadedUsers}</div>
-          <div className="stat-l">Users on page</div>
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{loadedUsers}</div>
+          <div className="text-xs text-text-secondary mt-1">Users on page</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{loadedWithLocation}</div>
-          <div className="stat-l">With location</div>
+        <div className="bg-layer p-4 border-t-4 border-t-interactive">
+          <div className="text-3xl font-bold text-text-primary">{loadedWithLocation}</div>
+          <div className="text-xs text-text-secondary mt-1">With location</div>
         </div>
-        <div className="tile">
-          <div className="stat-v">{loadedDestructive}</div>
-          <div className="stat-l">Destructive actions</div>
+        <div className="bg-layer p-4 border-t-4 border-t-support-error">
+          <div className="text-3xl font-bold text-text-primary">{loadedDestructive}</div>
+          <div className="text-xs text-text-secondary mt-1">Destructive actions</div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div
-        className="tile"
-        style={{
-          marginBottom: 'var(--s5)',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 'var(--s3)',
-          alignItems: 'flex-end',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--cds-text-secondary)', marginRight: 4 }}>
+      <div className="bg-layer p-4 border border-border-subtle mb-4 flex flex-wrap gap-2 items-end">
+        <div className="flex items-center gap-1.5 text-text-secondary mr-1">
           <Filter size={14} />
-          <span style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em' }}>Filters</span>
+          <span className="text-xs font-medium uppercase tracking-wide">Filters</span>
         </div>
-
-        <div style={{ display: 'flex', gap: 4, alignSelf: 'flex-end' }}>
-          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(1)}>Today</button>
-          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(7)}>7 days</button>
-          <button className="btn btn-g btn-sm" type="button" onClick={() => applyDateRange(30)}>30 days</button>
+        <div className="flex gap-1 self-end">
+          {[
+            { label: 'Today', days: 1 },
+            { label: '7 days', days: 7 },
+            { label: '30 days', days: 30 },
+          ].map(({ label, days }) => (
+            <button key={label} className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} type="button" onClick={() => applyDateRange(days)}>{label}</button>
+          ))}
         </div>
-
-        {/* User filter */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 160 }}>
-          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <UserIcon size={11} /> User
-          </label>
-          <select
-            className="sel"
-            value={filterUser}
-            onChange={e => setFilterUser(e.target.value)}
-            style={{ minWidth: 160 }}
-          >
+        <div className="flex flex-col gap-0.5 min-w-[160px]">
+          <label className="text-[11px] text-text-secondary flex items-center gap-1"><UserIcon size={11} /> User</label>
+          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[160px]" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
             <option value="">All users</option>
-            {techs.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
+            {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-
-        {/* Action filter */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 160 }}>
-          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <FileText size={11} /> Action
-          </label>
-          <select
-            className="sel"
-            value={filterAction}
-            onChange={e => setFilterAction(e.target.value)}
-            style={{ minWidth: 160 }}
-          >
+        <div className="flex flex-col gap-0.5 min-w-[160px]">
+          <label className="text-[11px] text-text-secondary flex items-center gap-1"><FileText size={11} /> Action</label>
+          <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[160px]" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
             <option value="">All actions</option>
-            {ACTION_OPTIONS.map(([value, cfg]) => (
-              <option key={value} value={value}>{cfg.group} · {cfg.label}</option>
-            ))}
+            {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} · {cfg.label}</option>)}
           </select>
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 180 }}>
-          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <FileText size={11} /> Job ID
-          </label>
-          <input
-            type="search"
-            className="inp"
-            value={filterJobId}
-            onChange={e => setFilterJobId(e.target.value)}
-            placeholder="Exact job id"
-            style={{ minWidth: 180 }}
-          />
+        <div className="flex flex-col gap-0.5 min-w-[180px]">
+          <label className="text-[11px] text-text-secondary flex items-center gap-1"><FileText size={11} /> Job ID</label>
+          <input type="search" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[180px]" value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
         </div>
-
-        {/* Date from */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={11} /> From
-          </label>
-          <input
-            type="date"
-            className="inp"
-            value={filterFrom}
-            onChange={e => setFilterFrom(e.target.value)}
-            style={{ minWidth: 140 }}
-          />
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] text-text-secondary flex items-center gap-1"><Clock size={11} /> From</label>
+          <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[140px]" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
         </div>
-
-        {/* Date to */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={11} /> To
-          </label>
-          <input
-            type="date"
-            className="inp"
-            value={filterTo}
-            onChange={e => setFilterTo(e.target.value)}
-            style={{ minWidth: 140 }}
-          />
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[11px] text-text-secondary flex items-center gap-1"><Clock size={11} /> To</label>
+          <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors min-w-[140px]" value={filterTo} onChange={e => setFilterTo(e.target.value)} />
         </div>
-
         {hasFilters && (
-          <button
-            className="btn btn-s btn-sm"
-            onClick={clearFilters}
-            style={{ alignSelf: 'flex-end' }}
-          >
-            Clear
-          </button>
+          <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors self-end`} onClick={clearFilters}>Clear</button>
         )}
       </div>
 
       {!loading && logs.length > 0 && (
-        <div className="notif notif-i" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="flex items-start gap-3 p-4 mb-4 bg-blue-50 border-l-4 border-l-support-info">
           <div>
-            <div className="notif-title">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</div>
-            <div className="notif-body">
-              Latest activity {latestLog ? formatDateTime(latestLog) : '—'} · Page {page} of {pages || 1}
-            </div>
+            <div className="font-semibold text-sm text-text-primary">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</div>
+            <div className="text-sm text-text-secondary">Latest activity {latestLog ? formatDateTime(latestLog) : '—'} · Page {page} of {pages || 1}</div>
           </div>
         </div>
       )}
 
-      {/* Error */}
       {err && (
-        <div style={{
-          padding: 'var(--s4)',
-          marginBottom: 'var(--s4)',
-          background: 'var(--cds-support-error, #ff8389)22',
-          border: '1px solid var(--cds-support-error, #ff8389)',
-          color: 'var(--cds-support-error, #ff8389)',
-          fontSize: 13,
-        }}>
-          {err}
-        </div>
+        <div className="p-4 mb-4 bg-red-50 border border-support-error text-support-error text-sm">{err}</div>
       )}
 
-      {/* Table */}
-      <div className="tbl-wrap">
-        <table>
+      <div className="overflow-x-auto border border-border-subtle">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th style={{ minWidth: 150 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Clock size={13} /> Time
-                </span>
-              </th>
-              <th style={{ minWidth: 140 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <UserIcon size={13} /> User
-                </span>
-              </th>
-              <th style={{ minWidth: 130 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <FileText size={13} /> Action
-                </span>
-              </th>
-              <th style={{ minWidth: 110 }}>Job ID</th>
-              <th style={{ minWidth: 180 }}>Reason</th>
-              <th style={{ minWidth: 120 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <MapPin size={13} /> Location
-                </span>
-              </th>
-              <th style={{ minWidth: 130 }}>IP Address</th>
+            <tr className="bg-surface">
+              {[
+                { icon: Clock, label: 'Time', minW: 150 },
+                { icon: UserIcon, label: 'User', minW: 140 },
+                { icon: FileText, label: 'Action', minW: 130 },
+                { label: 'Job ID', minW: 110 },
+                { label: 'Reason', minW: 180 },
+                { icon: MapPin, label: 'Location', minW: 120 },
+                { label: 'IP Address', minW: 130 },
+              ].map(col => (
+                <th key={col.label} className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle" style={{ minWidth: col.minW }}>
+                  <span className="flex items-center gap-1.5">
+                    {col.icon && <col.icon size={13} />} {col.label}
+                  </span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={7} style={{ padding: 0, border: 0 }}>
-                  <Spinner />
-                </td>
-              </tr>
-            )}
-
+            {loading && <tr><td colSpan={7} className="p-0 border-0"><Spinner /></td></tr>}
             {!loading && logs.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  style={{
-                    textAlign: 'center',
-                    padding: 'var(--s8, 48px)',
-                    color: 'var(--cds-text-secondary)',
-                    fontSize: 13,
-                  }}
-                >
-                  No audit records found.
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="text-center p-12 text-text-secondary text-sm">No audit records found.</td></tr>
             )}
-
             {!loading && logs.map(log => {
-              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: 'var(--cds-text-secondary)', group: 'Other' };
+              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: 'var(--color-text-secondary)', group: 'Other' };
               const hasLocation = log.latitude != null && log.longitude != null;
-
               return (
-                <tr key={log.id}>
-                  {/* Time */}
-                  <td style={{ fontSize: 12, color: 'var(--cds-text-secondary)', whiteSpace: 'nowrap' }}>
-                    {formatDateTime(log.createdAt)}
+                <tr key={log.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors">
+                  <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
+                  <td className="px-4 py-3 font-medium text-sm text-text-primary">{log.userName}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center h-6 px-2 text-[11px] font-semibold tracking-wide border" style={{ background: `${action.color}22`, color: action.color, borderColor: `${action.color}44` }}>{action.label}</span>
                   </td>
-
-                  {/* User */}
-                  <td style={{ fontWeight: 500 }}>{log.userName}</td>
-
-                  {/* Action */}
-                  <td>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '2px 8px',
-                      borderRadius: 3,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: '.02em',
-                      background: `${action.color}22`,
-                      color: action.color,
-                      border: `1px solid ${action.color}44`,
-                    }}>
-                      {action.label}
-                    </span>
-                  </td>
-
-                  {/* Job ID */}
-                  <td style={{ fontSize: 12, color: 'var(--cds-text-secondary)', fontFamily: 'monospace' }}>
-                    {log.jobId ?? '—'}
-                  </td>
-
-                  {/* Reason */}
-                  <td
-                    style={{ fontSize: 12, color: 'var(--cds-text-secondary)', maxWidth: 260 }}
-                    title={log.reason ?? undefined}
-                  >
+                  <td className="px-4 py-3 text-xs text-text-secondary font-mono">{log.jobId ?? '—'}</td>
+                  <td className="px-4 py-3 text-xs text-text-secondary max-w-[260px]" title={log.reason ?? undefined}>
                     {log.reason ? (
-                      <span style={{
-                        display: 'inline-block',
-                        maxWidth: 240,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        verticalAlign: 'middle',
-                      }}>
-                        {log.reason}
-                      </span>
+                      <span className="inline-block max-w-[240px] overflow-hidden text-ellipsis whitespace-nowrap align-middle">{log.reason}</span>
                     ) : '—'}
                   </td>
-
-                  {/* Location */}
-                  <td style={{ fontSize: 12 }}>
+                  <td className="px-4 py-3 text-xs">
                     {hasLocation ? (
-                      <a
-                        href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          color: 'var(--cds-interactive)',
-                          textDecoration: 'none',
-                          fontSize: 12,
-                        }}
-                      >
-                        <MapPin size={12} />
-                        View Map
+                      <a href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-interactive no-underline text-xs">
+                        <MapPin size={12} /> View Map
                       </a>
-                    ) : (
-                      <span style={{ color: 'var(--cds-text-secondary)' }}>—</span>
-                    )}
+                    ) : <span className="text-text-secondary">—</span>}
                   </td>
-
-                  {/* IP Address */}
-                  <td style={{ fontSize: 12, color: 'var(--cds-text-secondary)', fontFamily: 'monospace' }}>
-                    {log.ipAddress ?? '—'}
-                  </td>
+                  <td className="px-4 py-3 text-xs text-text-secondary font-mono">{log.ipAddress ?? '—'}</td>
                 </tr>
               );
             })}
@@ -476,35 +247,12 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         </table>
       </div>
 
-      {/* Pagination */}
       {!loading && logs.length > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 'var(--s4)',
-          padding: '0 var(--s1)',
-        }}>
-          <span style={{ fontSize: 12, color: 'var(--cds-text-secondary)' }}>
-            Page {page} of {pages} &nbsp;·&nbsp; {total} record{total !== 1 ? 's' : ''} total
-          </span>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button
-              className="btn btn-s btn-sm"
-              onClick={handlePrev}
-              disabled={page <= 1}
-              style={{ opacity: page <= 1 ? 0.4 : 1 }}
-            >
-              ← Prev
-            </button>
-            <button
-              className="btn btn-s btn-sm"
-              onClick={handleNext}
-              disabled={page >= pages}
-              style={{ opacity: page >= pages ? 0.4 : 1 }}
-            >
-              Next →
-            </button>
+        <div className="flex items-center justify-between mt-4 px-0.5">
+          <span className="text-xs text-text-secondary">Page {page} of {pages} · {total} record{total !== 1 ? 's' : ''} total</span>
+          <div className="flex gap-1">
+            <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors ${page <= 1 ? 'opacity-40 cursor-not-allowed' : ''}`} onClick={handlePrev} disabled={page <= 1}>← Prev</button>
+            <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors ${page >= pages ? 'opacity-40 cursor-not-allowed' : ''}`} onClick={handleNext} disabled={page >= pages}>Next →</button>
           </div>
         </div>
       )}

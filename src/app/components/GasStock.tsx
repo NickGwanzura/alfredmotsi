@@ -12,7 +12,7 @@ interface GasStockProps {
   onRefresh?: () => void;
 }
 
-const LOW_STOCK_THRESHOLD = 20; // percentage
+const LOW_STOCK_THRESHOLD = 20;
 
 function calculateTotalCylinders(stock: GasStockItem[]): number {
   return stock.length;
@@ -37,11 +37,7 @@ function isLowStock(item: GasStockItem): boolean {
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-AU', { 
-    day: '2-digit', 
-    month: 'short', 
-    year: 'numeric' 
-  });
+  return date.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasStockProps) {
@@ -82,51 +78,34 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   ];
 
   return (
-    <div className="fi-anim">
-      <div className="page-hdr">
-        <h1>Refrigerant Stock</h1>
-        <p>Manage refrigerant gas inventory and track usage</p>
+    <div className="animate-fade-in">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-text-primary">Refrigerant Stock</h1>
+        <p className="text-sm text-text-secondary">Manage refrigerant gas inventory and track usage</p>
       </div>
 
-      <div className="g3" style={{ marginBottom: 'var(--s6)' }}>
+      <div className="grid grid-cols-3 gap-4 mb-6">
         {stats.map((s, i) => (
-          <div 
-            key={i} 
-            className="tile" 
-            style={{ 
-              borderTop: `3px solid ${s.alert ? 'var(--se)' : 'var(--bi)'}`,
-            }}
-          >
-            <div 
-              className="stat-v" 
-              style={{ color: s.alert ? 'var(--se)' : undefined }}
-            >
+          <div key={i} className="bg-layer p-4 border-t-4" style={{ borderTopColor: s.alert ? 'var(--color-support-error)' : 'var(--color-interactive)' }}>
+            <div className="text-3xl font-bold" style={{ color: s.alert ? 'var(--color-support-error)' : undefined }}>
               {s.v}
             </div>
-            <div className="stat-l">{s.label}</div>
+            <div className="text-xs text-text-secondary mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--s4)' }}>
+        <div className="flex justify-between items-center mb-4">
           <SectionTitle>Stock Inventory</SectionTitle>
           {onAdd && (
             <button
-              className="btn btn-p btn-sm"
+              className="inline-flex items-center px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors"
               onClick={() => {
                 const emptyItem: GasStockItem = {
-                  id: '',
-                  gasType: '',
-                  brand: '',
-                  quantity: 0,
-                  remaining: 0,
-                  unit: 'kg',
-                  supplier: '',
-                  supplierRef: '',
-                  addedBy: '',
-                  date: new Date().toISOString().split('T')[0],
-                  notes: '',
+                  id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg',
+                  supplier: '', supplierRef: '', addedBy: '',
+                  date: new Date().toISOString().split('T')[0], notes: '',
                 };
                 onAdd(emptyItem);
               }}
@@ -137,142 +116,65 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
         </div>
 
         {stock.length === 0 ? (
-          <div className="tile">
-            <p style={{ color: 'var(--ts)', fontSize: '14px', textAlign: 'center', padding: 'var(--s6)' }}>
-              No refrigerant stock records found.
-            </p>
+          <div className="bg-layer p-4">
+            <p className="text-sm text-text-secondary text-center p-6">No refrigerant stock records found.</p>
           </div>
         ) : (
-          <div className="tbl-wrap">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="overflow-x-auto border border-border-subtle">
+            <table className="w-full border-collapse">
               <thead>
-                <tr>
-                  <th>Gas Type</th>
-                  <th>Brand</th>
-                  <th>Quantity (kg)</th>
-                  <th>Remaining</th>
-                  <th>Supplier</th>
-                  <th>Added By</th>
-                  <th>Actions</th>
+                <tr className="bg-surface">
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Gas Type</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Brand</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Quantity (kg)</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Remaining</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Supplier</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Added By</th>
+                  <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {stock.map((item) => {
                   const percentage = getRemainingPercentage(item);
                   const lowStock = isLowStock(item);
-
                   return (
-                    <tr 
-                      key={item.id}
-                      style={lowStock ? { backgroundColor: 'rgba(218, 30, 40, 0.05)' } : undefined}
-                    >
-                      <td>
-                        <span style={{ fontWeight: 600 }}>{item.gasType}</span>
-                      </td>
-                      <td>{item.brand}</td>
-                      <td>{item.quantity} {item.unit}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--s3)' }}>
-                          <span 
-                            style={{ 
-                              fontWeight: 600, 
-                              color: lowStock ? 'var(--se)' : 'inherit',
-                              minWidth: '45px'
-                            }}
-                          >
+                    <tr key={item.id} style={lowStock ? { backgroundColor: 'rgba(218, 30, 40, 0.05)' } : undefined}>
+                      <td className="px-4 py-3 border-b border-border-subtle"><span className="font-semibold text-text-primary">{item.gasType}</span></td>
+                      <td className="px-4 py-3 border-b border-border-subtle text-text-secondary">{item.brand}</td>
+                      <td className="px-4 py-3 border-b border-border-subtle text-text-primary">{item.quantity} {item.unit}</td>
+                      <td className="px-4 py-3 border-b border-border-subtle">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-semibold min-w-[45px] ${lowStock ? 'text-support-error' : 'text-text-primary'}`}>
                             {item.remaining} {item.unit}
                           </span>
-                          <div 
-                            style={{ 
-                              flex: 1, 
-                              minWidth: '60px',
-                              height: '8px', 
-                              backgroundColor: 'var(--tgr)', 
-                              borderRadius: '4px',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <div 
-                              style={{
-                                width: `${percentage}%`,
-                                height: '100%',
-                                backgroundColor: lowStock ? 'var(--se)' : 'var(--ss)',
-                                transition: 'width 0.3s ease',
-                              }}
-                            />
+                          <div className="flex-1 min-w-[60px] h-2 bg-border-subtle rounded overflow-hidden">
+                            <div className="h-full transition-all duration-300" style={{ width: `${percentage}%`, backgroundColor: lowStock ? 'var(--color-support-error)' : 'var(--color-support-success)' }} />
                           </div>
-                          <span 
-                            style={{ 
-                              fontSize: '12px', 
-                              color: lowStock ? 'var(--se)' : 'var(--ts)',
-                              minWidth: '35px'
-                            }}
-                          >
-                            {percentage}%
-                          </span>
+                          <span className={`text-xs min-w-[35px] ${lowStock ? 'text-support-error' : 'text-text-secondary'}`}>{percentage}%</span>
                         </div>
                       </td>
-                      <td>
+                      <td className="px-4 py-3 border-b border-border-subtle text-text-secondary">
                         <div>{item.supplier}</div>
-                        {item.supplierRef && (
-                          <div style={{ fontSize: '12px', color: 'var(--ts)' }}>
-                            Ref: {item.supplierRef}
-                          </div>
-                        )}
+                        {item.supplierRef && <div className="text-xs text-text-secondary">Ref: {item.supplierRef}</div>}
                       </td>
-                      <td>
+                      <td className="px-4 py-3 border-b border-border-subtle text-text-secondary">
                         <div>{item.addedBy}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--ts)' }}>
-                          {formatDate(item.date)}
-                        </div>
+                        <div className="text-xs text-text-secondary">{formatDate(item.date)}</div>
                       </td>
-                      <td>
+                      <td className="px-4 py-3 border-b border-border-subtle">
                         {adjustId === item.id ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s2)', minWidth: 200 }}>
-                            <input
-                              className="inp"
-                              type="number"
-                              step="0.1"
-                              placeholder={`New remaining (was ${item.remaining})`}
-                              value={adjustVal}
-                              onChange={e => setAdjustVal(e.target.value)}
-                              style={{ height: 32, fontSize: 12 }}
-                            />
-                            <input
-                              className="inp"
-                              placeholder="Reason (optional)"
-                              value={adjustReason}
-                              onChange={e => setAdjustReason(e.target.value)}
-                              style={{ height: 32, fontSize: 12 }}
-                            />
-                            <div style={{ display: 'flex', gap: 'var(--s2)' }}>
-                              <button
-                                className="btn btn-p btn-sm"
-                                disabled={adjusting}
-                                onClick={() => handleAdjust(item)}
-                                style={{ fontSize: 12 }}
-                              >
-                                {adjusting ? 'Saving…' : 'Save'}
-                              </button>
-                              <button
-                                className="btn btn-g btn-sm"
-                                onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); }}
-                                style={{ fontSize: 12 }}
-                              >
-                                Cancel
-                              </button>
+                          <div className="flex flex-col gap-1 min-w-[200px]">
+                            <input className="w-full h-8 px-2 text-xs bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" step="0.1" placeholder={`New remaining (was ${item.remaining})`} value={adjustVal} onChange={e => setAdjustVal(e.target.value)} />
+                            <input className="w-full h-8 px-2 text-xs bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="Reason (optional)" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
+                            <div className="flex gap-1">
+                              <button className="inline-flex items-center px-2 py-1 text-[11px] bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors" disabled={adjusting} onClick={() => handleAdjust(item)}>{adjusting ? 'Saving…' : 'Save'}</button>
+                              <button className="inline-flex items-center px-2 py-1 text-[11px] bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); }}>Cancel</button>
                             </div>
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', gap: 'var(--s2)' }}>
-                            <button
-                              className="btn btn-s btn-sm"
-                              style={{ fontSize: 12 }}
-                              onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); }}
-                            >
-                              Adjust Stock
-                            </button>
-                          </div>
+                          <button className="inline-flex items-center px-2 py-1 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); }}>
+                            Adjust Stock
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -284,16 +186,10 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
         )}
 
         {lowStockCount > 0 && (
-          <div 
-            className="notif notif-w" 
-            style={{ marginTop: 'var(--s4)' }}
-          >
+          <div className="flex items-start gap-3 p-4 mt-4 bg-amber-50 border-l-4 border-l-support-warning">
             <div>
-              <div className="notif-title">Low Stock Alert</div>
-              <div className="notif-body">
-                {lowStockCount} item{lowStockCount !== 1 ? 's' : ''} below {LOW_STOCK_THRESHOLD}% remaining. 
-                Consider restocking soon.
-              </div>
+              <div className="font-semibold text-sm text-text-primary">Low Stock Alert</div>
+              <div className="text-sm text-text-secondary">{lowStockCount} item{lowStockCount !== 1 ? 's' : ''} below {LOW_STOCK_THRESHOLD}% remaining. Consider restocking soon.</div>
             </div>
           </div>
         )}

@@ -168,62 +168,69 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   const openEmpty = () => onAddCustomer?.({ id: '', name: '', address: '', siteAddress: '', phone: '', whatsapp: '', email: '', portalCode: '', portalEnabled: false });
 
   return (
-    <div className="fi-anim">
+    <div className="animate-fade-in">
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, minWidth: 280, maxWidth: 360 }}>
+        <div className="fixed bottom-6 right-6 z-[9999] min-w-[280px] max-w-[360px]">
           <Notification kind={toast.kind} title={toast.kind === 's' ? 'Sent' : 'Error'} body={toast.msg} />
         </div>
       )}
 
       {/* Header */}
-      <div className="page-hdr" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="flex justify-between items-end mb-4">
         <div>
-          <h1>Customers</h1>
-          <p>{filtered.length} records</p>
+          <h1 className="text-xl font-semibold m-0">Customers</h1>
+          <p className="text-sm text-text-secondary m-0">{filtered.length} records</p>
         </div>
         {onAddCustomer && (
-          <button className="btn btn-p btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={openEmpty}>
+          <button
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 border-none cursor-pointer hover:bg-interactive-hover transition-colors rounded"
+            onClick={openEmpty}
+          >
             <Plus size={16} /> Add Customer
           </button>
         )}
       </div>
 
       {/* Two-panel layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 'var(--cds-spacing-05)', alignItems: 'start' }}>
+      <div className="grid gap-4 items-start" style={{ gridTemplateColumns: '340px 1fr' }}>
 
         {/* ── Left panel ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="flex flex-col gap-0">
           <input
-            className="inp"
-            placeholder="Search customers…"
+            className="w-full px-3 py-2 text-sm bg-layer border-none outline-none text-text-primary placeholder-text-placeholder"
+            placeholder="Search customers\u2026"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ borderBottom: '1px solid var(--cds-border-strong-01)' }}
+            style={{ borderBottom: '1px solid var(--color-border-strong)' }}
           />
-          <div className="tbl-wrap" style={{ marginBottom: 0 }}>
-            <table>
+          <div className="overflow-x-auto border border-border-subtle">
+            <table className="w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th style={{ width: 56, textAlign: 'right' }}>Jobs</th>
+                <tr className="bg-layer">
+                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Customer</th>
+                  <th className="text-right px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle" style={{ width: 56 }}>Jobs</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(c => (
-                  <tr key={c.id} onClick={() => setSelected(c)}
-                    style={{ cursor: 'pointer', background: active?.id === c.id ? 'var(--cds-layer-selected-01)' : undefined }}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <tr
+                    key={c.id}
+                    onClick={() => setSelected(c)}
+                    className="cursor-pointer transition-colors hover:bg-layer-hover"
+                    style={{ background: active?.id === c.id ? 'var(--color-layer-selected)' : undefined }}
+                  >
+                    <td className="px-3 py-2.5 border-b border-border-subtle">
+                      <div className="flex items-center gap-2.5">
                         <Avatar name={c.name} size={28} color={avatarColor(c.name)} />
                         <div>
-                          <div style={{ fontWeight: 500, lineHeight: 1.2 }}>{c.name}</div>
-                          <div style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-secondary)' }}>{c.address}</div>
+                          <div className="font-medium leading-tight text-text-primary">{c.name}</div>
+                          <div className="text-[11px] text-text-secondary">{c.address}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ textAlign: 'right', color: 'var(--cds-text-secondary)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                    <td className="px-3 py-2.5 border-b border-border-subtle text-right text-text-secondary text-xs">
+                      <span className="inline-flex items-center justify-end gap-1">
                         {jobCount(c.id)}
                         {active?.id === c.id && <ChevronRight size={12} />}
                       </span>
@@ -233,7 +240,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div style={{ padding: 'var(--cds-spacing-08)', textAlign: 'center', color: 'var(--cds-text-helper)' }}>
+              <div className="p-8 text-center text-text-helper text-sm">
                 No customers match your search.
               </div>
             )}
@@ -242,31 +249,34 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
         {/* ── Right panel ── */}
         {active ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cds-spacing-05)' }}>
+          <div className="flex flex-col gap-4">
 
             {/* Identity card */}
-            <div className="tile">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 'var(--cds-spacing-05)' }}>
+            <div className="bg-layer p-4">
+              <div className="flex items-start gap-3.5 mb-4">
                 <Avatar name={active.name} size={48} color={avatarColor(active.name)} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ margin: '0 0 2px' }}>{active.name}</h3>
-                  <div style={{ color: 'var(--cds-text-secondary)', fontSize: 'var(--cds-body-short-01-font-size)' }}>{active.address}</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="m-0 mb-0.5 text-base font-semibold text-text-primary">{active.name}</h3>
+                  <div className="text-sm text-text-secondary">{active.address}</div>
                   {active.siteAddress && (
-                    <div style={{ color: 'var(--cds-text-helper)', fontSize: 'var(--cds-label-01)' }}>Site: {active.siteAddress}</div>
+                    <div className="text-[11px] text-text-helper">Site: {active.siteAddress}</div>
                   )}
                 </div>
                 {onEditCustomer && (
-                  <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={() => onEditCustomer(active)}>
+                  <button
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded shrink-0"
+                    onClick={() => onEditCustomer(active)}
+                  >
                     <FileEdit size={14} /> Edit
                   </button>
                 )}
               </div>
 
               {/* Contact + Portal */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--cds-spacing-05)', marginBottom: 'var(--cds-spacing-05)' }}>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <SectionTitle>Contact</SectionTitle>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div className="flex flex-col gap-1">
                     <Row label="Phone" value={active.phone} />
                     <Row label="Email" value={active.email} />
                     {active.whatsapp && <Row label="WhatsApp" value={active.whatsapp} />}
@@ -274,45 +284,45 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                 </div>
                 <div>
                   <SectionTitle>Portal</SectionTitle>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <Row label="Code" value={active.portalCode ?? '—'} mono />
+                  <div className="flex flex-col gap-1">
+                    <Row label="Code" value={active.portalCode ?? '\u2014'} mono />
                     <Row label="Status"
                       value={active.portalEnabled ? 'Enabled' : 'Disabled'}
-                      valueColor={active.portalEnabled ? 'var(--cds-support-success)' : 'var(--cds-support-error)'}
+                      valueColor={active.portalEnabled ? 'var(--color-support-success)' : 'var(--color-support-error)'}
                     />
                   </div>
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: compose ? 'var(--cds-spacing-05)' : 0 }}>
+              <div className="flex gap-2 flex-wrap" style={{ marginBottom: compose ? 'var(--color-spacing-05, 16px)' : 0 }}>
                 <button
-                  className={`btn btn-sm ${compose === 'wa' ? 'btn-p' : 'btn-wa'}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-none cursor-pointer transition-colors rounded ${compose === 'wa' ? 'bg-brand-600 text-white' : 'bg-support-success text-white'}`}
                   onClick={openWACompose}
                 >
                   <MessageCircle size={16} /> WhatsApp {compose === 'wa' ? <X size={14} /> : null}
                 </button>
                 <button
-                  className={`btn btn-sm ${compose === 'email' ? 'btn-p' : 'btn-mail'}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border-none cursor-pointer transition-colors rounded ${compose === 'email' ? 'bg-brand-600 text-white' : 'bg-support-info text-white'}`}
                   onClick={openEmailCompose}
                 >
                   <Mail size={16} /> Email {compose === 'email' ? <X size={14} /> : null}
                 </button>
-                <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => window.open(buildWA(active.whatsapp || active.phone, portalInviteText(active)), '_blank')}>
+                <button
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary bg-layer border border-border-subtle cursor-pointer hover:bg-layer-hover transition-colors rounded"
+                  onClick={() => window.open(buildWA(active.whatsapp || active.phone, portalInviteText(active)), '_blank')}
+                >
                   <Users size={16} /> Portal Invite
                 </button>
               </div>
 
               {/* ── WhatsApp Compose Panel ── */}
               {compose === 'wa' && (
-                <div className="fi-anim" style={{ borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: 'var(--cds-spacing-05)' }}>
-                  <p style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-secondary)', marginBottom: 8 }}>WHATSAPP COMPOSE</p>
+                <div className="animate-fade-in border-t border-border-subtle pt-4">
+                  <p className="text-[11px] text-text-secondary mb-2 font-semibold">WHATSAPP COMPOSE</p>
 
                   {/* Template picker */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div className="flex gap-1.5 flex-wrap mb-3">
                     {([
                       { id: 'greeting', label: 'Greeting' },
                       { id: 'service-reminder', label: 'Service Reminder' },
@@ -321,7 +331,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                     ] as { id: WATemplate; label: string }[]).map(t => (
                       <button
                         key={t.id}
-                        className={`btn btn-sm ${waTemplate === t.id ? 'btn-p' : 'btn-s'}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-none cursor-pointer transition-colors rounded ${waTemplate === t.id ? 'bg-brand-600 text-white' : 'bg-layer text-text-secondary border border-border-subtle hover:bg-layer-hover'}`}
                         onClick={() => handleWATemplateChange(t.id)}
                       >
                         {t.label}
@@ -330,18 +340,20 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   </div>
 
                   <textarea
-                    className="ta"
+                    className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary resize-y mb-2.5"
                     rows={5}
                     value={waTemplate === 'custom' ? waMsg : buildWAMessage(active, waTemplate)}
                     onChange={e => { setWATemplate('custom'); setWAMsg(e.target.value); }}
-                    style={{ marginBottom: 10 }}
                   />
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-helper)' }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-text-helper">
                       Sending to: {active.whatsapp || active.phone}
                     </span>
-                    <button className="btn btn-wa btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={launchWhatsApp}>
+                    <button
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-support-success border-none cursor-pointer hover:bg-[#166331] transition-colors rounded"
+                      onClick={launchWhatsApp}
+                    >
                       <Send size={14} /> Open WhatsApp
                     </button>
                   </div>
@@ -350,11 +362,11 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
               {/* ── Email Compose Panel ── */}
               {compose === 'email' && (
-                <div className="fi-anim" style={{ borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: 'var(--cds-spacing-05)' }}>
-                  <p style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-secondary)', marginBottom: 8 }}>EMAIL COMPOSE</p>
+                <div className="animate-fade-in border-t border-border-subtle pt-4">
+                  <p className="text-[11px] text-text-secondary mb-2 font-semibold">EMAIL COMPOSE</p>
 
                   {/* Template picker */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <div className="flex gap-1.5 flex-wrap mb-3">
                     {([
                       { id: 'custom', label: 'Custom' },
                       { id: 'service-reminder', label: 'Service Reminder' },
@@ -362,7 +374,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                     ] as { id: EmailTemplate; label: string }[]).map(t => (
                       <button
                         key={t.id}
-                        className={`btn btn-sm ${emailTemplate === t.id ? 'btn-p' : 'btn-s'}`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-none cursor-pointer transition-colors rounded ${emailTemplate === t.id ? 'bg-brand-600 text-white' : 'bg-layer text-text-secondary border border-border-subtle hover:bg-layer-hover'}`}
                         onClick={() => handleEmailTemplateChange(t.id)}
                       >
                         {t.label}
@@ -371,7 +383,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   </div>
 
                   {emailTemplate === 'portal-invite' && (
-                    <div style={{ marginBottom: 10 }}>
+                    <div className="mb-2.5">
                       {!active.portalCode ? (
                         <Notification
                           kind="w"
@@ -390,42 +402,39 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
                   {emailTemplate !== 'portal-invite' && (
                     <input
-                      className="inp"
+                      className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary placeholder-text-placeholder mb-2"
                       placeholder="Subject"
                       value={emailSubject}
                       onChange={e => setEmailSubject(e.target.value)}
-                      style={{ marginBottom: 8 }}
                     />
                   )}
 
                   {emailTemplate !== 'portal-invite' && (
                     <textarea
-                      className="ta"
+                      className="w-full px-3 py-2 text-sm bg-layer border border-border-subtle rounded outline-none text-text-primary placeholder-text-placeholder resize-y mb-2.5"
                       rows={6}
                       value={emailBody}
                       onChange={e => setEmailBody(e.target.value)}
-                      style={{ marginBottom: 10 }}
                     />
                   )}
 
                   {emailTemplate === 'portal-invite' && (
-                    <div style={{ marginBottom: 10, fontSize: 'var(--cds-body-short-01-font-size)', color: 'var(--cds-text-secondary)' }}>
+                    <div className="mb-2.5 text-sm text-text-secondary">
                       <Row label="To" value={active.email} />
                       <Row label="Code" value={active.portalCode ?? '(not set)'} mono />
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 'var(--cds-label-01)', color: 'var(--cds-text-helper)' }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-text-helper">
                       {emailTemplate === 'portal-invite' ? 'Sends via Resend' : 'Opens in your email client'}
                     </span>
                     <button
-                      className="btn btn-mail btn-sm"
-                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-support-info border-none cursor-pointer hover:bg-blue-700 transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={sendEmail}
                       disabled={emailSending || (emailTemplate === 'portal-invite' && !active.portalCode)}
                     >
-                      {emailSending ? 'Sending…' : <><CheckCheck size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
+                      {emailSending ? 'Sending\u2026' : <><CheckCheck size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
                     </button>
                   </div>
                 </div>
@@ -435,32 +444,32 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
             {/* Service history */}
             <div>
               <SectionTitle>Service History ({customerJobs.length})</SectionTitle>
-              <div className="tbl-wrap">
-                <table>
+              <div className="overflow-x-auto border border-border-subtle">
+                <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr>
-                      <th>Job</th>
-                      <th>Date</th>
-                      <th>Type</th>
-                      <th>Status</th>
+                    <tr className="bg-layer">
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Job</th>
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Date</th>
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Type</th>
+                      <th className="text-left px-3 py-2.5 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {customerJobs.map(j => {
                       const tc = TYPE_CFG[j.type];
                       return (
-                        <tr key={j.id} onClick={() => onJobClick(j)} style={{ cursor: 'pointer' }}>
-                          <td style={{ fontWeight: 500 }}>{j.title}</td>
-                          <td className="mono" style={{ color: 'var(--cds-text-secondary)', whiteSpace: 'nowrap' }}>{fmtDate(j.date)}</td>
-                          <td><span style={{ color: tc?.color, fontWeight: 500 }}>{tc?.icon} {tc?.label}</span></td>
-                          <td><StatusTag status={j.status} /></td>
+                        <tr key={j.id} onClick={() => onJobClick(j)} className="cursor-pointer transition-colors hover:bg-layer-hover">
+                          <td className="px-3 py-2.5 border-b border-border-subtle font-medium text-text-primary">{j.title}</td>
+                          <td className="px-3 py-2.5 border-b border-border-subtle text-text-secondary whitespace-nowrap font-mono text-xs">{fmtDate(j.date)}</td>
+                          <td className="px-3 py-2.5 border-b border-border-subtle"><span className="font-medium" style={{ color: tc?.color }}>{tc?.icon} {tc?.label}</span></td>
+                          <td className="px-3 py-2.5 border-b border-border-subtle"><StatusTag status={j.status} /></td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
                 {customerJobs.length === 0 && (
-                  <div style={{ padding: 'var(--cds-spacing-07)', textAlign: 'center', color: 'var(--cds-text-helper)' }}>
+                  <div className="p-6 text-center text-text-helper text-sm">
                     No jobs on record.
                   </div>
                 )}
@@ -468,7 +477,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
             </div>
           </div>
         ) : (
-          <div className="tile" style={{ textAlign: 'center', padding: 'var(--cds-spacing-10)', color: 'var(--cds-text-helper)' }}>
+          <div className="bg-layer p-8 text-center text-text-helper text-sm">
             Select a customer to view details.
           </div>
         )}
@@ -479,9 +488,9 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
 function Row({ label, value, mono, valueColor }: { label: string; value: string; mono?: boolean; valueColor?: string }) {
   return (
-    <div style={{ display: 'flex', gap: 6, fontSize: 'var(--cds-body-short-01-font-size)' }}>
-      <span style={{ color: 'var(--cds-text-secondary)', minWidth: 60, flexShrink: 0 }}>{label}</span>
-      <span className={mono ? 'mono' : ''} style={valueColor ? { color: valueColor } : {}}>{value}</span>
+    <div className="flex gap-1.5 text-sm">
+      <span className="text-text-secondary shrink-0" style={{ minWidth: 60 }}>{label}</span>
+      <span className={mono ? 'font-mono text-xs' : ''} style={valueColor ? { color: valueColor } : {}}>{value}</span>
     </div>
   );
 }

@@ -53,13 +53,13 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && (
-              <div className="notif notif-e" style={{ marginBottom: 'var(--s4)' }}>
+              <div className="notif notif-e" style={{ marginBottom: '12px' }}>
                 <div className="notif-title">Error</div>
                 <div className="notif-body">{error}</div>
               </div>
             )}
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="g2" style={{ marginBottom: '12px' }}>
               <div>
                 <label className="form-label">Gas Type *</label>
                 <select
@@ -86,7 +86,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               </div>
             </div>
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="g2" style={{ marginBottom: '12px' }}>
               <div>
                 <label className="form-label">Quantity (kg) *</label>
                 <input
@@ -114,7 +114,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               </div>
             </div>
 
-            <div className="g2" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="g2" style={{ marginBottom: '12px' }}>
               <div>
                 <label className="form-label">Supplier *</label>
                 <input
@@ -136,7 +136,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               </div>
             </div>
 
-            <div style={{ marginBottom: 'var(--s4)' }}>
+            <div style={{ marginBottom: '12px' }}>
               <label className="form-label">Notes (optional)</label>
               <textarea
                 className="inp"

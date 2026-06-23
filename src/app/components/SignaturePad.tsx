@@ -70,7 +70,7 @@ export default function SignaturePad({ onSave }: SignaturePadProps) {
         onTouchMove={draw} 
         onTouchEnd={end} 
       />
-      <div style={{ display: "flex", gap: 0, marginTop: "var(--s3)" }}>
+      <div style={{ display: "flex", gap: 0, marginTop: "8px" }}>
         <button className="btn btn-s btn-sm" onClick={clear}>Clear</button>
         {signed && (
           <button 

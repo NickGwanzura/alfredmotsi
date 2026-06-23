@@ -77,7 +77,9 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Left Side - Brand Panel */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #00695c 0%, #004d40 50%, #00332a 100%)' }}>
+      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white before:absolute before:inset-0 before:bg-gradient-to-br before:from-[#00695c]/90 before:via-[#004d40]/85 before:to-[#00332a]/90 before:z-[1]">
+        {/* Background Image */}
+        <img src="/commercial-comfort.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
             <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
@@ -103,7 +105,6 @@ export default function Login({ onLogin }: LoginProps) {
           <span className="block text-[11px] font-semibold tracking-[1px] opacity-60 mb-1">Version 10.0</span>
           <span className="block text-[11px] opacity-40">&copy; 2026 Splash Air Conditioning</span>
         </div>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.03) 0%, transparent 50%)' }} />
       </div>
 
       {/* Right Side - Login Form */}
