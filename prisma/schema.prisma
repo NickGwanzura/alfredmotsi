@@ -146,6 +146,22 @@ enum EmailDeliveryStatus {
   skipped
 }
 
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  declined
+  expired
+}
+
 // ============================================
 // AUTH MODELS (NextAuth.js)
 // ============================================
@@ -243,6 +259,8 @@ model Customer {
 
   jobs       Job[]
   crmRecords CRMRecord[]
+  invoices   Invoice[]
+  quotes     Quote[]
 
   @@map("customers")
 }
@@ -283,6 +301,7 @@ model Job {
   consumables     Consumable[]       @relation("ConsumableOfJob")
   auditLogs       AuditLog[]         @relation("AuditLogOfJob")
   attachments     JobAttachment[]    @relation("JobAttachmentOfJob")
+  invoices        Invoice[]
 
   @@map("jobs")
 }
@@ -511,4 +530,153 @@ model PasswordResetToken {
   @@index([token])
   @@index([email])
   @@map("password_reset_tokens")
+}
+
+// ============================================
+// INVENTORY
+// ============================================
+
+model InventoryItem {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  brand        String?
+  sku          String?  @unique
+  unit         String
+  stockLevel   Float    @default(0) @map("stock_level")
+  reorderLevel Float    @map("reorder_level")
+  reorderQty   Float    @map("reorder_qty")
+  supplier     String?
+  supplierRef  String?  @map("supplier_ref")
+  costPrice    Float?   @map("cost_price")
+  sellPrice    Float?   @map("sell_price")
+  location     String?
+  notes        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  movements    InventoryMovement[]
+  invoiceLines InvoiceLine[]
+  quoteLines   QuoteLine[]
+
+  @@index([category])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id         String   @id @default(cuid())
+  itemId     String   @map("item_id")
+  type       String   // in | out | adjustment
+  quantity   Float
+  reference  String?
+  notes      String?
+  recordedBy String?  @map("recorded_by")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@map("inventory_movements")
+}
+
+// ============================================
+// INVOICING
+// ============================================
+
+model Invoice {
+  id         String        @id @default(cuid())
+  invoiceRef String        @unique @map("invoice_ref")
+  customerId String        @map("customer_id")
+  jobId      String?       @map("job_id")
+  status     InvoiceStatus @default(draft)
+  issueDate  String        @map("issue_date")
+  dueDate    String        @map("due_date")
+  subtotal   Float         @default(0)
+  taxRate    Float         @default(15) @map("tax_rate")
+  tax        Float         @default(0)
+  total      Float         @default(0)
+  notes      String?
+  paidAt     DateTime?     @map("paid_at")
+  paidRef    String?       @map("paid_ref")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  customer  Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  job       Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  lineItems InvoiceLine[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String  @map("invoice_id")
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float   @map("unit_price")
+  total       Float
+  itemId      String? @map("item_id")
+
+  invoice Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item    InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  quoteRef   String      @unique @map("quote_ref")
+  customerId String      @map("customer_id")
+  status     QuoteStatus @default(draft)
+  issueDate  String      @map("issue_date")
+  validUntil String      @map("valid_until")
+  subtotal   Float       @default(0)
+  taxRate    Float       @default(15) @map("tax_rate")
+  tax        Float       @default(0)
+  total      Float       @default(0)
+  notes      String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  customer  Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lineItems QuoteLine[]
+
+  @@index([customerId])
+  @@map("quotes")
+}
+
+model QuoteLine {
+  id          String  @id @default(cuid())
+  quoteId     String  @map("quote_id")
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float   @map("unit_price")
+  total       Float
+  itemId      String? @map("item_id")
+
+  quote Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  item  InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@map("quote_lines")
+}
+
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

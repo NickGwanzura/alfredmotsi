@@ -57,7 +57,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-gray-500">Total Jobs</span>
@@ -84,7 +84,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
       {/* Filter Bar */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex gap-3 flex-wrap items-center">
-          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+          <div className="relative flex-1 w-full sm:w-auto min-w-[200px] max-w-[300px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"

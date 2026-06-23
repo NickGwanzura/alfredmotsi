@@ -63,7 +63,13 @@ export default function Login({ onLogin }: LoginProps) {
         setErr("An unexpected error occurred. Please try again.");
       }
     } else if (mode === 'portal') {
-      setErr("Portal login feature coming soon.");
+      try {
+        const result = await signIn("portal", { email, portalCode, redirect: false, callbackUrl: "/" });
+        if (result?.error) setErr("Invalid email or portal code. Please check and try again.");
+        else onLogin?.();
+      } catch {
+        setErr("An unexpected error occurred. Please try again.");
+      }
     }
     setLoading(false);
   };

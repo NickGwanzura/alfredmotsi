@@ -94,7 +94,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-4 sm:p-8 lg:p-12" onClick={onClose}>
       <div className="bg-layer w-full max-w-[780px] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between p-6 border-b border-border-subtle">
           <h2 className="text-xl font-semibold text-text-primary">Add New Job</h2>
@@ -108,7 +108,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Job Title" error={errors.title}>
                 <input type="text" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.title} onChange={e => handleChange('title', e.target.value)} placeholder="Enter job title" />
               </FormItem>
@@ -119,7 +119,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </FormItem>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Customer" error={errors.customerId}>
                 <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.customerId} onChange={e => handleChange('customerId', e.target.value)}>
                   <option value="">Select customer...</option>
@@ -133,7 +133,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </FormItem>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <FormItem label="Issue Type">
                 <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.issue} onChange={e => handleChange('issue', e.target.value as IssueType)}>
                   {ISSUE_TYPES.map(it => <option key={it} value={it}>{it.charAt(0).toUpperCase() + it.slice(1)}</option>)}
@@ -151,7 +151,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </FormItem>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Date" error={errors.date}>
                 <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.date} onChange={e => handleChange('date', e.target.value)} />
               </FormItem>
@@ -160,7 +160,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </FormItem>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Lead Technician" error={errors.leadTechId}>
                 <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.leadTechId} onChange={e => handleChange('leadTechId', e.target.value)}>
                   <option value="">Select technician...</option>

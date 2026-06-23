@@ -24,6 +24,9 @@ import AddCustomerModal from '@/app/components/AddCustomerModal';
 import AddGasStockModal from '@/app/components/AddGasStockModal';
 import AddGasUsageModal from '@/app/components/AddGasUsageModal';
 import AddCRMModal from '@/app/components/AddCRMModal';
+import Inventory from '@/app/components/Inventory';
+import Invoices from '@/app/components/Invoices';
+import CustomerPortal from '@/app/components/CustomerPortal';
 
 import { captureAudit } from '@/app/lib/audit/capture';
 import {
@@ -48,6 +51,9 @@ import {
   Menu as MenuIcon,
   AlertTriangle,
   Snowflake,
+  Package,
+  X,
+  FileText,
 } from 'lucide-react';
 
 interface NavItem {
@@ -160,6 +166,40 @@ export default function Home() {
   const user = session.user;
   const currentUser = user as User;
   const isAdmin = user.role === 'admin';
+  const handleLogout = () => signOut({ callbackUrl: '/' });
+
+  if (user.role === 'client') {
+    return (
+      <div className="min-h-screen bg-surface" style={{ fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+        <header className="header no-print">
+          <SplashLogo className="w-7 h-7" />
+          <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-semibold text-text-primary no-underline">
+            Splash Air <span className="font-normal text-text-secondary">/ Client Portal</span>
+          </a>
+          <div className="flex-1" />
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white bg-brand-500">CLIENT</span>
+          <div className="flex items-center gap-3 pl-4 border-l border-border-subtle">
+            <Avatar name={user.name || 'Client'} size={24} color="#093a68" />
+            <div className="hidden sm:block">
+              <p className="text-[11px] text-text-secondary font-medium">{user.name}</p>
+              <p className="text-[11px] text-brand-600">Client Portal</p>
+            </div>
+          </div>
+          <button
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 text-xs font-semibold rounded-lg bg-brand-600 text-white border-none hover:bg-brand-700 cursor-pointer ml-2"
+            onClick={handleLogout}
+          >
+            <LogOut size={14} /> Sign out
+          </button>
+        </header>
+        <main style={{ paddingTop: '3rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+          <div className="p-8">
+            <CustomerPortal customerName={user.name || 'Customer'} />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const perm = {
     canManageJobs: canManageJobs(user.role),
@@ -313,13 +353,13 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => signOut({ callbackUrl: '/' });
-
   const adminNav: NavItem[] = [
     { id: 'home', label: 'Dashboard', Icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendar', Icon: Calendar },
     { id: 'jobs', label: 'Jobs', Icon: Table2 },
     { id: 'customers', label: 'Customers', Icon: UserIcon },
+    { id: 'invoices', label: 'Invoices', Icon: FileText },
+    { id: 'inventory', label: 'Inventory', Icon: Package },
     { id: 'gas-stock', label: 'Gas Stock', Icon: Container },
     { id: 'gas-usage', label: 'Gas Usage', Icon: BarChart3 },
     { id: 'crm', label: 'CRM', Icon: BarChart3 },
@@ -341,40 +381,40 @@ export default function Home() {
       {/* Header */}
       <header className="header no-print">
         <button
-          className="inline-flex items-center justify-center w-10 h-10 bg-transparent hover:bg-surface-hover active:bg-surface-active border-none cursor-pointer shrink-0 lg:hidden"
+          className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] bg-transparent hover:bg-surface-hover active:bg-surface-active border-none cursor-pointer shrink-0 lg:hidden"
           onClick={() => setSideNavOpen((o) => !o)}
           aria-label="Toggle navigation"
         >
           <MenuIcon size={20} />
         </button>
-        <SplashLogo className="w-7 h-7" />
-        <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-semibold text-text-primary no-underline">
-          Splash Air <span className="font-normal text-text-secondary">/ Service Platform v10</span>
+        <SplashLogo className="w-7 h-7 shrink-0" />
+        <a className="flex items-center gap-1.5 px-2 sm:px-4 h-12 border-l border-border-subtle text-xs sm:text-sm font-semibold text-text-primary no-underline truncate">
+          Splash Air <span className="hidden sm:inline font-normal text-text-secondary">/ Service Platform v10</span>
         </a>
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0" />
 
         {/* Role badge */}
-        <span className={`text-[11px] font-bold px-2 py-0.5 text-white ${isAdmin ? 'bg-support-success' : 'bg-support-info'}`}>
+        <span className={`hidden sm:inline-flex text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white ${isAdmin ? 'bg-brand-600' : 'bg-brand-500'}`}>
           {user.role?.toUpperCase() || 'NO ROLE'}
         </span>
 
         {unallocatedCount > 0 && perm.canManageJobs && (
-          <span className="text-[11px] font-bold px-2 py-0.5 text-white bg-support-warning">
+          <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 text-white bg-support-warning shrink-0">
             {unallocatedCount} UNALLOCATED
           </span>
         )}
 
         {alertCount > 0 && (
-          <span className="text-[11px] font-bold px-2 py-0.5 text-white bg-support-error">
+          <span className="text-[11px] font-bold px-2 py-0.5 text-white bg-support-error shrink-0">
             {alertCount} ALERT{alertCount > 1 ? 'S' : ''}
           </span>
         )}
 
-        <div className="flex items-center gap-3 pl-4 border-l border-border-subtle">
-          <Avatar name={user.name || 'User'} size={24} color={isAdmin ? '#6929c4' : '#00695c'} />
+        <div className="flex items-center gap-1.5 sm:gap-3 pl-2 sm:pl-4 border-l border-border-subtle">
+          <Avatar name={user.name || 'User'} size={24} color="#093a68" />
           <div className="hidden sm:block">
             <p className="text-[11px] text-text-secondary font-medium">{user.name}</p>
-            <p className={`text-[11px] ${isAdmin ? 'text-[#6929c4]' : 'text-brand-600'}`}>
+            <p className="text-[11px] text-brand-600">
               {isAdmin ? 'Administrator' : 'Technician'}
             </p>
           </div>
@@ -392,12 +432,19 @@ export default function Home() {
       {/* Sidebar */}
       <nav className={`sidebar no-print ${sideNavOpen ? 'open' : ''}`}>
         {/* Sidebar Logo */}
-        <div className="px-5 pb-5 mb-4 border-b border-border-subtle flex items-center gap-3">
-          <SplashLogo className="w-9 h-9" />
-          <div>
-            <p className="text-sm font-semibold text-text-primary">Splash Air</p>
+        <div className="px-5 pb-4 mb-4 border-b border-border-subtle flex items-center gap-3">
+          <SplashLogo className="w-8 h-8 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-text-primary truncate">Splash Air</p>
             <p className="text-[10px] text-text-secondary">Service Platform v10</p>
           </div>
+          <button
+            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] bg-transparent hover:bg-surface-hover border-none cursor-pointer lg:hidden shrink-0"
+            onClick={() => setSideNavOpen(false)}
+            aria-label="Close navigation"
+          >
+            <X size={20} />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto py-5">
           <p className="px-5 pb-1 text-[11px] font-semibold text-text-primary uppercase tracking-[0.08em]">Navigation</p>
@@ -477,7 +524,7 @@ export default function Home() {
             {loginTime.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
           </p>
           <button
-            className="inline-flex items-center justify-center gap-2 w-full h-8 px-3 text-xs bg-transparent border border-border-strong text-text-primary hover:bg-surface-hover active:bg-surface-active cursor-pointer transition-colors"
+            className="inline-flex items-center justify-center gap-2 w-full min-h-[44px] px-4 text-xs font-semibold rounded-lg bg-brand-600 text-white border-none hover:bg-brand-700 active:bg-brand-800 cursor-pointer transition-colors"
             onClick={handleLogout}
           >
             <LogOut size={14} />
@@ -488,7 +535,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="content-area">
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {fetchErrors.length > 0 && (
             <div className="mb-4">
               {fetchErrors.map((msg, i) => (
@@ -621,6 +668,14 @@ export default function Home() {
 
               {!showAddJob && page === 'audit-log' && perm.canViewAuditLog && (
                 <AuditLogView techs={techs} />
+              )}
+
+              {!showAddJob && page === 'inventory' && isAdmin && (
+                <Inventory />
+              )}
+
+              {!showAddJob && page === 'invoices' && isAdmin && (
+                <Invoices customers={customers} jobs={jobs} />
               )}
             </>
           )}

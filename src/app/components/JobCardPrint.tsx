@@ -698,7 +698,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
 
             {/* Customer & Job Summary */}
             <div className="bg-layer p-4 border border-border-subtle mb-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Customer</p>
                   <p className="font-semibold mb-1 text-text-primary">{customer?.name || 'N/A'}</p>
@@ -719,7 +719,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             {job.diagnostics && (
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Diagnostic Readings</p>
-                <div className="grid grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-xs text-text-secondary">Voltage</span>
                     <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.voltage || '--'} V</p>
@@ -744,7 +744,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             {(job.diagnostics?.refrigerantType || job.diagnostics?.refrigerantUsed) && (
               <div className="p-4 mb-4 border" style={{ background: '#e0f2f1', borderColor: '#80cbc4' }}>
                 <p className="text-[11px] font-semibold" style={{ color: '#004d40' }}>ODS / Refrigerant Data</p>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <span className="text-xs" style={{ color: '#004d40' }}>Refrigerant Type</span>
                     <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantType || 'N/A'}</p>
@@ -762,7 +762,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             )}
 
             {/* Signatures Preview */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-layer p-4 border border-border-subtle text-center">
                 <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Technician</p>
                 <div className="border-b border-text-primary pb-3 mb-1 min-h-[40px]">{technician?.name}</div>

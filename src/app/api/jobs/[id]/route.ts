@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
+import { sendPushToUsers } from '@/app/lib/push/server';
 
 // Valid status transitions
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -175,6 +176,21 @@ export async function PUT(
         },
       });
     });
+
+    // Push to newly assigned techs (those not previously assigned)
+    if (techIds?.length) {
+      const prevTechIds = existingJob.technicians.map((t: any) => t.id);
+      const newlyAssigned = techIds.filter((tid: string) => !prevTechIds.includes(tid));
+      if (newlyAssigned.length) {
+        const jobTitle = (result as any)?.title || 'Job update';
+        const custName = (result as any)?.customer?.name || '';
+        sendPushToUsers(newlyAssigned, {
+          title: 'Job Assigned to You',
+          body: `${jobTitle}${custName ? ` — ${custName}` : ''}`,
+          url: '/',
+        });
+      }
+    }
 
     return NextResponse.json(jobToClient(result as Record<string, unknown>));
   } catch (error) {

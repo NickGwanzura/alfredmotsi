@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { auth, filterFinancialArray, authorizeRole } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
+import { sendPushToUsers } from '@/app/lib/push/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -106,6 +107,15 @@ export async function POST(request: NextRequest) {
         coTechnicians: true,
       }
     });
+
+    // Push notification to assigned technicians
+    if (techIds?.length) {
+      sendPushToUsers(techIds, {
+        title: 'New Job Assigned',
+        body: `${job.title} — ${job.customer?.name || ''}`,
+        url: '/',
+      });
+    }
 
     return NextResponse.json(jobToClient(job as Record<string, unknown>), { status: 201 });
   } catch (error) {

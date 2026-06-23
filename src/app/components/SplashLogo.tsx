@@ -11,7 +11,7 @@ export default function SplashLogo({ className, style }: SplashLogoProps) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" className={className} style={style}>
       <defs>
-        <style>{`.cls-1{fill:#00695c;}.cls-2{fill:#00796b;}.cls-3{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-width:35px;}.cls-4{fill:none;stroke:#fff;stroke-width:25px;}.cls-5{fill:#fff;}`}</style>
+        <style>{`.cls-1{fill:#093a68;}.cls-2{fill:#0c4a82;}.cls-3{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-width:35px;}.cls-4{fill:none;stroke:#fff;stroke-width:25px;}.cls-5{fill:#fff;}`}</style>
       </defs>
       <circle className="cls-1" cx="800" cy="450" r="480"/>
       <circle className="cls-2" cx="800" cy="450" r="460"/>

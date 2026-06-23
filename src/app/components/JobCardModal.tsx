@@ -225,8 +225,42 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     onClose();
   };
 
-  const handleClockIn = () => { setCIn(nowTime()); setStatus("on-site"); };
-  const handleClockOut = () => { setCOut(nowTime()); };
+  const handleClockIn = async () => {
+    const time = nowTime();
+    setCIn(time);
+    setStatus("on-site");
+    const gps = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 6000 }
+      );
+    });
+    fetch(`/api/jobs/${job.id}/clock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'in', gps }),
+    }).catch(() => {});
+  };
+
+  const handleClockOut = async () => {
+    const time = nowTime();
+    setCOut(time);
+    const gps = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+      if (!navigator.geolocation) { resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { timeout: 6000 }
+      );
+    });
+    fetch(`/api/jobs/${job.id}/clock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'out', gps }),
+    }).catch(() => {});
+  };
   const handleAddComment = () => { if (!comment.trim()) return; setComments(p => [...p, { author: currentUser.name, text: comment, time: nowTime() }]); setComment(""); };
   const handleAddPhoto = () => { setPhotos(p => [...p, `photo_${Date.now()}.jpg`]); };
 
@@ -279,7 +313,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const refrigerantNet = toNum(diag.refrigerantUsed) - toNum(diag.refrigerantRecovered);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-4 sm:p-8 lg:p-12" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-layer w-full max-w-[780px] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border-subtle">
@@ -384,7 +418,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           {/* Details Tab */}
           {tab === "details" && (
             <div className="animate-fade-in">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-layer p-4 border border-border-subtle">
                   <SectionTitle>Customer</SectionTitle>
                   <p className="font-semibold mb-1 text-text-primary">{cust.name}</p>
@@ -487,7 +521,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>1 — Equipment Identification</SectionTitle>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Machine type">
                     <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={diag.unitType || ""} onChange={e => setD("unitType", e.target.value as UnitType)}>
                       <option value="">Select</option>
@@ -510,7 +544,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>2 — Electrical Readings</SectionTitle>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Supply voltage (V)" error={(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? `Below ${DIAG_THRESHOLDS.minVoltage} V minimum — LOW_VOLTAGE alert` : undefined; })()}>
                     <input className={`w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors ${(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? 'border-support-error' : ''; })()}`} type="number" placeholder="e.g. 230" value={diag.voltage || ""} onChange={e => setD("voltage", e.target.value)} />
                   </FormItem>
@@ -527,7 +561,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>3 — Thermal Readings</SectionTitle>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Avg operating temp (°C)">
                     <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" placeholder="e.g. 22" value={diag.avgTemp || ""} onChange={e => setD("avgTemp", e.target.value)} />
                   </FormItem>
@@ -542,7 +576,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>4 — Refrigeration Pressure Test</SectionTitle>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
                     { key: 'suction' as const, label: 'Suction pressure (PSI)', placeholder: 'e.g. 68' },
                     { key: 'discharge' as const, label: 'Discharge pressure (PSI)', placeholder: 'e.g. 245' },
@@ -746,7 +780,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   const key = (diag.refrigerantType || '').trim();
                   const info = key ? REFRIGERANT_INFO[key] : undefined;
                   return (
-                    <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                       <div>
                         <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Current System Refrigerant</p>
                         <p className="text-2xl font-light" style={{ color: '#004d40' }}>{diag.refrigerantType || "Not specified"}</p>
@@ -824,7 +858,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                               ))}
                             </select>
                           </FormItem>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormItem label={`Quantity Used (${selectedStock?.unit || 'kg'}) *`}>
                               <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" step="0.1" min="0.1" max={selectedStock?.remaining} placeholder="e.g. 2.5" value={gasForm.quantityUsed} onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))} disabled={!gasForm.stockId || selectedDepleted} />
                             </FormItem>
@@ -846,7 +880,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>Refrigerant Movement Log</SectionTitle>
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   {[
                     { key: 'refrigerantRecovered' as const, label: 'Refrigerant Recovered (kg)', helper: 'Amount recovered from system' },
                     { key: 'refrigerantUsed' as const, label: 'Refrigerant Used (kg)', helper: 'New refrigerant added' },
@@ -861,7 +895,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>Summary</SectionTitle>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-text-primary">{toNum(diag.refrigerantRecovered).toFixed(1)} kg</p>
                     <p className="text-xs text-text-secondary">Total Recovered</p>
@@ -895,7 +929,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
             <div className="animate-fade-in">
               <div className="bg-layer p-4 border border-border-subtle mb-4">
                 <SectionTitle>Add Consumable</SectionTitle>
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   <FormItem label="Type">
                     <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={newConsumable.type} onChange={e => setNewConsumable(p => ({ ...p, type: e.target.value as ConsumableType }))}>
                       {CONSUMABLE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -990,7 +1024,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-[9500] flex items-start justify-center overflow-y-auto p-12"
+        <div className="fixed inset-0 bg-black/50 z-[9500] flex items-start justify-center overflow-y-auto p-4 sm:p-8 lg:p-12"
           onClick={e => e.target === e.currentTarget && !deleting && setShowDeleteConfirm(false)}>
           <div className="bg-layer w-full max-w-[480px] flex flex-col">
             <div className="flex items-start justify-between p-6 border-b border-border-subtle">

@@ -70,7 +70,7 @@ export default function GasUsage({ usage, currentUser, onExport, onAdd, stock }:
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {[
           { label: 'Total Usage', value: totalUsage.toFixed(2), sub: 'kg', icon: Beaker, color: 'from-blue-500 to-blue-600' },
           { label: 'This Month', value: thisMonthUsage.toFixed(2), sub: 'kg', icon: CalendarDays, color: 'from-violet-500 to-violet-600' },

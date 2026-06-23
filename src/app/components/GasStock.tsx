@@ -86,7 +86,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {stats.map((s, i) => (
           <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">

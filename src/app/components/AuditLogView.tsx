@@ -103,7 +103,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">
         {[
           { label: 'Total Records', value: total, icon: Activity, color: 'from-blue-500 to-blue-600' },
           { label: 'Users on Page', value: loadedUsers, icon: UserIcon, color: 'from-violet-500 to-violet-600' },
@@ -132,7 +132,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
                 className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">{label}</button>
             ))}
           </div>
-          <div className="min-w-[160px]">
+          <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><UserIcon size={12} className="inline mr-1" />User</label>
             <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={filterUser} onChange={e => setFilterUser(e.target.value)}>
@@ -140,7 +140,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
               {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-          <div className="min-w-[160px]">
+          <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Action</label>
             <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={filterAction} onChange={e => setFilterAction(e.target.value)}>
@@ -148,7 +148,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
               {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} · {cfg.label}</option>)}
             </select>
           </div>
-          <div className="min-w-[160px]">
+          <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Job ID</label>
             <input type="search" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
               value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />

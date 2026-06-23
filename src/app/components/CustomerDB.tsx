@@ -308,7 +308,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
               </div>
 
               {/* Contact + Portal grid */}
-              <div className="grid grid-cols-2 gap-6 mb-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact</p>
                   <div className="space-y-2">

@@ -5,7 +5,9 @@ import { prisma } from "@/app/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
+    // Staff login
     Credentials({
+      id: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -35,6 +37,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
             image: user.image,
             passwordChanged: user.passwordChanged,
+          };
+        } catch {
+          return null;
+        }
+      },
+    }),
+    // Customer portal login
+    Credentials({
+      id: "portal",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        portalCode: { label: "Portal Code", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.portalCode) return null;
+        try {
+          const customer = await prisma.customer.findFirst({
+            where: {
+              email: (credentials.email as string).toLowerCase().trim(),
+              portalEnabled: true,
+              portalCode: (credentials.portalCode as string).toUpperCase().trim(),
+            },
+          });
+          if (!customer) return null;
+          return {
+            id: customer.id,
+            email: customer.email,
+            name: customer.name,
+            role: 'client',
+            image: null,
+            passwordChanged: true,
           };
         } catch {
           return null;
