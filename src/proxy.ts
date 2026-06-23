@@ -29,7 +29,11 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = !!req.auth;
 
-  if (pathname === "/" || pathname.startsWith("/api/auth")) {
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/auth/reset-password")
+  ) {
     return NextResponse.next();
   }
 
