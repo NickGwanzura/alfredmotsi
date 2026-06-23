@@ -176,7 +176,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               aria-pressed={mode === 'standalone'}
             >
               <Container size={18} />
-              <span>Standalone</span>
+              <span>Forgot Password</span>
             </button>
             <button
               type="button"
@@ -195,13 +195,13 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           {/* Form Header */}
           <div style={styles.formHeader}>
             <h2 style={styles.formTitle}>
-              {mode === 'staff' ? 'Welcome Back' : mode === 'standalone' ? 'Standalone Access' : 'Client Portal'}
+              {mode === 'staff' ? 'Welcome Back' : mode === 'standalone' ? 'Reset your password' : 'Client Portal'}
             </h2>
             <p style={styles.formSubtitle}>
               {mode === 'staff' 
                 ? 'Sign in to access your dashboard' 
                 : mode === 'standalone'
-                ? 'Sign in to standalone tools'
+                ? 'Enter your email to receive a reset link'
                 : 'Track your service requests online'}
             </p>
           </div>
@@ -246,45 +246,9 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               </div>
             </div>
 
-            {mode !== 'portal' ? (
-              /* Password Field */
-              <div style={styles.fieldGroup}>
-                <label 
-                  htmlFor="password"
-                  style={{
-                    ...styles.label,
-                    ...(focusedField === 'password' ? styles.labelFocused : {}),
-                  }}
-                >
-                  Password
-                </label>
-                <div style={styles.inputWrapper}>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="Enter your password"
-                    style={{
-                      ...styles.input,
-                      ...(focusedField === 'password' ? styles.inputFocused : {}),
-                    }}
-                    autoComplete="current-password"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={styles.passwordToggle}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
+            {mode === 'standalone' ? (
+              /* Forgot Password — Email only */
+              null
             ) : mode === 'portal' ? (
               /* Portal Code Field */
               <div style={styles.fieldGroup}>
@@ -321,53 +285,43 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               </div>
             ) : null}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                ...styles.submitButton,
-                ...(loading ? styles.submitButtonLoading : {}),
-              }}
-            >
-              {loading ? (
-                <>
-                  <span style={styles.spinner} />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <ArrowRight size={20} />
-                </>
-              )}
-            </button>
-          </form>
-
-          {forgotMode ? (
-            <div style={styles.helpSection}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cds-text-primary)', marginBottom: 12 }}>Reset your password</p>
-              {resetSent ? (
-                <div className="notif notif-s" role="status" style={{ marginBottom: 12 }}>
+            {mode === 'standalone' ? (
+              /* Standalone: Forgot Password Flow */
+              resetSent ? (
+                <div style={styles.successMessage} role="status">
+                  <CheckCheck size={22} />
                   <div>
-                    <div className="notif-title">Check your email</div>
-                    <div className="notif-body" style={{ marginTop: 4 }}>If an account exists for {resetEmail}, you&apos;ll receive a reset link.</div>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--cds-text-primary)' }}>Check your email</p>
+                    <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginTop: 2 }}>
+                      If an account exists for {resetEmail}, you&apos;ll receive a reset link.
+                    </p>
                   </div>
                 </div>
               ) : (
-                <div style={{ marginBottom: 12 }}>
-                  <input
-                    className="inp"
-                    type="email"
-                    value={resetEmail}
-                    onChange={e => setResetEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    style={{ marginBottom: 8 }}
-                  />
+                <>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Email Address</label>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      style={{
+                        ...styles.input,
+                        ...(focusedField === 'resetEmail' ? styles.inputFocused : {}),
+                      }}
+                      onFocus={() => setFocusedField('resetEmail')}
+                      onBlur={() => setFocusedField(null)}
+                      disabled={resetSending}
+                    />
+                  </div>
                   <button
-                    className="btn btn-p"
-                    style={{ width: '100%' }}
+                    type="button"
                     disabled={resetSending || !resetEmail.trim()}
+                    style={{
+                      ...styles.submitButton,
+                      ...(resetSending ? styles.submitButtonLoading : {}),
+                    }}
                     onClick={async () => {
                       setResetSending(true);
                       setErr("");
@@ -381,35 +335,118 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                           setResetSent(true);
                         } else {
                           const data = await res.json().catch(() => ({}));
-                          setErr(data.error || 'Failed to send reset email. Please try again.');
+                          setErr(data.error || 'Failed to send reset email.');
                         }
                       } catch {
-                        setErr('Network error — please check your connection and try again.');
+                        setErr('Network error — please try again.');
                       } finally {
                         setResetSending(false);
                       }
                     }}
                   >
-                    {resetSending ? 'Sending...' : 'Send reset link'}
+                    {resetSending ? (
+                      <><span style={styles.spinner} /> Sending...</>
+                    ) : (
+                      <><ArrowRight size={20} /> Send reset link</>
+                    )}
                   </button>
-                </div>
-              )}
-              <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(false); setResetSent(false); setResetEmail(''); }} style={styles.helpLink}>Back to sign in</a>
-            </div>
-          ) : (
-            <div style={styles.helpSection}>
-              {mode !== 'portal' ? (
-                <>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); }} style={styles.helpLink}>Forgot password?</a>
-                  <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
                 </>
-              ) : (
-                <>
-                  <span style={styles.helpText}>Don&apos;t have a portal code?</span>
-                  <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
-                </>
-              )}
-            </div>
+              )
+            ) : (
+              <>
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    ...styles.submitButton,
+                    ...(loading ? styles.submitButtonLoading : {}),
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <span style={styles.spinner} />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+          </form>
+
+          {mode !== 'standalone' && (
+            forgotMode ? (
+              <div style={styles.helpSection}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cds-text-primary)', marginBottom: 12 }}>Reset your password</p>
+                {resetSent ? (
+                  <div className="notif notif-s" role="status" style={{ marginBottom: 12 }}>
+                    <div>
+                      <div className="notif-title">Check your email</div>
+                      <div className="notif-body" style={{ marginTop: 4 }}>If an account exists for {resetEmail}, you&apos;ll receive a reset link.</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 12 }}>
+                    <input
+                      className="inp"
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      style={{ marginBottom: 8 }}
+                    />
+                    <button
+                      className="btn btn-p"
+                      style={{ width: '100%' }}
+                      disabled={resetSending || !resetEmail.trim()}
+                      onClick={async () => {
+                        setResetSending(true);
+                        setErr("");
+                        try {
+                          const res = await fetch('/api/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: resetEmail }),
+                          });
+                          if (res.ok) {
+                            setResetSent(true);
+                          } else {
+                            const data = await res.json().catch(() => ({}));
+                            setErr(data.error || 'Failed to send reset email. Please try again.');
+                          }
+                        } catch {
+                          setErr('Network error — please check your connection and try again.');
+                        } finally {
+                          setResetSending(false);
+                        }
+                      }}
+                    >
+                      {resetSending ? 'Sending...' : 'Send reset link'}
+                    </button>
+                  </div>
+                )}
+                <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(false); setResetSent(false); setResetEmail(''); }} style={styles.helpLink}>Back to sign in</a>
+              </div>
+            ) : (
+              <div style={styles.helpSection}>
+                {mode !== 'portal' ? (
+                  <>
+                    <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(true); }} style={styles.helpLink}>Forgot password?</a>
+                    <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
+                  </>
+                ) : (
+                  <>
+                    <span style={styles.helpText}>Don&apos;t have a portal code?</span>
+                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
+                  </>
+                )}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -598,6 +635,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#525252',
   },
   
+  // Success Message
+  successMessage: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: '16px',
+    background: '#f2fff4',
+    borderLeft: '3px solid #198038',
+    marginBottom: 24,
+    fontSize: 14,
+  },
+
   // Error Message
   errorMessage: {
     display: 'flex',
