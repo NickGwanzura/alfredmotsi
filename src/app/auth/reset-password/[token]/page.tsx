@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Snowflake, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
@@ -10,6 +11,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,70 +48,151 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--cds-background)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ background: 'var(--cds-layer)', border: '1px solid var(--cds-border-subtle)', padding: 32, width: '100%', maxWidth: 400 }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <span style={{ fontSize: 32 }}>❄</span>
-          <h1 style={{ fontSize: 20, fontWeight: 400, marginTop: 8, color: 'var(--cds-text-primary)' }}>Splash Air</h1>
-          <p style={{ fontSize: 14, color: 'var(--cds-text-secondary)', marginTop: 4 }}>Reset your password</p>
+    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-brand-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-600/20">
+              <Snowflake className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-brand-800 font-grift">Splash Air</h1>
+              <p className="text-xs text-brand-600">Service Platform</p>
+            </div>
+          </div>
         </div>
 
-        {success ? (
-          <div style={{ textAlign: 'center' }}>
-            <div className="notif notif-s" role="status">
-              <div>
-                <div className="notif-title">Password reset successful</div>
-                <div className="notif-body" style={{ marginTop: 4 }}>You can now sign in with your new password.</div>
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-brand-900/5 border border-brand-100 overflow-hidden">
+          {success ? (
+            /* Success State */
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2 font-grift">Password reset successful</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                You can now sign in with your new password.
+              </p>
+              <a
+                href="/"
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 active:bg-brand-800 transition-colors shadow-lg shadow-brand-600/20"
+              >
+                Sign in
+              </a>
             </div>
-            <a href="/" className="btn btn-p" style={{ display: 'inline-flex', marginTop: 16, textDecoration: 'none' }}>Sign in</a>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div className="notif notif-e" role="alert" style={{ marginBottom: 16 }}>
-                <span>{error}</span>
+          ) : (
+            /* Form */
+            <form onSubmit={handleSubmit} className="p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5 text-brand-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 font-grift">Reset your password</h2>
+                  <p className="text-sm text-gray-500">Enter your new password below</p>
+                </div>
               </div>
-            )}
-            <div className="fi">
-              <label className="lbl" htmlFor="password">New password</label>
-              <input
-                id="password"
-                className="inp"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                autoComplete="new-password"
-                required
-              />
-            </div>
-            <div className="fi">
-              <label className="lbl" htmlFor="confirm">Confirm password</label>
-              <input
-                id="confirm"
-                className="inp"
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="Repeat your password"
-                autoComplete="new-password"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn btn-p"
-              style={{ width: '100%', marginTop: 8 }}
-              disabled={loading}
-            >
-              {loading ? 'Resetting...' : 'Reset password'}
-            </button>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <a href="/" style={{ fontSize: 13, color: 'var(--cds-link-primary)', textDecoration: 'none' }}>Back to sign in</a>
-            </div>
-          </form>
-        )}
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-red-50 border border-red-100" role="alert">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
+              {/* New Password */}
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="password">
+                  New password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    className="block w-full h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="confirm">
+                  Confirm password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirm"
+                    className="block w-full h-11 px-4 pr-11 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow"
+                    type={showConfirm ? 'text' : 'password'}
+                    value={confirm}
+                    onChange={e => setConfirm(e.target.value)}
+                    placeholder="Repeat your password"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    tabIndex={-1}
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-brand-600/20 mb-4"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  'Reset password'
+                )}
+              </button>
+
+              {/* Back link */}
+              <div className="text-center">
+                <a
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 transition-colors"
+                >
+                  <ArrowLeft size={14} />
+                  Back to sign in
+                </a>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Footer */}
+        <p className="mt-8 text-center text-xs text-gray-400">
+          Splash Air Conditioning — Field Service Management
+        </p>
       </div>
     </div>
   );
