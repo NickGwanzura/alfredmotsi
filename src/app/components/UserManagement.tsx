@@ -318,7 +318,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             </div>
             <div className="px-6 py-5 space-y-4">
               {inviteErr && <Notification kind="e" title="Check form" body={inviteErr} />}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Full name *">
                   <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Tendai Moyo" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
                 </FormItem>
@@ -331,7 +331,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                   <option value="tech">Technician</option><option value="admin">Administrator</option>
                 </select>
               </FormItem>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Phone number">
                   <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. +263 77 123 4567" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
                 </FormItem>
@@ -388,7 +388,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             </div>
             <div className="px-6 py-5 space-y-4">
               {editErr && <Notification kind="e" title="Error" body={editErr} />}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Full name *">
                   <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                 </FormItem>
@@ -401,7 +401,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                   <option value="tech">Technician</option><option value="admin">Administrator</option><option value="client">Client</option>
                 </select>
               </FormItem>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Phone number">
                   <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="+263 77 123 4567" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
                 </FormItem>

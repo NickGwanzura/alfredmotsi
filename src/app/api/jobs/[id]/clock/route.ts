@@ -7,7 +7,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
-  const { action, latitude, longitude, accuracy } = await req.json();
+  const { action, gps, latitude: _lat, longitude: _lng, accuracy: _acc } = await req.json();
+  const latitude = gps?.lat ?? _lat;
+  const longitude = gps?.lng ?? _lng;
+  const accuracy = gps?.accuracy ?? _acc;
   if (action !== 'in' && action !== 'out') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
