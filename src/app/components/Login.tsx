@@ -215,97 +215,28 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} style={styles.form}>
-            {/* Email Field */}
-            <div style={styles.fieldGroup}>
-              <label 
-                htmlFor="email" 
-                style={{
-                  ...styles.label,
-                  ...(focusedField === 'email' ? styles.labelFocused : {}),
-                }}
-              >
-                Email Address
-              </label>
-              <div style={styles.inputWrapper}>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
-                  style={{
-                    ...styles.input,
-                    ...(focusedField === 'email' ? styles.inputFocused : {}),
-                  }}
-                  autoComplete="email"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {mode === 'standalone' ? (
-              /* Forgot Password — Email only */
-              null
-            ) : mode === 'portal' ? (
-              /* Portal Code Field */
-              <div style={styles.fieldGroup}>
-                <label 
-                  htmlFor="portalCode"
-                  style={{
-                    ...styles.label,
-                    ...(focusedField === 'portalCode' ? styles.labelFocused : {}),
-                  }}
-                >
-                  Portal Access Code
-                </label>
-                <div style={styles.inputWrapper}>
-                  <input
-                    id="portalCode"
-                    type="text"
-                    value={portalCode}
-                    onChange={(e) => setPortalCode(e.target.value.toUpperCase())}
-                    onFocus={() => setFocusedField('portalCode')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="XXXX-XXXX"
-                    maxLength={9}
-                    style={{
-                      ...styles.input,
-                      ...styles.codeInput,
-                      ...(focusedField === 'portalCode' ? styles.inputFocused : {}),
-                    }}
-                    disabled={loading}
-                  />
+          {mode === 'standalone' ? (
+            /* Standalone: Forgot Password (no <form> — no password submit) */
+            resetSent ? (
+              <div style={styles.successMessage} role="status">
+                <CheckCheck size={22} />
+                <div>
+                  <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--cds-text-primary)' }}>Check your email</p>
+                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginTop: 2 }}>
+                    If an account exists for {resetEmail}, you&apos;ll receive a reset link.
+                  </p>
                 </div>
-                <span style={styles.helperText}>
-                  Found on your service invoice or email
-                </span>
               </div>
-            ) : null}
-
-            {mode === 'standalone' ? (
-              /* Standalone: Forgot Password Flow */
-              resetSent ? (
-                <div style={styles.successMessage} role="status">
-                  <CheckCheck size={22} />
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--cds-text-primary)' }}>Check your email</p>
-                    <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginTop: 2 }}>
-                      If an account exists for {resetEmail}, you&apos;ll receive a reset link.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div style={styles.fieldGroup}>
-                    <label style={styles.label}>Email Address</label>
+            ) : (
+              <div style={styles.form}>
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Email Address</label>
+                  <div style={styles.inputWrapper}>
                     <input
                       type="email"
                       value={resetEmail}
                       onChange={e => setResetEmail(e.target.value)}
-                      placeholder="you@email.com"
+                      placeholder="your@email.com"
                       style={{
                         ...styles.input,
                         ...(focusedField === 'resetEmail' ? styles.inputFocused : {}),
@@ -315,69 +246,135 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                       disabled={resetSending}
                     />
                   </div>
-                  <button
-                    type="button"
-                    disabled={resetSending || !resetEmail.trim()}
-                    style={{
-                      ...styles.submitButton,
-                      ...(resetSending ? styles.submitButtonLoading : {}),
-                    }}
-                    onClick={async () => {
-                      setResetSending(true);
-                      setErr("");
-                      try {
-                        const res = await fetch('/api/auth/forgot-password', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email: resetEmail }),
-                        });
-                        if (res.ok) {
-                          setResetSent(true);
-                        } else {
-                          const data = await res.json().catch(() => ({}));
-                          setErr(data.error || 'Failed to send reset email.');
-                        }
-                      } catch {
-                        setErr('Network error — please try again.');
-                      } finally {
-                        setResetSending(false);
-                      }
-                    }}
-                  >
-                    {resetSending ? (
-                      <><span style={styles.spinner} /> Sending...</>
-                    ) : (
-                      <><ArrowRight size={20} /> Send reset link</>
-                    )}
-                  </button>
-                </>
-              )
-            ) : (
-              <>
-                {/* Submit Button */}
+                </div>
                 <button
-                  type="submit"
-                  disabled={loading}
+                  type="button"
+                  disabled={resetSending || !resetEmail.trim()}
                   style={{
                     ...styles.submitButton,
-                    ...(loading ? styles.submitButtonLoading : {}),
+                    ...(resetSending ? styles.submitButtonLoading : {}),
+                  }}
+                  onClick={async () => {
+                    setResetSending(true);
+                    setErr("");
+                    try {
+                      const res = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: resetEmail }),
+                      });
+                      if (res.ok) {
+                        setResetSent(true);
+                      } else {
+                        const data = await res.json().catch(() => ({}));
+                        setErr(data.error || 'Failed to send reset email.');
+                      }
+                    } catch {
+                      setErr('Network error — please try again.');
+                    } finally {
+                      setResetSending(false);
+                    }
                   }}
                 >
-                  {loading ? (
-                    <>
-                      <span style={styles.spinner} />
-                      Signing in...
-                    </>
+                  {resetSending ? (
+                    <><span style={styles.spinner} /> Sending...</>
                   ) : (
-                    <>
-                      Sign In
-                      <ArrowRight size={20} />
-                    </>
+                    <><ArrowRight size={20} /> Send reset link</>
                   )}
                 </button>
-              </>
-            )}
-          </form>
+              </div>
+            )
+          ) : (
+            <form onSubmit={handleSubmit} style={styles.form}>
+              {/* Email Field */}
+              <div style={styles.fieldGroup}>
+                <label 
+                  htmlFor="email" 
+                  style={{
+                    ...styles.label,
+                    ...(focusedField === 'email' ? styles.labelFocused : {}),
+                  }}
+                >
+                  Email Address
+                </label>
+                <div style={styles.inputWrapper}>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
+                    style={{
+                      ...styles.input,
+                      ...(focusedField === 'email' ? styles.inputFocused : {}),
+                    }}
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {mode === 'portal' ? (
+                /* Portal Code Field */
+                <div style={styles.fieldGroup}>
+                  <label 
+                    htmlFor="portalCode"
+                    style={{
+                      ...styles.label,
+                      ...(focusedField === 'portalCode' ? styles.labelFocused : {}),
+                    }}
+                  >
+                    Portal Access Code
+                  </label>
+                  <div style={styles.inputWrapper}>
+                    <input
+                      id="portalCode"
+                      type="text"
+                      value={portalCode}
+                      onChange={(e) => setPortalCode(e.target.value.toUpperCase())}
+                      onFocus={() => setFocusedField('portalCode')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="XXXX-XXXX"
+                      maxLength={9}
+                      style={{
+                        ...styles.input,
+                        ...styles.codeInput,
+                        ...(focusedField === 'portalCode' ? styles.inputFocused : {}),
+                      }}
+                      disabled={loading}
+                    />
+                  </div>
+                  <span style={styles.helperText}>
+                    Found on your service invoice or email
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  ...styles.submitButton,
+                  ...(loading ? styles.submitButtonLoading : {}),
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span style={styles.spinner} />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight size={20} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           {mode !== 'standalone' && (
             forgotMode ? (
