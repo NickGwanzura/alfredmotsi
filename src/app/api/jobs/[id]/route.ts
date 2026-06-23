@@ -3,6 +3,22 @@ import { prisma } from '@/app/lib/db';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 
+// Valid status transitions
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  'unallocated':    ['scheduled', 'cancelled'],
+  'scheduled':      ['in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled', 'unallocated'],
+  'in-progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'cancelled'],
+  'in_progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'cancelled'],
+  'on-site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'cancelled'],
+  'on_site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'cancelled'],
+  'completed':      ['invoiced', 'cancelled'],
+  'pending-parts':  ['scheduled', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
+  'pending_parts':  ['scheduled', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
+  'pending-booking':['scheduled', 'cancelled'],
+  'pending_booking':['scheduled', 'cancelled'],
+  'cancelled':      ['scheduled', 'unallocated'],
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -97,6 +113,18 @@ export async function PUT(
 
     const updateData = jobFromClient(rawUpdate as Record<string, unknown>);
 
+    // Validate status transition
+    const oldStatus = existingJob.status as string;
+    const newStatus = updateData.status as string | undefined;
+    if (newStatus && newStatus !== oldStatus) {
+      const allowed = ALLOWED_TRANSITIONS[oldStatus];
+      if (!allowed || !allowed.includes(newStatus)) {
+        return NextResponse.json({
+          error: `Cannot transition job from "${oldStatus}" to "${newStatus}". Allowed transitions: ${(allowed || ['none']).join(', ')}`,
+        }, { status: 400 });
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const whereClause: any = { id };
       if (_version !== undefined) whereClause.version = _version;
@@ -123,42 +151,21 @@ export async function PUT(
         });
       }
 
-      if (recurring) {
-        await tx.recurringSchedule.upsert({
-          where: { jobId: id },
-          update: recurring as any,
-          create: { jobId: id, ...(recurring as any) },
-        });
-      } else {
-        await tx.recurringSchedule.deleteMany({ where: { jobId: id } });
-      }
-
-      if (Array.isArray(comments)) {
-        await tx.comment.deleteMany({ where: { jobId: id } });
-        for (const c of comments) {
-          await tx.comment.create({
-            data: {
-              jobId: id,
-              author: c.author || 'Unknown',
-              text: c.text,
-              time: c.time || new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-            },
+      // Only touch recurring if it was explicitly sent in the request body
+      if ('recurring' in body) {
+        if (recurring) {
+          await tx.recurringSchedule.upsert({
+            where: { jobId: id },
+            update: recurring as any,
+            create: { jobId: id, ...(recurring as any) },
           });
+        } else {
+          await tx.recurringSchedule.deleteMany({ where: { jobId: id } });
         }
       }
 
-      if (Array.isArray(history)) {
-        await tx.historyEntry.deleteMany({ where: { jobId: id } });
-        for (const h of history) {
-          await tx.historyEntry.create({
-            data: {
-              jobId: id,
-              date: h.date || new Date().toISOString().split('T')[0],
-              note: h.note,
-            },
-          });
-        }
-      }
+      // Comments and history are managed via their dedicated endpoints
+      // Do NOT replace them on job update to prevent data loss
 
       return await tx.job.findUnique({
         where: { id },

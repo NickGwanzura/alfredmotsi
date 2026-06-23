@@ -98,6 +98,10 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
     setEmail("");
     setPassword("");
     setPortalCode("");
+    setForgotMode(false);
+    setResetEmail("");
+    setResetSent(false);
+    setResetSending(false);
   };
 
   return (

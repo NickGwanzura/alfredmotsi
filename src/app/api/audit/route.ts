@@ -7,6 +7,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Only admin and tech roles can write audit logs
+    const userRole = (session.user as any).role;
+    if (userRole !== 'admin' && userRole !== 'tech') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action, jobId, latitude, longitude, accuracy } = body;
 

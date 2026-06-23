@@ -1,49 +1,59 @@
-import bcrypt from "bcryptjs";
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const SALT_ROUNDS = 12;
 
-/**
- * Hash a password using bcrypt
- */
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-/**
- * Compare a plain text password with a hash
- */
-export async function verifyPassword(
-  password: string,
-  hashedPassword: string
-): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword);
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 /**
- * Generate a secure random password
+ * Generate a cryptographically secure random password.
+ * Uses crypto.randomBytes() instead of Math.random().
  */
-export function generateSecurePassword(length: number = 12): string {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  
+export function generateSecurePassword(length = 16): string {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  const all = upper + lower + digits + special;
+
+  // Generate random bytes
+  const bytes = crypto.randomBytes(length);
+  const password: string[] = [];
+
   // Ensure at least one of each character type
-  password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)];
-  password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)];
-  password += "0123456789"[Math.floor(Math.random() * 10)];
-  password += "!@#$%^&*"[Math.floor(Math.random() * 8)];
-  
-  // Fill the rest
+  password.push(upper[bytes[0] % upper.length]);
+  password.push(lower[bytes[1] % lower.length]);
+  password.push(digits[bytes[2] % digits.length]);
+  password.push(special[bytes[3] % special.length]);
+
+  // Fill the rest randomly
   for (let i = 4; i < length; i++) {
-    password += charset[Math.floor(Math.random() * charset.length)];
+    password.push(all[bytes[i] % all.length]);
   }
-  
-  // Shuffle
-  return password.split("").sort(() => Math.random() - 0.5).join("");
+
+  // Fisher-Yates shuffle for unbiased randomization
+  for (let i = password.length - 1; i > 0; i--) {
+    const j = bytes[i + 4] % (i + 1);
+    [password[i], password[j]] = [password[j], password[i]];
+  }
+
+  return password.join('');
 }
 
 /**
- * Generate a PIN (for technicians during migration)
+ * Generate a cryptographically secure numeric PIN.
  */
-export function generatePIN(length: number = 4): string {
-  return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+export function generatePIN(length = 6): string {
+  const bytes = crypto.randomBytes(length);
+  let pin = '';
+  for (let i = 0; i < length; i++) {
+    pin += (bytes[i] % 10).toString();
+  }
+  return pin;
 }

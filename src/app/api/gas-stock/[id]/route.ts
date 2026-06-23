@@ -16,6 +16,20 @@ export async function PUT(
   const body = await request.json();
   const { gasType, brand, quantity, remaining, unit, supplier, supplierRef, notes } = body;
 
+  // Validate that remaining does not go negative or exceed original quantity
+  if (remaining !== undefined) {
+    const parsed = parseFloat(remaining);
+    if (isNaN(parsed) || parsed < 0) {
+      return NextResponse.json({ error: 'Remaining quantity cannot be negative' }, { status: 400 });
+    }
+    if (quantity !== undefined) {
+      const parsedQty = parseFloat(quantity);
+      if (!isNaN(parsedQty) && parsed > parsedQty) {
+        return NextResponse.json({ error: 'Remaining cannot exceed total quantity' }, { status: 400 });
+      }
+    }
+  }
+
   const stockItem = await prisma.gasStockItem.update({
     where: { id },
     data: {
@@ -32,6 +46,9 @@ export async function PUT(
 
   return NextResponse.json(stockItem);
 }
+
+// Support both PUT and PATCH for frontend compatibility
+export const PATCH = PUT;
 
 export async function DELETE(
   request: NextRequest,

@@ -81,6 +81,14 @@ export async function DELETE(
   const targetUser = await prisma.user.findUnique({ where: { id } });
   if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+  // Reassign related records to the deleting admin before removing the user
+  const adminId = session.user.id;
+  await prisma.$transaction([
+    prisma.auditLog.updateMany({ where: { userId: id }, data: { userId: adminId } }),
+    prisma.gasUsageRecord.updateMany({ where: { usedBy: id }, data: { usedBy: adminId } }),
+    prisma.consumable.updateMany({ where: { recordedBy: id }, data: { recordedBy: adminId } }),
+  ]);
+
   await prisma.user.delete({ where: { id } });
 
   // Audit

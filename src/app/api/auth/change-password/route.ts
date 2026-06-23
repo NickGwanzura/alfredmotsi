@@ -30,8 +30,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Verify current password (skip if they haven't changed password yet - temp password)
-    if (user.passwordChanged && currentPassword) {
+    // Verify current password
+    // If user has already changed their password (passwordChanged = true),
+    // the current password is REQUIRED to authorize the change
+    if (user.passwordChanged) {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: 'Current password is required to change your password' },
+          { status: 400 }
+        );
+      }
       const isValid = await bcrypt.compare(currentPassword, user.password);
       if (!isValid) {
         return NextResponse.json(

@@ -31,10 +31,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (techId) {
-      where.OR = [
-        { technicians: { some: { id: techId } } },
-        { coTechnicians: { some: { id: techId } } },
-      ];
+      // Only admins can filter by another tech's ID
+      if (userRole === 'admin') {
+        where.OR = [
+          { technicians: { some: { id: techId } } },
+          { coTechnicians: { some: { id: techId } } },
+        ];
+      }
+      // For non-admins, keep their own scope filter (OR already set above)
     }
 
     if (customerId) {
