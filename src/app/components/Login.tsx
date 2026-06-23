@@ -110,9 +110,9 @@ export default function Login({ onLogin }: LoginProps) {
       {/* Right Side - Login Form */}
       <div className="flex-1 flex items-center justify-center bg-surface p-6 relative z-10">
         <div className="w-full max-w-[420px] bg-white p-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-          {/* Logo (mobile) */}
-          <div className="flex justify-center mb-8 lg:hidden">
-            <img src="/logo.png" alt="Splash Air" className="w-24 h-auto" />
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <img src="/logo.png" alt="Splash Air" className="w-20 h-auto" />
           </div>
 
           {/* Mode Toggle */}
