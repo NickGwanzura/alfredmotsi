@@ -10,840 +10,267 @@ import {
   CheckCheck,
   Eye,
   EyeOff,
+  Snowflake,
   Container,
 } from 'lucide-react';
 
 interface LoginProps {
   onLogin?: () => void;
-  onPortalLogin?: (customerId: string) => void;
 }
 
-export default function Login({ onLogin, onPortalLogin }: LoginProps) {
+export default function Login({ onLogin }: LoginProps) {
   const [mode, setMode] = useState<'staff' | 'portal' | 'standalone'>('staff');
-  
-  // Check if we need to clear any existing session (from invite email link)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('logout') === '1') {
-      signOut({ redirect: false });
-      // Clear the query param from URL without reloading
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [portalCode, setPortalCode] = useState("");
-  const [err, setErr] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [portalCode, setPortalCode] = useState('');
+  const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
   const [resetSending, setResetSending] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout') === '1') signOut({ redirect: false });
+  }, []);
+
   const validateForm = () => {
-    if (!email.trim()) {
-      setErr("Please enter your email address");
-      return false;
-    }
-    if (mode !== 'portal' && !password.trim()) {
-      setErr("Please enter your password");
-      return false;
-    }
-    if (mode === 'portal' && !portalCode.trim()) {
-      setErr("Please enter your portal access code");
-      return false;
-    }
+    if (!email.trim()) { setErr("Please enter your email address"); return false; }
+    if (mode !== 'portal' && !password.trim()) { setErr("Please enter your password"); return false; }
+    if (mode === 'portal' && !portalCode.trim()) { setErr("Please enter your portal access code"); return false; }
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
-    
     if (!validateForm()) return;
-    
     setLoading(true);
 
     if (mode === 'staff') {
       try {
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-          callbackUrl: "/",
-        });
-
-        if (result?.error) {
-          setErr("Invalid email or password. Please try again.");
-        } else {
-          onLogin?.();
-        }
+        const result = await signIn("credentials", { email, password, redirect: false, callbackUrl: "/" });
+        if (result?.error) setErr("Invalid email or password. Please try again.");
+        else onLogin?.();
       } catch (error) {
-        setErr("An error occurred during sign in. Please try again.");
-      } finally {
-        setLoading(false);
+        setErr("An unexpected error occurred. Please try again.");
       }
-    } else {
-      // Portal login
+    } else if (mode === 'portal') {
       setErr("Portal login feature coming soon.");
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const switchMode = (newMode: 'staff' | 'portal' | 'standalone') => {
     setMode(newMode);
-    setErr("");
-    setEmail("");
-    setPassword("");
-    setPortalCode("");
-    setForgotMode(false);
-    setResetEmail("");
-    setResetSent(false);
-    setResetSending(false);
+    setErr(""); setEmail(""); setPassword(""); setPortalCode("");
+    setForgotMode(false); setResetEmail(""); setResetSent(false); setResetSending(false);
   };
 
   return (
-    <div style={styles.container}>
+    <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Left Side - Brand Panel */}
-      <div style={styles.brandPanel}>
-        <div style={styles.brandContent}>
-          {/* Logo */}
-          <div style={styles.logoContainer}>
-            <img src="/logo.png" alt="Splash Air" style={{ width: '100%', height: 'auto', maxWidth: 120, borderRadius: 12, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }} />
+      <div className="hidden lg:flex w-[480px] flex-col justify-between px-14 py-12 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #00695c 0%, #004d40 50%, #00332a 100%)' }}>
+        <div className="relative z-10">
+          <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
+            <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl drop-shadow-lg" />
           </div>
-          
-          <h1 style={styles.brandTitle}>Splash Air</h1>
-          <p style={styles.brandSubtitle}>Professional HVAC Services</p>
-          
-          <div style={styles.featuresList}>
-            <div style={styles.featureItem}>
-              <CheckCheck size={20} style={styles.featureIcon} />
-              <span style={styles.featureText}>Field Service Management</span>
-            </div>
-            <div style={styles.featureItem}>
-              <CheckCheck size={20} style={styles.featureIcon} />
-              <span style={styles.featureText}>Real-time Job Tracking</span>
-            </div>
-            <div style={styles.featureItem}>
-              <CheckCheck size={20} style={styles.featureIcon} />
-              <span style={styles.featureText}>Digital Job Cards</span>
-            </div>
-            <div style={styles.featureItem}>
-              <CheckCheck size={20} style={styles.featureIcon} />
-              <span style={styles.featureText}>Customer Portal</span>
-            </div>
+          <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
+          <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>
+          <div className="flex flex-col gap-4">
+            {['Field Service Management', 'Real-time Job Tracking', 'Digital Job Cards', 'Customer Portal'].map((text) => (
+              <div key={text} className="flex items-center gap-3 text-sm opacity-85">
+                <CheckCheck size={20} className="opacity-90 shrink-0" />
+                <span>{text}</span>
+              </div>
+            ))}
           </div>
         </div>
-        
-        <div style={styles.versionInfo}>
-          <span style={styles.versionText}>Version 10.0</span>
-          <span style={styles.copyright}>© 2026 Splash Air Conditioning</span>
+        <div className="relative z-10">
+          <span className="block text-[11px] font-semibold tracking-[1px] opacity-60 mb-1">Version 10.0</span>
+          <span className="block text-[11px] opacity-40">&copy; 2026 Splash Air Conditioning</span>
         </div>
-        
-        {/* Background Pattern */}
-        <div style={styles.bgPattern} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.03) 0%, transparent 50%)' }} />
       </div>
 
       {/* Right Side - Login Form */}
-      <div style={styles.formPanel}>
-        <div style={styles.formContainer}>
+      <div className="flex-1 flex items-center justify-center bg-surface p-6 relative z-10">
+        <div className="w-full max-w-[420px] bg-white p-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+          {/* Logo (mobile) */}
+          <div className="flex justify-center mb-8 lg:hidden">
+            <img src="/logo.png" alt="Splash Air" className="w-24 h-auto" />
+          </div>
+
           {/* Mode Toggle */}
-          <div style={styles.modeToggle}>
-            <button
-              type="button"
-              onClick={() => switchMode('staff')}
-              style={{
-                ...styles.modeButton,
-                ...(mode === 'staff' ? styles.modeButtonActive : {}),
-              }}
-              aria-pressed={mode === 'staff'}
-            >
-              <Building2 size={18} />
-              <span>Staff Login</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('standalone')}
-              style={{
-                ...styles.modeButton,
-                ...(mode === 'standalone' ? styles.modeButtonActive : {}),
-              }}
-              aria-pressed={mode === 'standalone'}
-            >
-              <Container size={18} />
-              <span>Forgot Password</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('portal')}
-              style={{
-                ...styles.modeButton,
-                ...(mode === 'portal' ? styles.modeButtonActive : {}),
-              }}
-              aria-pressed={mode === 'portal'}
-            >
-              <User size={18} />
-              <span>Client Portal</span>
-            </button>
+          <div className="flex mb-8 border-b-2 border-[var(--color-border-subtle)]">
+            {[
+              { key: 'staff' as const, label: 'Staff Login', Icon: Building2 },
+              { key: 'standalone' as const, label: 'Forgot Password', Icon: Container },
+              { key: 'portal' as const, label: 'Client Portal', Icon: User },
+            ].map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => switchMode(key)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 -mb-[2px] bg-transparent border-transparent cursor-pointer transition-all ${
+                  mode === key
+                    ? 'text-[var(--color-text-primary)] font-semibold border-b-[var(--color-brand-600)]'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                }`}
+                aria-pressed={mode === key}
+              >
+                <Icon size={18} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
           </div>
 
           {/* Form Header */}
-          <div style={styles.formHeader}>
-            <h2 style={styles.formTitle}>
+          <div className="mb-8">
+            <h2 className="text-[28px] font-semibold text-[var(--color-text-primary)] mb-2">
               {mode === 'staff' ? 'Welcome Back' : mode === 'standalone' ? 'Reset your password' : 'Client Portal'}
             </h2>
-            <p style={styles.formSubtitle}>
-              {mode === 'staff' 
-                ? 'Sign in to access your dashboard' 
-                : mode === 'standalone'
-                ? 'Enter your email to receive a reset link'
-                : 'Track your service requests online'}
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {mode === 'staff' ? 'Sign in to access your dashboard' : mode === 'standalone' ? 'Enter your email to receive a reset link' : 'Track your service requests online'}
             </p>
           </div>
 
           {/* Error Message */}
           {err && (
-            <div style={styles.errorMessage} role="alert">
-              <AlertTriangle size={20} />
+            <div className="flex items-start gap-3 p-4 mb-6 text-sm text-[#991b1b] bg-[#fef2f2] border-l-4 border-[var(--color-support-error)] rounded-lg" role="alert">
+              <AlertTriangle size={20} className="shrink-0 mt-0.5" />
               <span>{err}</span>
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Form */}
           {mode === 'standalone' ? (
-            /* Standalone: Forgot Password (no <form> — no password submit) */
             resetSent ? (
-              <div style={styles.successMessage} role="status">
-                <CheckCheck size={22} />
+              <div className="flex items-start gap-3 p-4 mb-6 text-sm bg-[#f0fdf4] border-l-4 border-[var(--color-support-success)] rounded-lg" role="status">
+                <CheckCheck size={22} className="shrink-0 mt-0.5 text-[var(--color-support-success)]" />
                 <div>
-                  <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--cds-text-primary)' }}>Check your email</p>
-                  <p style={{ fontSize: 13, color: 'var(--cds-text-secondary)', marginTop: 2 }}>
-                    If an account exists for {resetEmail}, you&apos;ll receive a reset link.
-                  </p>
+                  <p className="font-semibold text-[var(--color-text-primary)]">Check your email</p>
+                  <p className="mt-1 text-[var(--color-text-secondary)]">If an account exists for {resetEmail}, you&apos;ll receive a reset link.</p>
                 </div>
               </div>
             ) : (
-              <div style={styles.form}>
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label}>Email Address</label>
-                  <div style={styles.inputWrapper}>
-                    <input
-                      type="email"
-                      value={resetEmail}
-                      onChange={e => setResetEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      style={{
-                        ...styles.input,
-                        ...(focusedField === 'resetEmail' ? styles.inputFocused : {}),
-                      }}
-                      onFocus={() => setFocusedField('resetEmail')}
-                      onBlur={() => setFocusedField(null)}
-                      disabled={resetSending}
-                    />
-                  </div>
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[var(--color-text-secondary)]">Email Address</label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                    onFocus={() => setFocusedField('resetEmail')}
+                    onBlur={() => setFocusedField(null)}
+                    disabled={resetSending}
+                    style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
+                  />
                 </div>
                 <button
                   type="button"
                   disabled={resetSending || !resetEmail.trim()}
-                  style={{
-                    ...styles.submitButton,
-                    ...(resetSending ? styles.submitButtonLoading : {}),
-                  }}
+                  className="w-full h-12 flex items-center justify-center gap-3 mt-2 bg-[var(--color-brand-600)] text-white border-none rounded-xl text-sm font-semibold cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                   onClick={async () => {
-                    setResetSending(true);
-                    setErr("");
+                    setResetSending(true); setErr("");
                     try {
                       const res = await fetch('/api/auth/forgot-password', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: resetEmail }),
                       });
-                      if (res.ok) {
-                        setResetSent(true);
-                      } else {
-                        const data = await res.json().catch(() => ({}));
-                        setErr(data.error || 'Failed to send reset email.');
-                      }
-                    } catch {
-                      setErr('Network error — please try again.');
-                    } finally {
-                      setResetSending(false);
-                    }
+                      if (res.ok) setResetSent(true);
+                      else { const d = await res.json().catch(() => ({})); setErr(d.error || 'Failed to send reset email.'); }
+                    } catch { setErr('Network error — please try again.'); }
+                    finally { setResetSending(false); }
                   }}
                 >
-                  {resetSending ? (
-                    <><span style={styles.spinner} /> Sending...</>
-                  ) : (
-                    <><ArrowRight size={20} /> Send reset link</>
-                  )}
+                  {resetSending ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</> : <><ArrowRight size={20} /> Send reset link</>}
                 </button>
               </div>
             )
           ) : (
-            <form onSubmit={handleSubmit} style={styles.form}>
-              {/* Email Field */}
-              <div style={styles.fieldGroup}>
-                <label 
-                  htmlFor="email" 
-                  style={{
-                    ...styles.label,
-                    ...(focusedField === 'email' ? styles.labelFocused : {}),
-                  }}
-                >
-                  Email Address
-                </label>
-                <div style={styles.inputWrapper}>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
-                    style={{
-                      ...styles.input,
-                      ...(focusedField === 'email' ? styles.inputFocused : {}),
-                    }}
-                    autoComplete="email"
-                    disabled={loading}
-                  />
-                </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="email" className="text-sm font-medium text-[var(--color-text-secondary)] transition-colors" style={{ color: focusedField === 'email' ? 'var(--color-brand-600)' : 'var(--color-text-secondary)' }}>Email Address</label>
+                <input
+                  id="email" type="email" value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)}
+                  placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
+                  className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                  autoComplete="email" disabled={loading}
+                  style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
+                />
               </div>
 
+              {/* Password or Portal Code */}
               {mode === 'portal' ? (
-                /* Portal Code Field */
-                <div style={styles.fieldGroup}>
-                  <label 
-                    htmlFor="portalCode"
-                    style={{
-                      ...styles.label,
-                      ...(focusedField === 'portalCode' ? styles.labelFocused : {}),
-                    }}
-                  >
-                    Portal Access Code
-                  </label>
-                  <div style={styles.inputWrapper}>
-                    <input
-                      id="portalCode"
-                      type="text"
-                      value={portalCode}
-                      onChange={(e) => setPortalCode(e.target.value.toUpperCase())}
-                      onFocus={() => setFocusedField('portalCode')}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="XXXX-XXXX"
-                      maxLength={9}
-                      style={{
-                        ...styles.input,
-                        ...styles.codeInput,
-                        ...(focusedField === 'portalCode' ? styles.inputFocused : {}),
-                      }}
-                      disabled={loading}
-                    />
-                  </div>
-                  <span style={styles.helperText}>
-                    Found on your service invoice or email
-                  </span>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="portalCode" className="text-sm font-medium text-[var(--color-text-secondary)]">Portal Access Code</label>
+                  <input
+                    id="portalCode" type="text" value={portalCode}
+                    onChange={e => setPortalCode(e.target.value.toUpperCase())}
+                    onFocus={() => setFocusedField('portalCode')} onBlur={() => setFocusedField(null)}
+                    placeholder="XXXX-XXXX" maxLength={9}
+                    className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)] tracking-[2px] uppercase"
+                    disabled={loading}
+                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                  />
+                  <span className="text-xs text-[var(--color-text-helper)] mt-1">Found on your service invoice or email</span>
                 </div>
               ) : (
-                /* Password Field */
-                <div style={styles.fieldGroup}>
-                  <label 
-                    htmlFor="password"
-                    style={{
-                      ...styles.label,
-                      ...(focusedField === 'password' ? styles.labelFocused : {}),
-                    }}
-                  >
-                    Password
-                  </label>
-                  <div style={styles.inputWrapper}>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="password" className="text-sm font-medium text-[var(--color-text-secondary)]">Password</label>
+                  <div className="relative flex items-center">
                     <input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => setFocusedField('password')}
-                      onBlur={() => setFocusedField(null)}
+                      id="password" type={showPassword ? "text" : "password"} value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
                       placeholder="Enter your password"
-                      style={{
-                        ...styles.input,
-                        ...(focusedField === 'password' ? styles.inputFocused : {}),
-                      }}
-                      autoComplete="current-password"
-                      disabled={loading}
+                      className="w-full h-12 px-4 pr-12 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,105,92,0.1)]"
+                      autoComplete="current-password" disabled={loading}
+                      style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={styles.passwordToggle}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      tabIndex={-1}
-                    >
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 bg-transparent border-none cursor-pointer text-[var(--color-text-secondary)] p-1 flex items-center" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  ...styles.submitButton,
-                  ...(loading ? styles.submitButtonLoading : {}),
-                }}
-              >
-                {loading ? (
-                  <>
-                    <span style={styles.spinner} />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight size={20} />
-                  </>
-                )}
+              {/* Submit */}
+              <button type="submit" disabled={loading} className="w-full h-12 flex items-center justify-center gap-3 mt-2 bg-[var(--color-brand-600)] text-white border-none rounded-xl text-sm font-semibold cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</> : <><span>Sign In</span><ArrowRight size={20} /></>}
               </button>
             </form>
           )}
 
+          {/* Help Section — only for staff/portal */}
           {mode !== 'standalone' && (
-            forgotMode ? (
-              <div style={styles.helpSection}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cds-text-primary)', marginBottom: 12 }}>Reset your password</p>
-                {resetSent ? (
-                  <div className="notif notif-s" role="status" style={{ marginBottom: 12 }}>
-                    <div>
-                      <div className="notif-title">Check your email</div>
-                      <div className="notif-body" style={{ marginTop: 4 }}>If an account exists for {resetEmail}, you&apos;ll receive a reset link.</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ marginBottom: 12 }}>
-                    <input
-                      className="inp"
-                      type="email"
-                      value={resetEmail}
-                      onChange={e => setResetEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      style={{ marginBottom: 8 }}
-                    />
-                    <button
-                      className="btn btn-p"
-                      style={{ width: '100%' }}
-                      disabled={resetSending || !resetEmail.trim()}
-                      onClick={async () => {
-                        setResetSending(true);
-                        setErr("");
-                        try {
-                          const res = await fetch('/api/auth/forgot-password', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: resetEmail }),
-                          });
-                          if (res.ok) {
-                            setResetSent(true);
-                          } else {
-                            const data = await res.json().catch(() => ({}));
-                            setErr(data.error || 'Failed to send reset email. Please try again.');
-                          }
-                        } catch {
-                          setErr('Network error — please check your connection and try again.');
-                        } finally {
-                          setResetSending(false);
-                        }
-                      }}
-                    >
-                      {resetSending ? 'Sending...' : 'Send reset link'}
-                    </button>
-                  </div>
-                )}
-                <a href="#" onClick={(e) => { e.preventDefault(); setForgotMode(false); setResetSent(false); setResetEmail(''); }} style={styles.helpLink}>Back to sign in</a>
-              </div>
-            ) : (
-              <div style={styles.helpSection}>
-                {mode !== 'portal' ? (
-                  <>
-                    <a href="mailto:alfred@splashaircrmzw.site" style={styles.helpLink}>Contact IT Support</a>
-                  </>
-                ) : (
-                  <>
-                    <span style={styles.helpText}>Don&apos;t have a portal code?</span>
-                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} style={styles.helpLink}>Request Access</a>
-                  </>
-                )}
-              </div>
-            )
+            <div className="mt-8 pt-6 border-t border-[var(--color-border-subtle)] flex items-center justify-center gap-4 text-sm">
+              {mode !== 'portal' ? (
+                <a href="mailto:alfred@splashaircrmzw.site" className="text-[var(--color-brand-600)] no-underline font-medium cursor-pointer">Contact IT Support</a>
+              ) : (
+                <>
+                  <span className="text-[var(--color-text-secondary)] text-sm">Don&apos;t have a portal code?</span>
+                  <a href="#" onClick={(e) => { e.preventDefault(); alert('Portal access is managed by your administrator.'); }} className="text-[var(--color-brand-600)] no-underline font-medium cursor-pointer">Request Access</a>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Mobile Background Overlay */}
-      <div style={styles.mobileOverlay} />
+      {/* Mobile overlay */}
+      <div className="hidden" />
     </div>
   );
-}
-
-// ============================================
-// STYLES
-// ============================================
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
-    position: 'relative',
-  },
-  
-  // Brand Panel (Left Side)
-  brandPanel: {
-    width: 480,
-    background: 'linear-gradient(135deg, #0f62fe 0%, #0043ce 50%, #002d9c 100%)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '48px 56px',
-    position: 'relative',
-    overflow: 'hidden',
-    color: '#ffffff',
-  },
-  brandContent: {
-    position: 'relative',
-    zIndex: 2,
-  },
-  logoContainer: {
-    marginBottom: 40,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'rgba(255,255,255,0.12)',
-    borderRadius: 20,
-    padding: 16,
-    width: 140,
-    height: 140,
-    backdropFilter: 'blur(4px)',
-  },
-  brandTitle: {
-    fontSize: 42,
-    fontWeight: 300,
-    marginBottom: 8,
-    letterSpacing: '-0.5px',
-  },
-  brandSubtitle: {
-    fontSize: 16,
-    opacity: 0.8,
-    marginBottom: 48,
-    fontWeight: 400,
-  },
-  featuresList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  },
-  featureItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    fontSize: 14,
-  },
-  featureIcon: {
-    opacity: 0.9,
-  },
-  featureText: {
-    opacity: 0.9,
-  },
-  versionInfo: {
-    position: 'relative',
-    zIndex: 2,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  versionText: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    opacity: 0.5,
-  },
-  copyright: {
-    fontSize: 12,
-    opacity: 0.4,
-  },
-  bgPattern: {
-    position: 'absolute',
-    inset: 0,
-    backgroundImage: `
-      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 40%)
-    `,
-    zIndex: 1,
-  },
-  
-  // Form Panel (Right Side)
-  formPanel: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px',
-    background: '#f4f4f4',
-    position: 'relative',
-  },
-  formContainer: {
-    width: '100%',
-    maxWidth: 420,
-    background: '#ffffff',
-    padding: '48px',
-    borderRadius: 0,
-    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-  },
-  
-  // Mode Toggle
-  modeToggle: {
-    display: 'flex',
-    gap: 0,
-    marginBottom: 32,
-    borderBottom: '2px solid #e0e0e0',
-  },
-  modeButton: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: '16px',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    marginBottom: -2,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 400,
-    color: '#525252',
-    transition: 'all 0.11s ease',
-  },
-  modeButtonActive: {
-    borderBottom: '2px solid #0f62fe',
-    color: '#161616',
-    fontWeight: 600,
-  },
-  
-  // Form Header
-  formHeader: {
-    marginBottom: 32,
-  },
-  formTitle: {
-    fontSize: 28,
-    fontWeight: 300,
-    color: '#161616',
-    marginBottom: 8,
-  },
-  formSubtitle: {
-    fontSize: 14,
-    color: '#525252',
-  },
-  
-  // Success Message
-  successMessage: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: '16px',
-    background: '#f2fff4',
-    borderLeft: '3px solid #198038',
-    marginBottom: 24,
-    fontSize: 14,
-  },
-
-  // Error Message
-  errorMessage: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    padding: '16px',
-    background: '#fff1f1',
-    borderLeft: '3px solid #da1e28',
-    marginBottom: 24,
-    fontSize: 14,
-    color: '#9b1c1c',
-  },
-  
-  // Form Fields
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 24,
-  },
-  fieldGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 400,
-    color: '#525252',
-    letterSpacing: '0.32px',
-    transition: 'color 0.11s ease',
-  },
-  labelFocused: {
-    color: '#0f62fe',
-  },
-  inputWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  input: {
-    width: '100%',
-    height: 48,
-    padding: '0 16px',
-    fontSize: 14,
-    fontFamily: "'IBM Plex Sans', sans-serif",
-    color: '#161616',
-    background: '#f4f4f4',
-    border: 'none',
-    borderBottom: '2px solid #8d8d8d',
-    outline: 'none',
-    transition: 'all 0.11s ease',
-  },
-  inputFocused: {
-    borderBottom: '2px solid #0f62fe',
-    background: '#ffffff',
-  },
-  codeInput: {
-    fontFamily: "'IBM Plex Mono', monospace",
-    letterSpacing: '2px',
-    textTransform: 'uppercase',
-  },
-  passwordToggle: {
-    position: 'absolute',
-    right: 12,
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#525252',
-    padding: 4,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#6f6f6f',
-    marginTop: 4,
-  },
-  
-  // Submit Button
-  submitButton: {
-    height: 48,
-    marginTop: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    background: '#0f62fe',
-    color: '#ffffff',
-    border: 'none',
-    fontSize: 14,
-    fontWeight: 500,
-    letterSpacing: '0.16px',
-    cursor: 'pointer',
-    transition: 'all 0.11s ease',
-  },
-  submitButtonLoading: {
-    opacity: 0.7,
-    cursor: 'not-allowed',
-  },
-  spinner: {
-    width: 16,
-    height: 16,
-    border: '2px solid rgba(255,255,255,0.3)',
-    borderTopColor: '#ffffff',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  
-  // Help Section
-  helpSection: {
-    marginTop: 32,
-    paddingTop: 24,
-    borderTop: '1px solid #e0e0e0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    fontSize: 14,
-  },
-  helpText: {
-    color: '#525252',
-  },
-  helpLink: {
-    color: '#0f62fe',
-    textDecoration: 'none',
-    fontWeight: 500,
-    transition: 'color 0.11s ease',
-  },
-  
-  // Mobile Overlay
-  mobileOverlay: {
-    display: 'none',
-  },
-};
-
-// ============================================
-// KEYFRAME ANIMATIONS (Injected via style tag)
-// ============================================
-
-const animations = `
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.1);
-      opacity: 0.5;
-    }
-  }
-  
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .login-container {
-      flex-direction: column;
-    }
-    
-    .brand-panel {
-      width: 100%;
-      min-height: 200px;
-      padding: 32px 24px;
-    }
-    
-    .form-panel {
-      padding: 24px;
-    }
-    
-    .form-container {
-      padding: 32px 24px;
-      box-shadow: none;
-    }
-  }
-`;
-
-// Inject animations
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = animations;
-  document.head.appendChild(style);
 }
