@@ -111,7 +111,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
         <div style={styles.brandContent}>
           {/* Logo */}
           <div style={styles.logoContainer}>
-            <img src="/logo.png" alt="Splash Air" style={{ width: 100, height: 'auto', borderRadius: 12 }} />
+            <img src="/logo.png" alt="Splash Air" style={{ width: '100%', height: 'auto', maxWidth: 120, borderRadius: 12, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }} />
           </div>
           
           <h1 style={styles.brandTitle}>Splash Air</h1>
@@ -519,34 +519,16 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 2,
   },
   logoContainer: {
-    position: 'relative',
-    width: 80,
-    height: 80,
     marginBottom: 40,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoRing: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    border: '2px solid rgba(255,255,255,0.3)',
-    borderRadius: '50%',
-    animation: 'pulse 2s ease-in-out infinite',
-  },
-  logoRing2: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    border: '2px solid rgba(255,255,255,0.2)',
-    borderRadius: '50%',
-    animation: 'pulse 2s ease-in-out infinite 0.5s',
-  },
-  logoIcon: {
-    color: '#ffffff',
-    position: 'relative',
-    zIndex: 1,
+    background: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    padding: 16,
+    width: 140,
+    height: 140,
+    backdropFilter: 'blur(4px)',
   },
   brandTitle: {
     fontSize: 42,
