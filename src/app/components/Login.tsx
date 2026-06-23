@@ -77,12 +77,14 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Left Side - Brand Panel */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white before:absolute before:inset-0 before:bg-gradient-to-br before:from-[#00695c]/90 before:via-[#004d40]/85 before:to-[#00332a]/90 before:z-[1]">
-        {/* Background Image */}
-        <img src="/commercial-comfort.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="hidden lg:flex w-1/2 flex-col justify-between px-14 py-12 relative overflow-hidden text-white">
+        {/* Background Image - behind gradient */}
+        <img src="/commercial-comfort.jpg" alt="" className="absolute inset-0 w-full h-full object-cover z-0" />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#00695c]/90 via-[#004d40]/85 to-[#00332a]/90 z-[1]" />
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
-            <img src="/logos.svg" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
+            <img src="/logos.svg" alt="Splash Air" className="w-full max-w-[120px] h-auto" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
           </div>
           <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
           <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>

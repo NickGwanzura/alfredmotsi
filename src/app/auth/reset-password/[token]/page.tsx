@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/logos.svg" alt="Splash Air" className="w-28 h-auto rounded-xl" />
+          <img src="/logos.svg" alt="Splash Air" className="w-28 h-auto" />
         </div>
 
         {/* Card */}
