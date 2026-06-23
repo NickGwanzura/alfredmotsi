@@ -56,7 +56,7 @@ export default function ODSReport({ jobs, customers, currentUser, onExport }: OD
   const retrofitCount = useMemo(() => getRetrofitCount(odsJobs), [odsJobs]);
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-600 rounded-xl p-8 mb-8 shadow-md">
         <div className="flex items-center gap-3 mb-3">
           <div className="p-2 rounded-lg bg-white/20 text-white"><Leaf size={24} /></div>
@@ -105,7 +105,7 @@ export default function ODSReport({ jobs, customers, currentUser, onExport }: OD
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div className="min-w-[200px]">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Filter by Refrigerant</label>
-          <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+          <select className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
             value={selectedRefrigerant} onChange={e => setSelectedRefrigerant(e.target.value)}>
             <option value="all">All Refrigerants</option>
             {REFRIGERANT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}

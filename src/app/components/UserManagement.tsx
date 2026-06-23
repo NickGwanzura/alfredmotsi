@@ -170,7 +170,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
   const techsCount = users.filter(u => u.role === 'tech').length;
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       {toast && (
         <div className="fixed bottom-6 right-6 z-[9999] bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
           {toast}

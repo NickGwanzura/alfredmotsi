@@ -91,7 +91,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
   const latestLog = logs[0]?.createdAt;
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Audit Log</h1>
@@ -134,7 +134,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           </div>
           <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><UserIcon size={12} className="inline mr-1" />User</label>
-            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+            <select className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={filterUser} onChange={e => setFilterUser(e.target.value)}>
               <option value="">All users</option>
               {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -142,7 +142,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           </div>
           <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Action</label>
-            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+            <select className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={filterAction} onChange={e => setFilterAction(e.target.value)}>
               <option value="">All actions</option>
               {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} · {cfg.label}</option>)}
@@ -150,17 +150,17 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           </div>
           <div className="w-full sm:w-auto min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Job ID</label>
-            <input type="search" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+            <input type="search" className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
               value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
           </div>
           <div className="min-w-[140px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />From</label>
-            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+            <input type="date" className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
               value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
           </div>
           <div className="min-w-[140px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />To</label>
-            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+            <input type="date" className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
               value={filterTo} onChange={e => setFilterTo(e.target.value)} />
           </div>
           {hasFilters && (

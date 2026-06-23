@@ -65,7 +65,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   ];
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Refrigerant Stock</h1>

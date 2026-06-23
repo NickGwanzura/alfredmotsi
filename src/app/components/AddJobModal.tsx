@@ -110,10 +110,10 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Job Title" error={errors.title}>
-                <input type="text" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.title} onChange={e => handleChange('title', e.target.value)} placeholder="Enter job title" />
+                <input type="text" className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.title} onChange={e => handleChange('title', e.target.value)} placeholder="Enter job title" />
               </FormItem>
               <FormItem label="Job Type">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.type} onChange={e => handleChange('type', e.target.value as JobType)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.type} onChange={e => handleChange('type', e.target.value as JobType)}>
                   {Object.entries(TYPE_CFG).map(([key, cfg]) => <option key={key} value={key}>{cfg.icon} {cfg.label}</option>)}
                 </select>
               </FormItem>
@@ -121,13 +121,13 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Customer" error={errors.customerId}>
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.customerId} onChange={e => handleChange('customerId', e.target.value)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.customerId} onChange={e => handleChange('customerId', e.target.value)}>
                   <option value="">Select customer...</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.address}</option>)}
                 </select>
               </FormItem>
               <FormItem label="Unit Type">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.unitType} onChange={e => handleChange('unitType', e.target.value as UnitType)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.unitType} onChange={e => handleChange('unitType', e.target.value as UnitType)}>
                   {UNIT_TYPES.map(ut => <option key={ut} value={ut}>{ut}</option>)}
                 </select>
               </FormItem>
@@ -135,17 +135,17 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <FormItem label="Issue Type">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.issue} onChange={e => handleChange('issue', e.target.value as IssueType)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.issue} onChange={e => handleChange('issue', e.target.value as IssueType)}>
                   {ISSUE_TYPES.map(it => <option key={it} value={it}>{it.charAt(0).toUpperCase() + it.slice(1)}</option>)}
                 </select>
               </FormItem>
               <FormItem label="Priority">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.priority} onChange={e => handleChange('priority', e.target.value as JobPriority)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.priority} onChange={e => handleChange('priority', e.target.value as JobPriority)}>
                   {PRIORITIES.map(p => <option key={p} value={p}>{p.toUpperCase()}</option>)}
                 </select>
               </FormItem>
               <FormItem label="Recurring Schedule">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.recurring ?? ''} onChange={e => handleChange('recurring', e.target.value ? parseInt(e.target.value) : null)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.recurring ?? ''} onChange={e => handleChange('recurring', e.target.value ? parseInt(e.target.value) : null)}>
                   {RECURRING_OPTIONS.map(opt => <option key={opt.label} value={opt.value ?? ''}>{opt.label}</option>)}
                 </select>
               </FormItem>
@@ -153,22 +153,22 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Date" error={errors.date}>
-                <input type="date" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.date} onChange={e => handleChange('date', e.target.value)} />
+                <input type="date" className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.date} onChange={e => handleChange('date', e.target.value)} />
               </FormItem>
               <FormItem label="Time" error={errors.time}>
-                <input type="time" className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.time} onChange={e => handleChange('time', e.target.value)} />
+                <input type="time" className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.time} onChange={e => handleChange('time', e.target.value)} />
               </FormItem>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormItem label="Lead Technician" error={errors.leadTechId}>
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.leadTechId} onChange={e => handleChange('leadTechId', e.target.value)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.leadTechId} onChange={e => handleChange('leadTechId', e.target.value)}>
                   <option value="">Select technician...</option>
                   {techs.map(t => <option key={t.id} value={t.id}>{t.name} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
                 </select>
               </FormItem>
               <FormItem label="Co-Technician (Optional)">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.coTechId} onChange={e => handleChange('coTechId', e.target.value)}>
+                <select className="w-full h-11 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={formData.coTechId} onChange={e => handleChange('coTechId', e.target.value)}>
                   <option value="">None</option>
                   {availableCoTechs.map(t => <option key={t.id} value={t.id}>{t.name} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
                 </select>

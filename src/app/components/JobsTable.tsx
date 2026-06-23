@@ -39,7 +39,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
   const completedJobsCount = base.filter(j => j.status === 'completed').length;
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{canViewAllJobs(userRole) ? "All Jobs" : "My Jobs"}</h1>
@@ -94,7 +94,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
             />
           </div>
           <select
-            className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none text-gray-600 cursor-pointer"
+            className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none text-gray-600 cursor-pointer"
             value={sf}
             onChange={e => setSF(e.target.value as JobStatus | "all")}
           >
@@ -102,7 +102,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
             {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
           <select
-            className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none text-gray-600 cursor-pointer"
+            className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none text-gray-600 cursor-pointer"
             value={tf}
             onChange={e => setTF(e.target.value as JobType | "all")}
           >

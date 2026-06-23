@@ -60,7 +60,7 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
   }, [records, typeFilter, outcomeFilter]);
 
   return (
-    <div className="animate-fade-in max-w-7xl mx-auto">
+    <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Customer Relationship Management</h1>
@@ -115,7 +115,7 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
         <div className="flex gap-4 flex-wrap items-end">
           <div className="min-w-[180px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Filter by Type</label>
-            <select className="h-9 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+            <select className="h-11 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={typeFilter} onChange={e => setTypeFilter(e.target.value as CRMType | 'all')}>
               <option value="all">All Types</option>
               {(['call', 'visit', 'complaint', 'email', 'quote'] as CRMType[]).map(t => <option key={t} value={t}>{CRM_TYPE_CONFIG[t].label}</option>)}
@@ -123,7 +123,7 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
           </div>
           <div className="min-w-[180px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Filter by Outcome</label>
-            <select className="h-9 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+            <select className="h-11 w-full px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
               value={outcomeFilter} onChange={e => setOutcomeFilter(e.target.value as CRMOutcome | 'all')}>
               <option value="all">All Outcomes</option>
               <option value="positive">Positive</option><option value="negative">Negative</option>
