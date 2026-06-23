@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Job, User, Customer, GasStockItem, GasUsageRecord } from '@/app/types';
 import { TYPE_CFG, ALERT_CFG, TECH_STATUS } from '@/app/lib/config';
 import { StatusTag, SectionTitle, Avatar } from './ui';
-import { Email } from '@carbon/icons-react';
+import { Mail } from 'lucide-react';
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -243,7 +243,7 @@ export default function AdminDashboard({
             disabled={sending}
             style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'var(--s4)' }}
           >
-            <Email size={16} />
+            <Mail size={16} />
             {sending ? 'Sending…' : 'Send Big Fixes Email'}
           </button>
         </div>
@@ -282,7 +282,7 @@ export default function AdminDashboard({
           disabled={sending}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          <Email size={16} />
+          <Mail size={16} />
           {sending ? 'Sending…' : 'Send Big Fixes Email'}
         </button>
       </div>

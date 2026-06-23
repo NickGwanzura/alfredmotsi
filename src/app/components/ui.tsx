@@ -5,132 +5,155 @@ import { JobStatus, JobPriority, AlertType, CRMOutcome } from '@/app/types';
 import { STATUS_CFG, PRIO_TAG, ALERT_CFG } from '@/app/lib/config';
 import { Icon } from './Icon';
 
-export function StatusTag({ status }: { status: JobStatus }) {
-  const c = STATUS_CFG[status] || { label: status, bg: "var(--tgr)", txt: "var(--tgrt)" };
-  return <span className="tag" style={{ background: c.bg, color: c.txt }}>{c.label}</span>;
-}
+type NotifKind = 'e' | 'w' | 's' | 'i';
 
-export function PrioTag({ p }: { p: JobPriority }) {
-  const c = PRIO_TAG[p] || PRIO_TAG.low;
-  return <span className="tag" style={{ background: c.bg, color: c.txt }}>{p.toUpperCase()}</span>;
-}
+const notifStyles: Record<NotifKind, string> = {
+  e: 'bg-red-50 border-l-4 border-l-support-error text-red-800',
+  w: 'bg-amber-50 border-l-4 border-l-support-warning text-amber-800',
+  s: 'bg-green-50 border-l-4 border-l-support-success text-green-800',
+  i: 'bg-blue-50 border-l-4 border-l-support-info text-blue-800',
+};
 
-export function Avatar({ name, size = 32, color = "#0f62fe" }: { name: string; size?: number; color?: string }) {
-  const initials = name.split(" ").map(n => n[0]).join("");
-  return (
-    <div style={{ 
-      width: size, 
-      height: size, 
-      background: color, 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      fontWeight: 600, 
-      fontSize: size * 0.34, 
-      fontFamily: "IBM Plex Sans, sans-serif", 
-      color: "#fff", 
-      flexShrink: 0 
-    }}>
-      {initials}
-    </div>
-  );
-}
-
-export function SectionTitle({ children, color }: { children: React.ReactNode; color?: string }) {
-  return <p className="sec-title" style={color ? { color } : {}}>{children}</p>;
-}
-
-const notificationIcons: Record<string, string> = {
+const notifIcons: Record<NotifKind, string> = {
   e: 'error',
-  w: 'warning', 
+  w: 'warning',
   s: 'checkmark',
   i: 'info',
 };
 
-const notificationRoles: Record<string, string> = {
+const notifRoles: Record<NotifKind, string> = {
   e: 'alert',
   w: 'alert',
   s: 'status',
   i: 'status',
 };
 
-export function Notification({ 
-  kind = "i", 
-  title, 
-  body 
-}: { 
-  kind?: "e" | "w" | "s" | "i"; 
-  title: string; 
-  body?: string 
-}) {
-  const cls = { e: "notif-e", w: "notif-w", s: "notif-s", i: "notif-i" }[kind] || "notif-i";
-  const iconName = notificationIcons[kind];
-  const role = notificationRoles[kind];
-  
+export function StatusTag({ status }: { status: JobStatus }) {
+  const c = STATUS_CFG[status] || { label: status, bg: '#e0e0e0', txt: '#161616' };
   return (
-    <div 
-      className={`notif ${cls}`}
-      role={role}
+    <span
+      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap"
+      style={{ background: c.bg, color: c.txt }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
+export function PrioTag({ p }: { p: JobPriority }) {
+  const c = PRIO_TAG[p] || PRIO_TAG.low;
+  return (
+    <span
+      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap"
+      style={{ background: c.bg, color: c.txt }}
+    >
+      {p.toUpperCase()}
+    </span>
+  );
+}
+
+export function Avatar({ name, size = 32, color = '#00695c' }: { name: string; size?: number; color?: string }) {
+  const initials = name.split(' ').map((n) => n[0]).join('');
+  return (
+    <div
+      className="flex items-center justify-center font-semibold shrink-0 font-sans text-white"
+      style={{ width: size, height: size, background: color, fontSize: size * 0.34 }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export function SectionTitle({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <p
+      className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.08em] mb-4"
+      style={color ? { color } : {}}
+    >
+      {children}
+    </p>
+  );
+}
+
+export function Notification({
+  kind = 'i',
+  title,
+  body,
+}: {
+  kind?: NotifKind;
+  title: string;
+  body?: string;
+}) {
+  return (
+    <div
+      className={`flex items-start gap-3 p-4 mb-4 ${notifStyles[kind]}`}
+      role={notifRoles[kind]}
       aria-live={kind === 'e' ? 'assertive' : 'polite'}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <span style={{ flexShrink: 0, marginTop: 2 }}>
-          <Icon name={iconName as any} size={20} />
-        </span>
-        <div>
-          <div className="notif-title">{title}</div>
-          {body && <div className="notif-body">{body}</div>}
-        </div>
+      <span className="shrink-0 mt-0.5">
+        <Icon name={notifIcons[kind] as any} size={20} />
+      </span>
+      <div>
+        <p className="font-semibold text-sm text-text-primary">{title}</p>
+        {body && <p className="text-sm text-text-secondary mt-0.5">{body}</p>}
       </div>
     </div>
   );
 }
 
-export function FormItem({ 
-  label, 
-  helper, 
-  error, 
+export function FormItem({
+  label,
+  helper,
+  error,
   htmlFor,
-  children 
-}: { 
-  label?: string; 
-  helper?: string; 
-  error?: string | null; 
+  children,
+}: {
+  label?: string;
+  helper?: string;
+  error?: string | null;
   htmlFor?: string;
-  children: React.ReactNode 
+  children: React.ReactNode;
 }) {
   return (
-    <div className="fi">
-      {label && <label className="lbl" htmlFor={htmlFor}>{label}</label>}
+    <div className="mb-5">
+      {label && (
+        <label className="block text-[11px] font-normal text-text-secondary mb-1 tracking-[0.32px]" htmlFor={htmlFor}>
+          {label}
+        </label>
+      )}
       {children}
-      {helper && !error && <p className="helper">{helper}</p>}
-      {error && <p className="err-txt">{error}</p>}
+      {helper && !error && <p className="text-xs text-text-helper mt-1">{helper}</p>}
+      {error && <p className="text-xs text-support-error mt-1">{error}</p>}
     </div>
   );
 }
 
 export function AlertTag({ alert }: { alert: AlertType }) {
-  const config = ALERT_CFG[alert];
   return (
-    <span 
-      className="tag" 
-      style={{ 
-        background: "var(--seb)", 
-        color: "var(--se)" 
-      }}
-    >
-      {config?.icon} {config?.label}
+    <span className="inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap bg-red-50 text-support-error">
+      {ALERT_CFG[alert]?.label || alert}
     </span>
   );
 }
 
+const outcomeStyles: Record<CRMOutcome, string> = {
+  positive: 'bg-green-50 text-support-success',
+  negative: 'bg-red-50 text-support-error',
+  pending: 'bg-amber-50 text-[#b28600]',
+  resolved: 'bg-blue-50 text-support-info',
+};
+
+const outcomeLabels: Record<CRMOutcome, string> = {
+  positive: 'Positive',
+  negative: 'Negative',
+  pending: 'Pending',
+  resolved: 'Resolved',
+};
+
 export function CRMOutcomeTag({ outcome }: { outcome: CRMOutcome }) {
-  const configs: Record<CRMOutcome, { bg: string; txt: string; label: string }> = {
-    positive: { bg: "var(--ssb)", txt: "var(--ss)", label: "Positive" },
-    negative: { bg: "var(--seb)", txt: "var(--se)", label: "Negative" },
-    pending: { bg: "var(--swb)", txt: "var(--sw)", label: "Pending" },
-    resolved: { bg: "var(--sib)", txt: "var(--si)", label: "Resolved" },
-  };
-  const c = configs[outcome];
-  return <span className="tag" style={{ background: c.bg, color: c.txt }}>{c.label}</span>;
+  return (
+    <span className={`inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap ${outcomeStyles[outcome]}`}>
+      {outcomeLabels[outcome]}
+    </span>
+  );
 }

@@ -17,7 +17,6 @@ interface TechAssignmentRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/tech-assignment] Received request');
   
   try {
     const session = await auth();
@@ -43,7 +42,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/tech-assignment] Request body:', body);
 
     const {
       to,
@@ -91,7 +89,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       customerPhone: customerPhone?.trim(),
     };
 
-    console.log('[API /email/tech-assignment] Calling sendTechAssignmentEmail with payload:', payload);
 
     const result = await sendTechAssignmentEmail(payload);
 
@@ -103,7 +100,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/tech-assignment] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/tech-assignment] Unhandled error:', error);

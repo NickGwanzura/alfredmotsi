@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { GasStockItem } from '@/app/types';
-import { Close } from '@carbon/icons-react';
+import { X } from 'lucide-react';
 
 interface AddGasStockModalProps {
   stock: Partial<GasStockItem>;
@@ -46,7 +46,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
             <div className="modal-title">Add New Stock</div>
           </div>
           <button className="x-btn" onClick={onClose} aria-label="Close">
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 

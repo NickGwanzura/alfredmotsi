@@ -20,19 +20,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!user || !user.password) return null;
 
-          let isValidPassword = false;
-          if (user.password.startsWith("$2")) {
-            isValidPassword = await bcrypt.compare(
-              credentials.password as string,
-              user.password
-            );
-          } else {
-            isValidPassword = credentials.password === user.password;
-          }
+          const isValidPassword = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
 
           if (!isValidPassword) return null;
 
-          console.log("[AUTH] Authorizing user:", user.email, "with role:", user.role);
           return {
             id: user.id,
             email: user.email,
@@ -41,8 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user.image,
             passwordChanged: user.passwordChanged,
           };
-        } catch (error) {
-          console.error("[AUTH] authorize error:", error);
+        } catch {
           return null;
         }
       },
@@ -54,14 +47,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
-      // On login, set user data
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.passwordChanged = (user as any).passwordChanged;
       }
-      
-      // When session is updated (triggered by update()), fetch fresh data from DB
+
       if (trigger === "update" && token.id) {
         try {
           const dbUser = await prisma.user.findUnique({
@@ -71,13 +62,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (dbUser) {
             token.role = dbUser.role;
             token.passwordChanged = dbUser.passwordChanged;
-            console.log("[AUTH] JWT refreshed from DB - passwordChanged:", dbUser.passwordChanged);
           }
-        } catch (error) {
-          console.error("[AUTH] Error refreshing JWT:", error);
+        } catch {
+          // Silently fail — next request will retry
         }
       }
-      
+
       return token;
     },
     session({ session, token }) {
@@ -85,7 +75,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         (session.user as any).role = token.role as string;
         (session.user as any).passwordChanged = token.passwordChanged as boolean;
-        console.log("[AUTH] Session callback - role:", token.role, "passwordChanged:", token.passwordChanged);
       }
       return session;
     },

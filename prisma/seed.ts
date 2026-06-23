@@ -3,85 +3,82 @@ import { hashPassword } from '../src/app/lib/password';
 
 const prisma = new PrismaClient();
 
-// Production Admin Credentials
-const ADMIN_EMAIL = "alfred@splashaircrmzw.site";
-const ADMIN_PASSWORD = "#631168609K86zw";
-
-// Superadmin credentials
-const SUPERADMIN_EMAIL = "nicholas.gwanzura@outlook.com";
-const SUPERADMIN_PASSWORD = "Zubi_2026$";
-
 async function main() {
-  console.log('🌱 Starting production database seed...');
+  console.log('🌱 Starting database seed...');
 
-  // Hash passwords
-  const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-  const hashedSuperadminPassword = await hashPassword(SUPERADMIN_PASSWORD);
+  // Production Admin Credentials — from environment variables
+  // Set SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, SEED_SUPERADMIN_EMAIL, SEED_SUPERADMIN_PASSWORD
+  // to configure initial admin users.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const superadminEmail = process.env.SEED_SUPERADMIN_EMAIL;
+  const superadminPassword = process.env.SEED_SUPERADMIN_PASSWORD;
 
-  // Check if admin1 exists
-  const existingAdmin1 = await prisma.user.findUnique({
-    where: { email: ADMIN_EMAIL },
-  });
+  if (adminEmail && adminPassword) {
+    const hashedPassword = await hashPassword(adminPassword);
+    const existingAdmin1 = await prisma.user.findUnique({
+      where: { email: adminEmail },
+    });
 
-  if (existingAdmin1) {
-    console.log('✅ Admin 1 already exists:', ADMIN_EMAIL);
-    // Update passwordChanged to true if not set
-    if (!existingAdmin1.passwordChanged) {
-      await prisma.user.update({
-        where: { email: ADMIN_EMAIL },
-        data: { passwordChanged: true },
+    if (existingAdmin1) {
+      console.log('✅ Admin 1 already exists:', adminEmail);
+      if (!existingAdmin1.passwordChanged) {
+        await prisma.user.update({
+          where: { email: adminEmail },
+          data: { passwordChanged: true },
+        });
+        console.log('   Updated passwordChanged to true');
+      }
+    } else {
+      await prisma.user.create({
+        data: {
+          name: "Alfred Motsi",
+          role: UserRole.admin,
+          email: adminEmail,
+          password: hashedPassword,
+          passwordChanged: true,
+          phone: "",
+        },
       });
-      console.log('   Updated passwordChanged to true');
+      console.log('✅ Created Admin 1:', adminEmail);
     }
   } else {
-    await prisma.user.create({
-      data: {
-        name: "Alfred Motsi",
-        role: UserRole.admin,
-        email: ADMIN_EMAIL,
-        password: hashedPassword,
-        passwordChanged: true, // Seeded admins don't need to change password
-        phone: "",
-      },
-    });
-    console.log('✅ Created Admin 1:', ADMIN_EMAIL);
+    console.log('⚠️ SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set — skipping admin 1');
   }
 
-  // Check if admin2 exists
-  const existingAdmin2 = await prisma.user.findUnique({
-    where: { email: SUPERADMIN_EMAIL },
-  });
+  if (superadminEmail && superadminPassword) {
+    const hashedSuperadminPassword = await hashPassword(superadminPassword);
+    const existingAdmin2 = await prisma.user.findUnique({
+      where: { email: superadminEmail },
+    });
 
-  if (existingAdmin2) {
-    console.log('✅ Admin 2 already exists:', SUPERADMIN_EMAIL);
-    // Update passwordChanged to true if not set
-    if (!existingAdmin2.passwordChanged) {
-      await prisma.user.update({
-        where: { email: SUPERADMIN_EMAIL },
-        data: { passwordChanged: true },
+    if (existingAdmin2) {
+      console.log('✅ Admin 2 already exists:', superadminEmail);
+      if (!existingAdmin2.passwordChanged) {
+        await prisma.user.update({
+          where: { email: superadminEmail },
+          data: { passwordChanged: true },
+        });
+        console.log('   Updated passwordChanged to true');
+      }
+    } else {
+      await prisma.user.create({
+        data: {
+          name: "Nicholas Gwanzura",
+          role: UserRole.admin,
+          email: superadminEmail,
+          password: hashedSuperadminPassword,
+          passwordChanged: true,
+          phone: "",
+        },
       });
-      console.log('   Updated passwordChanged to true');
+      console.log('✅ Created Admin 2:', superadminEmail);
     }
   } else {
-    await prisma.user.create({
-      data: {
-        name: "Nicholas Gwanzura",
-        role: UserRole.admin,
-        email: SUPERADMIN_EMAIL,
-        password: hashedSuperadminPassword,
-        passwordChanged: true, // Seeded admins don't need to change password
-        phone: "",
-      },
-    });
-    console.log('✅ Created Admin 2:', SUPERADMIN_EMAIL);
+    console.log('⚠️ SEED_SUPERADMIN_EMAIL/SEED_SUPERADMIN_PASSWORD not set — skipping admin 2');
   }
 
-  console.log('\n🎉 Production database seed completed!');
-  console.log('\n📋 Admin Credentials:');
-  console.log('   Email:', ADMIN_EMAIL);
-  console.log('   Password:', ADMIN_PASSWORD);
-  console.log('\n   Email:', SUPERADMIN_EMAIL);
-  console.log('   Password:', SUPERADMIN_PASSWORD);
+  console.log('\n🎉 Database seed completed!');
 }
 
 main()

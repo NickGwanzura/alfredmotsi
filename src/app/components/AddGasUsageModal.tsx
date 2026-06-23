@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { GasUsageRecord, GasStockItem, Customer, Job } from '@/app/types';
-import { Close } from '@carbon/icons-react';
+import { X } from 'lucide-react';
 
 interface AddGasUsageModalProps {
   usage: Partial<GasUsageRecord>;
@@ -66,7 +66,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
             <div className="modal-title">Record Gas Usage</div>
           </div>
           <button className="x-btn" onClick={onClose} aria-label="Close">
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 

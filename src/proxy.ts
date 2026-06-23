@@ -21,6 +21,10 @@ const ADMIN_API_PREFIXES = [
   "/api/consumables",
 ];
 
+function pathMatchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(prefix + "/") || pathname.startsWith(prefix + "?");
+}
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = !!req.auth;
@@ -36,8 +40,9 @@ export default auth((req) => {
   const userRole = req.auth?.user?.role;
   const isAdminRole = userRole === "admin";
 
+  // Block non-admin access to finance routes
   for (const prefix of FINANCE_PATH_PREFIXES) {
-    if (pathname.startsWith(prefix)) {
+    if (pathMatchesPrefix(pathname, prefix)) {
       if (!isAdminRole) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -47,18 +52,21 @@ export default auth((req) => {
     }
   }
 
-  if (pathname.startsWith("/api/admin") && !isAdminRole) {
+  // Block non-admin access to admin API routes
+  if (pathMatchesPrefix(pathname, "/api/admin") && !isAdminRole) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Block non-admin access to admin-protected API routes
   for (const prefix of ADMIN_API_PREFIXES) {
-    if (pathname === prefix || (pathname.startsWith(prefix + "/") && pathname.startsWith("/api/"))) {
-      if (!isAdminRole) {
+    if (pathMatchesPrefix(pathname, prefix) && !isAdminRole) {
+      if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
   }
 
+  // Block non-admin access to admin pages
   if (pathname.startsWith("/admin") && !isAdminRole) {
     return NextResponse.redirect(new URL("/", req.url));
   }

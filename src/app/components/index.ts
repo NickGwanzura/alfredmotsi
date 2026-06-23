@@ -5,75 +5,57 @@
  */
 
 // ============================================
-// CARBON ICONS (Re-export for convenience)
+// LUCIDE ICONS (Re-export for convenience)
 // ============================================
 
 export {
-  // Navigation
-  Dashboard,
+  LayoutDashboard,
   Calendar,
-  Table,
+  Table2,
   User,
-  ContainerServices,
-  ChartLine,
-  FlagFilled,
-  UserMultiple,
-  
-  // Actions
-  Add,
-  Close,
-  Checkmark,
-  Edit,
-  TrashCan,
+  Users,
+  Container,
+  BarChart3,
+  Flag,
+  Plus,
+  X,
+  Check,
+  FileEdit,
+  Trash2,
   Download,
   Printer,
   Search,
   Settings,
-  
-  // Communication
   Phone,
-  Email,
-  Location,
-  Time,
-  
-  // Arrows
+  Mail,
+  MapPin,
+  Clock,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  
-  // Status
-  Warning,
-  WarningFilled,
-  ErrorFilled,
-  CheckmarkFilled,
-  Information,
-  Help,
-  
-  // Media
-  PlayFilled,
-  StopFilled,
+  LogOut,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  HelpCircle,
+  Play,
+  Square,
   Pause,
   Camera,
-  
-  // File
-  Document,
+  FileText,
   Copy,
-  
-  // Misc
   Filter,
-  Fade,
-  Restart,
-  Launch,
+  RefreshCw,
+  ExternalLink,
   Folder,
-  License,
-  Certificate,
-  CheckmarkOutline,
-  Checkbox,
-  CheckboxChecked,
-  Logout,
-} from '@carbon/icons-react';
+  FileBadge,
+  Award,
+  CheckSquare,
+  Square as SquareIcon,
+  MessageCircle,
+} from 'lucide-react';
 
 // ============================================
 // LEGACY UI COMPONENTS

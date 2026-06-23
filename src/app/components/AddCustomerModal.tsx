@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Customer } from '@/app/types';
-import { Close } from '@carbon/icons-react';
+import { X } from 'lucide-react';
 import { FormItem, Notification } from './ui';
 
 interface AddCustomerModalProps {
@@ -46,7 +46,7 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
             <div className="modal-title">{customer.id ? 'Edit Customer' : 'Add New Customer'}</div>
           </div>
           <button className="x-btn" onClick={onClose} aria-label="Close">
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 

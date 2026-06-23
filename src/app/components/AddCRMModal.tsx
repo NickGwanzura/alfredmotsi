@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { CRMRecord, Customer, CRMType, CRMOutcome } from '@/app/types';
-import { Close } from '@carbon/icons-react';
+import { X } from 'lucide-react';
 
 interface AddCRMModalProps {
   record: Partial<CRMRecord>;
@@ -60,7 +60,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
             <div className="modal-title">Add Interaction Record</div>
           </div>
           <button className="x-btn" onClick={onClose} aria-label="Close">
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 

@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Job, Customer, User } from '@/app/types';
 import { STATUS_CFG } from '@/app/lib/config';
 import { fmtDate } from '@/app/lib/utils';
-import { Close, Printer } from '@carbon/icons-react';
+import { X, Printer } from 'lucide-react';
 
 interface JobCardPrintProps {
   job: Job;
@@ -666,7 +666,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             aria-label="Close modal"
             title="Close"
           >
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 

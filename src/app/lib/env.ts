@@ -20,6 +20,11 @@ export function validateEnv(): { valid: boolean; missing: string[]; errors: stri
     missing.push('AUTH_SECRET');
   }
 
+  // NEXTAUTH_URL is required for correct auth redirects
+  if (!process.env.NEXTAUTH_URL && process.env.NODE_ENV === 'production') {
+    missing.push('NEXTAUTH_URL');
+  }
+
   if (missing.length > 0) {
     errors.push(`Missing required environment variables: ${missing.join(', ')}`);
   }
@@ -31,12 +36,6 @@ export function validateEnv(): { valid: boolean; missing: string[]; errors: stri
   }
 
   const valid = errors.length === 0;
-  
-  if (valid) {
-    console.log('✅ Environment variables validated');
-  } else {
-    console.warn('⚠️ Environment validation warnings:', errors);
-  }
 
   return { valid, missing, errors };
 }

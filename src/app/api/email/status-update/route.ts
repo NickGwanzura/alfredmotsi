@@ -14,7 +14,6 @@ interface StatusUpdateRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/status-update] Received request');
   
   try {
     const session = await auth();
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/status-update] Request body:', body);
 
     const {
       to,
@@ -72,10 +70,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const updatedBy = session.user?.name ?? 'System';
     const updateTime = new Date().toLocaleString('en-ZA');
 
-    console.log('[API /email/status-update] Calling sendStatusUpdateEmail with:', {
-      to, customerName, jobTitle, jobId, oldStatus, newStatus, updatedBy, updateTime
-    });
-
     const result = await sendStatusUpdateEmail({
       to: to.trim(),
       customerName: customerName.trim(),
@@ -96,7 +90,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/status-update] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/status-update] Unhandled error:', error);

@@ -26,7 +26,7 @@ import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } fr
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
 import { canDeleteJobs, canManageJobs } from '@/app/lib/permissions';
-import { Close, PlayFilled, StopFilled, Printer, Camera, Download, Add, TrashCan } from '@carbon/icons-react';
+import { X, Play, Square, Printer, Camera, Download, Plus, Trash2 } from 'lucide-react';
 
 interface JobCardModalProps {
   job: Job;
@@ -437,7 +437,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
             aria-label="Close modal"
             title="Close"
           >
-            <Close size={20} />
+            <X size={20} />
           </button>
         </div>
 
@@ -464,7 +464,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 onClick={handleClockIn}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44 }}
               >
-                <PlayFilled size={16} />
+                <Play size={16} />
                 Clock In
               </button>
             ) : (
@@ -476,7 +476,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 onClick={handleClockOut}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44 }}
               >
-                <StopFilled size={16} />
+                <Square size={16} />
                 Clock Out
               </button>
             ) : clockOut && (
@@ -1016,7 +1016,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                     style={{ display: "flex", alignItems: "center", gap: 6 }}
                     title="Add a legacy text photo reference"
                   >
-                    <Add size={14} />
+                    <Plus size={14} />
                     Add Reference
                   </button>
                 )}
@@ -1167,7 +1167,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                       style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                       onClick={() => { setShowGasLog(g => !g); setGasError(null); setGasSuccess(null); }}
                     >
-                      {showGasLog ? 'Cancel' : <><Add size={14} /> Log Usage</>}
+                      {showGasLog ? 'Cancel' : <><Plus size={14} /> Log Usage</>}
                     </button>
                   )}
                 </div>
@@ -1372,7 +1372,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 </div>
                 {canEdit && (
                   <button className="btn btn-p btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={handleAddConsumable}>
-                    <Add size={14} />
+                    <Plus size={14} />
                     Add Consumable
                   </button>
                 )}
@@ -1408,7 +1408,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                             {canEdit && (
                               <td style={{ padding: '8px 12px' }}>
                                 <button className="btn btn-d btn-sm" style={{ padding: '4px 8px' }} onClick={() => handleDeleteConsumable(c.id)}>
-                                  <TrashCan size={12} />
+                                  <Trash2 size={12} />
                                 </button>
                               </td>
                             )}
@@ -1430,7 +1430,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               onClick={() => { setDeleteReason(''); setDeleteError(null); setShowDeleteConfirm(true); }}
             >
-              <TrashCan size={14} />
+              <Trash2 size={14} />
               Delete Job
             </button>
           )}
@@ -1463,7 +1463,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 title="Close"
                 disabled={deleting}
               >
-                <Close size={20} />
+                <X size={20} />
               </button>
             </div>
             <div style={{ padding: 'var(--s6) var(--s7)', display: 'flex', flexDirection: 'column', gap: 'var(--s4)' }}>
@@ -1499,7 +1499,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 disabled={deleting || !deleteReason.trim()}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                <TrashCan size={14} />
+                <Trash2 size={14} />
                 {deleting ? 'Deleting…' : 'Delete Job'}
               </button>
             </div>

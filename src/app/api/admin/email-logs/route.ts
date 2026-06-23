@@ -37,7 +37,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const where: Prisma.EmailDeliveryLogWhereInput = {};
-  if (status) where.status = status;
+  if (status) where.status = status as Prisma.EmailDeliveryLogWhereInput['status'];
   if (category) where.category = category;
   if (recipient) where.recipient = { contains: recipient, mode: 'insensitive' };
   if (since || until) {

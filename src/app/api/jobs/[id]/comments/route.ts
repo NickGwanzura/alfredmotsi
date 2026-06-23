@@ -83,7 +83,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; commentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -92,7 +92,11 @@ export async function DELETE(
     const forbidden = authorizeRole(session, ['admin', 'tech']);
     if (forbidden) return forbidden;
 
-    const { id, commentId } = await params;
+    const { id } = await params;
+    const commentId = request.nextUrl.searchParams.get('commentId');
+    if (!commentId) {
+      return NextResponse.json({ error: 'commentId query parameter is required' }, { status: 400 });
+    }
 
     const comment = await prisma.comment.findUnique({ where: { id: commentId } });
     if (!comment || comment.jobId !== id) {

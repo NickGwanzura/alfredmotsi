@@ -96,8 +96,8 @@ async function recordEmailDeliveryLog({
         category: category || null,
         status,
         resendMessageId: getResendMessageId(resendData) || null,
-        resendData: safeJsonValue(resendData),
-        resendError: safeJsonValue(resendError),
+        resendData: safeJsonValue(resendData) as any,
+        resendError: safeJsonValue(resendError) as any,
         errorMessage: errorMessage || getErrorMessage(resendError) || null,
       },
     });
@@ -126,15 +126,19 @@ export async function sendEmailWithBestPractices({
   const recipients = Array.isArray(to) ? to : [to];
   const primaryRecipient = recipients[0];
   
-  console.log('[sendEmailWithBestPractices] Starting:', { 
-    to: primaryRecipient, 
-    subject,
-    category,
-    isTransactional 
-  });
+  const rateCheck = checkRateLimit(primaryRecipient);
+  if (!rateCheck.allowed) {
+    await recordEmailDeliveryLog({
+      recipients,
+      subject,
+      category,
+      status: 'skipped',
+      errorMessage: `Rate limited (retry after ${rateCheck.retryAfter}s)`,
+    });
+    return { success: false, error: 'Rate limited' };
+  }
   
   if (!isEmailEnabled()) {
-    console.log('📧 [Email Disabled] Email would be sent to:', primaryRecipient);
     await recordEmailDeliveryLog({
       recipients,
       subject,
@@ -234,7 +238,6 @@ export async function sendEmailWithBestPractices({
       return { success: false, error };
     }
 
-    console.log('✅ Email sent successfully to:', primaryRecipient);
     await recordEmailDeliveryLog({
       recipients,
       subject,
@@ -288,7 +291,6 @@ export async function sendJobScheduledEmail({
   jobId,
   portalUrl,
 }: SendJobScheduledEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendJobScheduledEmail] Starting with params:', { to, customerName, jobTitle, jobId });
   
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobDate || !jobTime || !jobType || !jobAddress || !jobId) {
@@ -314,7 +316,6 @@ export async function sendJobScheduledEmail({
       portalUrl: safePortalUrl,
     };
 
-    console.log('[sendJobScheduledEmail] Rendering email with props:', emailProps);
 
     const html = await render(JobScheduledEmail(emailProps));
 
@@ -356,7 +357,6 @@ export async function sendJobCompletedEmail({
   jobCardUrl,
   attachments,
 }: SendJobCompletedEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendJobCompletedEmail] Starting with params:', { to, customerName, jobTitle });
   
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobDate || !technicianName || !workDescription) {
@@ -376,7 +376,6 @@ export async function sendJobCompletedEmail({
       jobCardUrl: jobCardUrl?.trim() || undefined,
     };
 
-    console.log('[sendJobCompletedEmail] Rendering email');
 
     const html = await render(JobCompletedEmail(emailProps));
 
@@ -417,7 +416,6 @@ export async function sendStatusUpdateEmail({
   updateTime,
   notes,
 }: SendStatusUpdateEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendStatusUpdateEmail] Starting with params:', { to, customerName, jobTitle, jobId });
   
   // Validate required fields
   if (!to || !customerName || !jobTitle || !jobId || !oldStatus || !newStatus || !updatedBy || !updateTime) {
@@ -437,7 +435,6 @@ export async function sendStatusUpdateEmail({
       notes: notes?.trim() || undefined,
     };
 
-    console.log('[sendStatusUpdateEmail] Rendering email');
 
     const html = await render(StatusUpdateEmail(emailProps));
 
@@ -471,7 +468,6 @@ export async function sendPortalInviteEmail({
   portalCode,
   loginUrl = 'https://splashaircrmzw.site/login',
 }: SendPortalInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendPortalInviteEmail] Starting with params:', { to, customerName });
   
   // Validate required fields
   if (!to || !customerName || !portalCode) {
@@ -487,7 +483,6 @@ export async function sendPortalInviteEmail({
       loginUrl: loginUrl.trim(),
     };
 
-    console.log('[sendPortalInviteEmail] Rendering email');
 
     const html = await render(PortalInviteEmail(emailProps));
 
@@ -533,7 +528,6 @@ export async function sendTechAssignmentEmail({
   customerPhone,
   jobId,
 }: SendTechAssignmentEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendTechAssignmentEmail] Starting with params:', { to, technicianName, jobTitle, jobId });
   
   // Validate required fields
   if (!to || !technicianName || !customerName || !jobTitle || !jobDate || !jobTime || !jobAddress || !jobDescription || !jobId) {
@@ -554,7 +548,6 @@ export async function sendTechAssignmentEmail({
       jobId: jobId.trim(),
     };
 
-    console.log('[sendTechAssignmentEmail] Rendering email with props:', emailProps);
 
     const html = await render(TechAssignmentEmail(emailProps));
 
@@ -602,7 +595,6 @@ export async function sendUserInviteEmail({
   role,
   loginUrl = 'https://splashaircrmzw.site/login',
 }: SendUserInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendUserInviteEmail] Starting with params:', { to, userName, role });
   console.warn('⚠️ [SECURITY] Sending password via email is not recommended. Consider implementing secure token-based invitations.');
   
   // Validate required fields
@@ -620,7 +612,6 @@ export async function sendUserInviteEmail({
       loginUrl: loginUrl.trim(),
     };
 
-    console.log('[sendUserInviteEmail] Rendering email');
 
     const html = await render(UserInviteEmail(emailProps));
 
@@ -692,13 +683,6 @@ export async function sendCustomEmail({
   category = 'custom',
   isTransactional = true,
 }: SendCustomEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.log('[sendCustomEmail] Starting with params:', { 
-    to: Array.isArray(to) ? to.length : to, 
-    subject,
-    category,
-    isTransactional 
-  });
-  
   // Validate required fields
   if (!to || !subject || !html) {
     console.error('[sendCustomEmail] Missing required fields');

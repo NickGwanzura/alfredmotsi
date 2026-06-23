@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, FormItem, Notification } from './ui';
-import { Close, Add, Email, TrashCan, Edit, Warning } from '@carbon/icons-react';
+import { X, Plus, Mail, Trash2, FileEdit, AlertTriangle } from 'lucide-react';
 
 interface ManagedUser {
   id: string;
@@ -287,7 +287,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
               disabled={deduping}
               style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              <Warning size={16} />
+              <AlertTriangle size={16} />
               {deduping ? 'Cleaning...' : `Remove ${dupCount} Duplicate${dupCount > 1 ? 's' : ''}`}
             </button>
           )}
@@ -296,7 +296,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             onClick={openInvite}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Add size={16} />
+            <Plus size={16} />
             Invite User
           </button>
         </div>
@@ -398,7 +398,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                         title="Edit user"
                         style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                       >
-                        <Edit size={14} /> Edit
+                        <FileEdit size={14} /> Edit
                       </button>
                       <button
                         className="btn btn-s btn-sm"
@@ -407,7 +407,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                         aria-label="Resend login credentials"
                         style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                       >
-                        <Email size={14} />
+                        <Mail size={14} />
                       </button>
                       {!isSelf && (
                         <button
@@ -417,7 +417,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                           aria-label="Remove user"
                           style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                         >
-                          <TrashCan size={14} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
@@ -438,7 +438,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Invite Team Member</div>
               </div>
-              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><Close size={20} /></button>
+              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><X size={20} /></button>
             </div>
             <div className="modal-body">
               {inviteErr && <Notification kind="e" title="Check form" body={inviteErr} />}
@@ -511,7 +511,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Edit User</div>
               </div>
-              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><Close size={20} /></button>
+              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><X size={20} /></button>
             </div>
             <div className="modal-body">
               {editErr && <Notification kind="e" title="Error" body={editErr} />}
@@ -564,7 +564,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Resend Credentials</div>
               </div>
-              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><Close size={20} /></button>
+              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><X size={20} /></button>
             </div>
             <div className="modal-body">
               {resendErr && <Notification kind="e" title="Error" body={resendErr} />}
@@ -588,7 +588,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
               <button className="btn btn-g" onClick={() => setModal('none')}>Cancel</button>
               <button className="btn btn-p" onClick={handleResend} disabled={resending}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Email size={16} />
+                <Mail size={16} />
                 {resending ? 'Sending...' : 'Send New Credentials'}
               </button>
             </div>
@@ -605,7 +605,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                 <div className="modal-lbl">User Management</div>
                 <div className="modal-title">Remove User</div>
               </div>
-              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><Close size={20} /></button>
+              <button className="x-btn" onClick={() => setModal('none')} aria-label="Close"><X size={20} /></button>
             </div>
             <div className="modal-body">
               <Notification

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Location, User as UserIcon, Time, Document, Filter } from '@carbon/icons-react';
+import { MapPin, User as UserIcon, Clock, FileText, Filter } from 'lucide-react';
 import { User, AuditLogEntry, AuditAction } from '@/app/types';
 
 interface AuditLogViewProps {
@@ -170,7 +170,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           onClick={handleRefresh}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          <Time size={14} />
+          <Clock size={14} />
           Refresh
         </button>
       </div>
@@ -238,7 +238,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         {/* Action filter */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 160 }}>
           <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Document size={11} /> Action
+            <FileText size={11} /> Action
           </label>
           <select
             className="sel"
@@ -255,7 +255,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 180 }}>
           <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Document size={11} /> Job ID
+            <FileText size={11} /> Job ID
           </label>
           <input
             type="search"
@@ -270,7 +270,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         {/* Date from */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Time size={11} /> From
+            <Clock size={11} /> From
           </label>
           <input
             type="date"
@@ -284,7 +284,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
         {/* Date to */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <label style={{ fontSize: 11, color: 'var(--cds-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Time size={11} /> To
+            <Clock size={11} /> To
           </label>
           <input
             type="date"
@@ -338,7 +338,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             <tr>
               <th style={{ minWidth: 150 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Time size={13} /> Time
+                  <Clock size={13} /> Time
                 </span>
               </th>
               <th style={{ minWidth: 140 }}>
@@ -348,14 +348,14 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
               </th>
               <th style={{ minWidth: 130 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Document size={13} /> Action
+                  <FileText size={13} /> Action
                 </span>
               </th>
               <th style={{ minWidth: 110 }}>Job ID</th>
               <th style={{ minWidth: 180 }}>Reason</th>
               <th style={{ minWidth: 120 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Location size={13} /> Location
+                  <MapPin size={13} /> Location
                 </span>
               </th>
               <th style={{ minWidth: 130 }}>IP Address</th>
@@ -457,7 +457,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
                           fontSize: 12,
                         }}
                       >
-                        <Location size={12} />
+                        <MapPin size={12} />
                         View Map
                       </a>
                     ) : (

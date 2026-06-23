@@ -4,12 +4,6 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
-  // Railway builds currently fail due to existing TS issues elsewhere in the repo.
-  // Ignore build-time TS so we can deploy the ODS/gas fixes.
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  
   // Externalize Prisma to prevent bundling issues
   serverExternalPackages: ['@prisma/client', '.prisma/client'],
   
@@ -18,9 +12,39 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  
+
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+    ];
+  },
+
   // Ensure all pages are generated
-  // This ensures static pages are available in standalone
   distDir: '.next',
 };
 

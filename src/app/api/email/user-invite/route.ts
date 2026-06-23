@@ -12,7 +12,6 @@ interface UserInviteRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/user-invite] Received request');
   
   try {
     const session = await auth();
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/user-invite] Request body:', { ...body, tempPassword: '[REDACTED]' });
 
     const { to, userName, tempPassword, role, loginUrl } = body;
 
@@ -57,7 +55,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/user-invite] Calling sendUserInviteEmail');
 
     const result = await sendUserInviteEmail({
       to: to.trim(),
@@ -75,7 +72,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/user-invite] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/user-invite] Unhandled error:', error);

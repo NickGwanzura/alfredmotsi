@@ -11,7 +11,6 @@ interface PortalInviteRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/portal-invite] Received request');
   
   try {
     const session = await auth();
@@ -37,7 +36,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/portal-invite] Request body:', body);
 
     const { to, customerName, portalCode, loginUrl } = body;
 
@@ -55,7 +53,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/portal-invite] Calling sendPortalInviteEmail');
 
     const result = await sendPortalInviteEmail({
       to: to.trim(),
@@ -72,7 +69,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/portal-invite] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/portal-invite] Unhandled error:', error);

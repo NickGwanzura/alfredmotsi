@@ -18,7 +18,6 @@ interface JobScheduledRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/job-scheduled] Received request');
   
   try {
     const session = await auth();
@@ -44,7 +43,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-scheduled] Request body:', body);
 
     const {
       to,
@@ -79,7 +77,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-scheduled] Calling sendJobScheduledEmail');
 
     const result = await sendJobScheduledEmail({
       to: to.trim(),
@@ -103,7 +100,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-scheduled] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/job-scheduled] Unhandled error:', error);

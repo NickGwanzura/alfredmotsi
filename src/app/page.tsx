@@ -31,28 +31,30 @@ import {
   canViewFinancials, canViewReports
 } from '@/app/lib/permissions';
 
-// Carbon Icons
+// Lucide icons
 import {
-  Dashboard,
+  LayoutDashboard,
   Calendar,
-  Table,
+  Table2,
   User as UserIcon,
-  ContainerServices,
-  ChartLine,
-  FlagFilled,
-  UserMultiple,
-  Add,
-  Logout,
-  Security,
-} from '@carbon/icons-react';
+  Container,
+  BarChart3,
+  Flag,
+  Users,
+  Plus,
+  LogOut,
+  ShieldAlert,
+  Menu as MenuIcon,
+  AlertTriangle,
+  Snowflake,
+} from 'lucide-react';
 
 interface NavItem {
   id: PageId;
   label: string;
-  Icon: React.ComponentType<{ size?: number }>;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-// Empty initial state - data will be fetched from API
 const initialJobs: Job[] = [];
 const initialCustomers: Customer[] = [];
 const initialGasStock: GasStockItem[] = [];
@@ -64,16 +66,15 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const auditFiredRef = React.useRef(false);
-  
-  // Data state - fetched from API in production
+
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [gasStock, setGasStock] = useState<GasStockItem[]>(initialGasStock);
   const [gasUsage, setGasUsage] = useState<GasUsageRecord[]>(initialGasUsage);
   const [crmRecords, setCrmRecords] = useState<CRMRecord[]>(initialCrmRecords);
   const [techs, setTechs] = useState<User[]>([]);
-  
-  const [page, setPage] = useState<PageId>("home");
+
+  const [page, setPage] = useState<PageId>('home');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showAddJob, setShowAddJob] = useState(false);
   const [printJob, setPrintJob] = useState<Job | null>(null);
@@ -81,13 +82,11 @@ export default function Home() {
   const [sideNavOpen, setSideNavOpen] = useState(false);
   const [fetchErrors, setFetchErrors] = useState<string[]>([]);
 
-  // Add modal states
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddGasStock, setShowAddGasStock] = useState(false);
   const [showAddGasUsage, setShowAddGasUsage] = useState(false);
   const [showAddCRM, setShowAddCRM] = useState(false);
 
-  // Form data states
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({});
   const [newGasStock, setNewGasStock] = useState<Partial<GasStockItem>>({});
   const [newGasUsage, setNewGasUsage] = useState<Partial<GasUsageRecord>>({});
@@ -95,10 +94,8 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-
-    if (status === "authenticated") {
+    if (status === 'authenticated') {
       fetchData();
-      // Fire login audit once per session
       if (!auditFiredRef.current) {
         auditFiredRef.current = true;
         captureAudit('login');
@@ -106,99 +103,63 @@ export default function Home() {
     }
   }, [status]);
 
-  // Fetch all data from API
   const fetchData = async () => {
     try {
       setIsLoading(true);
       setFetchErrors([]);
       const errors: string[] = [];
-      
-      const jobsRes = await fetch('/api/jobs');
-      if (jobsRes.ok) {
-        const jobsData = await jobsRes.json();
-        setJobs(jobsData);
-      } else {
-        errors.push('Failed to load jobs');
-      }
-      
-      const customersRes = await fetch('/api/customers');
-      if (customersRes.ok) {
-        const customersData = await customersRes.json();
-        setCustomers(customersData);
-      }
-      
-      const techsRes = await fetch('/api/users?role=tech');
-      if (techsRes.ok) {
-        const techsData = await techsRes.json();
-        setTechs(techsData);
-      }
-      
-      const gasStockRes = await fetch('/api/gas-stock');
-      if (gasStockRes.ok) {
-        const gasStockData = await gasStockRes.json();
-        setGasStock(gasStockData);
-      } else {
-        errors.push('Failed to load gas stock');
-      }
-      
-      const gasUsageRes = await fetch('/api/gas-usage');
-      if (gasUsageRes.ok) {
-        const gasUsageData = await gasUsageRes.json();
-        setGasUsage(gasUsageData);
-      } else {
-        errors.push('Failed to load gas usage');
-      }
-      
-      const crmRes = await fetch('/api/crm');
-      if (crmRes.ok) {
-        const crmData = await crmRes.json();
-        setCrmRecords(crmData);
-      } else {
-        errors.push('Failed to load CRM records');
-      }
-      
+
+      const [jobsRes, customersRes, techsRes, gasStockRes, gasUsageRes, crmRes] = await Promise.all([
+        fetch('/api/jobs'),
+        fetch('/api/customers'),
+        fetch('/api/users?role=tech'),
+        fetch('/api/gas-stock'),
+        fetch('/api/gas-usage'),
+        fetch('/api/crm'),
+      ]);
+
+      if (jobsRes.ok) setJobs(await jobsRes.json());
+      else errors.push('Failed to load jobs');
+
+      if (customersRes.ok) setCustomers(await customersRes.json());
+      if (techsRes.ok) setTechs(await techsRes.json());
+
+      if (gasStockRes.ok) setGasStock(await gasStockRes.json());
+      else errors.push('Failed to load gas stock');
+
+      if (gasUsageRes.ok) setGasUsage(await gasUsageRes.json());
+      else errors.push('Failed to load gas usage');
+
+      if (crmRes.ok) setCrmRecords(await crmRes.json());
+      else errors.push('Failed to load CRM records');
+
       if (errors.length > 0) setFetchErrors(errors);
-    } catch (error) {
+    } catch {
       setFetchErrors(['Network error — check your connection']);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isClient || status === "loading") {
+  if (!isClient || status === 'loading') {
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "var(--cds-background)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--cds-text-primary)"
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 40,
-            height: 40,
-            border: '3px solid var(--cds-border-subtle)',
-            borderTopColor: 'var(--cds-interactive)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }} />
+      <div className="min-h-screen bg-surface flex items-center justify-center text-text-primary">
+        <div className="text-center">
+          <div className="w-10 h-10 border-3 border-border-subtle border-t-interactive rounded-full animate-spin mx-auto mb-4" />
           <p>Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (status === "unauthenticated" || !session) {
+  if (status === 'unauthenticated' || !session) {
     return <Login />;
   }
 
   const user = session.user;
-
   const currentUser = user as User;
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === 'admin';
+
   const perm = {
     canManageJobs: canManageJobs(user.role),
     canManageCustomers: canManageCustomers(user.role),
@@ -210,23 +171,21 @@ export default function Home() {
     canViewAuditLog: canViewAuditLog(user.role),
     canViewFinancials: canViewFinancials(user.role),
   };
-  const alertCount = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").length;
-  const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
+
+  const alertCount = jobs.filter((j) => j.alerts && j.alerts.length > 0 && j.status !== 'completed').length;
+  const unallocatedCount = jobs.filter((j) => j.status === 'unallocated').length;
 
   const updateJob = async (updatedJob: Job) => {
     try {
-      const prevJob = jobs.find(j => j.id === updatedJob.id);
+      const prevJob = jobs.find((j) => j.id === updatedJob.id);
       const res = await fetch(`/api/jobs/${updatedJob.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedJob),
       });
-
       if (res.ok) {
-        setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
+        setJobs((prev) => prev.map((j) => (j.id === updatedJob.id ? updatedJob : j)));
         setSelectedJob(updatedJob);
-
-        // Fire-and-forget admin notification when job is marked completed
         if (updatedJob.status === 'completed' && prevJob?.status !== 'completed') {
           fetch('/api/notifications/job-complete', {
             method: 'POST',
@@ -248,11 +207,10 @@ export default function Home() {
         body: JSON.stringify({ reason }),
       });
       if (!res.ok) return false;
-      setJobs(prev => prev.filter(j => j.id !== jobId));
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
       setSelectedJob(null);
       return true;
-    } catch (error) {
-      console.error('Error deleting job:', error);
+    } catch {
       return false;
     }
   };
@@ -264,22 +222,17 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newJob),
       });
-      
       if (res.ok) {
         const createdJob = await res.json();
-        setJobs(prev => [...prev, createdJob]);
+        setJobs((prev) => [...prev, createdJob]);
         setShowAddJob(false);
-        setPage("jobs");
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        console.error('Create job failed:', res.status, errData);
+        setPage('jobs');
       }
     } catch (error) {
       console.error('Error creating job:', error);
     }
   };
 
-  // Add customer handler
   const addCustomer = async (customerData: Partial<Customer>) => {
     try {
       const res = await fetch('/api/customers', {
@@ -287,10 +240,9 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerData),
       });
-      
       if (res.ok) {
         const createdCustomer = await res.json();
-        setCustomers(prev => [...prev, createdCustomer]);
+        setCustomers((prev) => [...prev, createdCustomer]);
         setShowAddCustomer(false);
         setNewCustomer({});
       }
@@ -299,7 +251,6 @@ export default function Home() {
     }
   };
 
-  // Add gas stock handler
   const addGasStock = async (stockData: Partial<GasStockItem>) => {
     const res = await fetch('/api/gas-stock', {
       method: 'POST',
@@ -311,12 +262,11 @@ export default function Home() {
       throw new Error(err.error || `Server error ${res.status}`);
     }
     const createdStock = await res.json();
-    setGasStock(prev => [...prev, createdStock]);
+    setGasStock((prev) => [...prev, createdStock]);
     setShowAddGasStock(false);
     setNewGasStock({});
   };
 
-  // Add gas usage handler
   const addGasUsage = async (usageData: Partial<GasUsageRecord>) => {
     try {
       const res = await fetch('/api/gas-usage', {
@@ -324,28 +274,18 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(usageData),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Server error ${res.status}`);
       }
-
       const createdUsage = await res.json();
-      setGasUsage(prev => [...prev, createdUsage]);
+      setGasUsage((prev) => [...prev, createdUsage]);
 
-      // Refresh gas stock to get updated remaining amounts
       const stockRes = await fetch('/api/gas-stock');
-      if (stockRes.ok) {
-        const stockData = await stockRes.json();
-        setGasStock(stockData);
-      }
+      if (stockRes.ok) setGasStock(await stockRes.json());
 
-      // Refresh jobs so ODS report totals (from diagnostics) update immediately
       const jobsRes = await fetch('/api/jobs');
-      if (jobsRes.ok) {
-        const jobsData = await jobsRes.json();
-        setJobs(jobsData);
-      }
+      if (jobsRes.ok) setJobs(await jobsRes.json());
 
       setShowAddGasUsage(false);
       setNewGasUsage({});
@@ -354,7 +294,6 @@ export default function Home() {
     }
   };
 
-  // Add CRM record handler
   const addCRMRecord = async (crmData: Partial<CRMRecord>) => {
     try {
       const res = await fetch('/api/crm', {
@@ -362,10 +301,9 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(crmData),
       });
-      
       if (res.ok) {
         const createdRecord = await res.json();
-        setCrmRecords(prev => [...prev, createdRecord]);
+        setCrmRecords((prev) => [...prev, createdRecord]);
         setShowAddCRM(false);
         setNewCRM({});
       }
@@ -374,179 +312,183 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    signOut({ callbackUrl: "/" });
-  };
+  const handleLogout = () => signOut({ callbackUrl: '/' });
 
   const adminNav: NavItem[] = [
-    { id: "home", label: "Dashboard", Icon: Dashboard },
-    { id: "calendar", label: "Calendar", Icon: Calendar },
-    { id: "jobs", label: "Jobs", Icon: Table },
-    { id: "customers", label: "Customers", Icon: UserIcon },
-    { id: "gas-stock", label: "Gas Stock", Icon: ContainerServices },
-    { id: "gas-usage", label: "Gas Usage", Icon: ChartLine },
-    { id: "crm", label: "CRM", Icon: ChartLine },
-    { id: "ods-report", label: "ODS Report", Icon: FlagFilled },
-    { id: "users", label: "Users", Icon: UserMultiple },
-    { id: "audit-log", label: "Audit Log", Icon: Security },
+    { id: 'home', label: 'Dashboard', Icon: LayoutDashboard },
+    { id: 'calendar', label: 'Calendar', Icon: Calendar },
+    { id: 'jobs', label: 'Jobs', Icon: Table2 },
+    { id: 'customers', label: 'Customers', Icon: UserIcon },
+    { id: 'gas-stock', label: 'Gas Stock', Icon: Container },
+    { id: 'gas-usage', label: 'Gas Usage', Icon: BarChart3 },
+    { id: 'crm', label: 'CRM', Icon: BarChart3 },
+    { id: 'ods-report', label: 'ODS Report', Icon: Flag },
+    { id: 'users', label: 'Users', Icon: Users },
+    { id: 'audit-log', label: 'Audit Log', Icon: ShieldAlert },
   ];
 
   const techNav: NavItem[] = [
-    { id: "home", label: "My Schedule", Icon: Dashboard },
-    { id: "calendar", label: "Calendar", Icon: Calendar },
-    { id: "jobs", label: "My Jobs", Icon: Table },
+    { id: 'home', label: 'My Schedule', Icon: LayoutDashboard },
+    { id: 'calendar', label: 'Calendar', Icon: Calendar },
+    { id: 'jobs', label: 'My Jobs', Icon: Table2 },
   ];
 
   const nav = isAdmin ? adminNav : techNav;
 
   return (
-    <div style={{ fontFamily: "IBM Plex Sans, Helvetica Neue, Arial, sans-serif", minHeight: "100vh" }}>
+    <div className="min-h-screen" style={{ fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Header */}
-      <header className="hdr">
+      <header className="header no-print">
         <button
-          className="btn btn-g btn-sm"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, padding: 0 }}
-          onClick={() => setSideNavOpen(o => !o)}
+          className="inline-flex items-center justify-center w-10 h-10 bg-transparent hover:bg-surface-hover active:bg-surface-active border-none cursor-pointer shrink-0 lg:hidden"
+          onClick={() => setSideNavOpen((o) => !o)}
           aria-label="Toggle navigation"
         >
-          ☰
+          <MenuIcon size={20} />
         </button>
-        <span style={{ fontSize: 20 }}>❄</span>
-        <a className="hdr-name">Splash Air <span>/ Service Platform v10</span></a>
-        <div style={{ flex: 1 }} />
-        
-        {/* Role indicator for debugging */}
-        <span style={{ 
-          background: isAdmin ? "var(--cds-support-success)" : "var(--cds-support-info)", 
-          color: "#fff", 
-          fontSize: "11px", 
-          fontWeight: 700, 
-          padding: "2px 8px", 
-          marginRight: "8px"
-        }}>
-          {user.role?.toUpperCase() || "NO ROLE"}
+        <Snowflake size={20} className="text-brand-600" />
+        <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-semibold text-text-primary no-underline">
+          Splash Air <span className="font-normal text-text-secondary">/ Service Platform v10</span>
+        </a>
+        <div className="flex-1" />
+
+        {/* Role badge */}
+        <span className={`text-[11px] font-bold px-2 py-0.5 text-white ${isAdmin ? 'bg-support-success' : 'bg-support-info'}`}>
+          {user.role?.toUpperCase() || 'NO ROLE'}
         </span>
-        
+
         {unallocatedCount > 0 && perm.canManageJobs && (
-          <span style={{ 
-            background: "var(--cds-support-warning)", 
-            color: "#fff", 
-            fontSize: "11px", 
-            fontWeight: 700, 
-            padding: "2px 8px", 
-            marginRight: "8px"
-          }}>
+          <span className="text-[11px] font-bold px-2 py-0.5 text-white bg-support-warning">
             {unallocatedCount} UNALLOCATED
           </span>
         )}
-        
+
         {alertCount > 0 && (
-          <span style={{ 
-            background: "var(--cds-support-error)", 
-            color: "#fff", 
-            fontSize: "11px", 
-            fontWeight: 700, 
-            padding: "2px 8px",
-            marginRight: "8px"
-          }}>
-            {alertCount} ALERT{alertCount > 1 ? "S" : ""}
+          <span className="text-[11px] font-bold px-2 py-0.5 text-white bg-support-error">
+            {alertCount} ALERT{alertCount > 1 ? 'S' : ''}
           </span>
         )}
-        
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          gap: "12px", 
-          paddingLeft: "16px", 
-          borderLeft: "1px solid var(--cds-border-subtle)" 
-        }}>
-          <Avatar name={user.name || "User"} size={24} color={isAdmin ? "#6929c4" : "#0f62fe"} />
-          <div>
-            <p style={{ fontSize: "11px", color: "var(--cds-text-secondary)", fontWeight: 500 }}>{user.name}</p>
-            <p style={{ fontSize: "11px", color: isAdmin ? "#6929c4" : "#0f62fe" }}>
-              {isAdmin ? "Administrator" : "Technician"}
+
+        <div className="flex items-center gap-3 pl-4 border-l border-border-subtle">
+          <Avatar name={user.name || 'User'} size={24} color={isAdmin ? '#6929c4' : '#00695c'} />
+          <div className="hidden sm:block">
+            <p className="text-[11px] text-text-secondary font-medium">{user.name}</p>
+            <p className={`text-[11px] ${isAdmin ? 'text-[#6929c4]' : 'text-brand-600'}`}>
+              {isAdmin ? 'Administrator' : 'Technician'}
             </p>
           </div>
         </div>
       </header>
 
-      {/* Sidebar overlay on mobile */}
+      {/* Mobile overlay */}
       {sideNavOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 6999 }}
+          className="fixed inset-0 bg-black/40 z-[45]"
           onClick={() => setSideNavOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <nav className={`snav ${sideNavOpen ? 'open' : ''}`}>
-        <div className="snav-items">
-          <p className="snav-sec">Navigation</p>
-          {nav.map(n => (
-            <div 
-              key={n.id} 
-              className={`snav-item ${page === n.id ? "active" : ""}`} 
-              role="button"
-              tabIndex={0}
-              onClick={() => { setPage(n.id); setShowAddJob(false); setSideNavOpen(false); }}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPage(n.id); setShowAddJob(false); setSideNavOpen(false); } }}
-            >
-              <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <n.Icon size={18} />
-              </span>
-              <span style={{ flex: 1 }}>{n.label}</span>
-              {n.id === "home" && alertCount > 0 && (
-                <span style={{ background: "var(--cds-support-error)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 5px" }}>
-                  {alertCount}
+      <nav className={`sidebar no-print ${sideNavOpen ? 'open' : ''}`}>
+        <div className="flex-1 overflow-y-auto py-5">
+          <p className="px-5 pb-1 text-[11px] font-semibold text-text-primary uppercase tracking-[0.08em]">Navigation</p>
+          {nav.map((n) => {
+            const isActive = page === n.id;
+            return (
+              <div
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                className={`flex items-center gap-4 h-8 px-5 cursor-pointer text-sm text-text-secondary border-l-4 border-transparent transition-colors duration-100 select-none ${
+                  isActive
+                    ? 'bg-layer-selected text-text-primary border-l-interactive font-semibold'
+                    : 'hover:bg-layer-hover hover:text-text-primary'
+                }`}
+                onClick={() => {
+                  setPage(n.id);
+                  setShowAddJob(false);
+                  setSideNavOpen(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setPage(n.id);
+                    setShowAddJob(false);
+                    setSideNavOpen(false);
+                  }
+                }}
+              >
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <n.Icon size={18} />
                 </span>
-              )}
-            </div>
-          ))}
-          
+                <span className="flex-1">{n.label}</span>
+                {n.id === 'home' && alertCount > 0 && (
+                  <span className="bg-support-error text-white text-[10px] font-bold px-1 py-0.5">
+                    {alertCount}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+
           {perm.canManageJobs && (
             <>
-              <div className="snav-div" />
-              <p className="snav-sec">Actions</p>
-              <div 
-                className="snav-item" 
-                style={{ color: "var(--cds-interactive)", fontWeight: 600 }} 
-                onClick={() => { setShowAddJob(true); }}
+              <div className="h-px bg-border-subtle my-4 mx-0" />
+              <p className="px-5 pb-1 text-[11px] font-semibold text-text-primary uppercase tracking-[0.08em]">Actions</p>
+              <div
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-4 h-8 px-5 cursor-pointer text-sm text-interactive font-semibold border-l-4 border-transparent hover:bg-layer-hover"
+                onClick={() => setShowAddJob(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowAddJob(true);
+                  }
+                }}
               >
-                <span style={{ width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Add size={18} />
+                <span className="w-5 flex items-center justify-center shrink-0">
+                  <Plus size={18} />
                 </span>
                 Schedule Job
               </div>
             </>
           )}
         </div>
-        
-        <div className="snav-foot">
-          <p style={{ fontSize: "11px", color: "var(--cds-text-secondary)", marginBottom: "8px" }}>
-            Session started {loginTime.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}
+
+        <div className="p-4 border-t border-border-subtle">
+          <p className="text-[10px] text-text-secondary text-center leading-tight mb-3">
+            System developed &amp; maintained by<br />
+            <a href="https://www.spiritusglobal.tech" target="_blank" rel="noopener noreferrer" className="text-interactive hover:text-interactive-hover underline">
+              Spiritus Systems
+            </a>
           </p>
-          <button 
-            className="btn btn-g btn-sm" 
-            style={{ width: "100%", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
+          <p className="text-[11px] text-text-secondary mb-2">
+            Session started{' '}
+            {loginTime.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <button
+            className="inline-flex items-center justify-center gap-2 w-full h-8 px-3 text-xs bg-transparent border border-border-strong text-text-primary hover:bg-surface-hover active:bg-surface-active cursor-pointer transition-colors"
             onClick={handleLogout}
           >
-            <Logout size={14} />
+            <LogOut size={14} />
             Sign out
           </button>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="content">
-        <div className="page">
+      <main className="content-area">
+        <div className="p-8">
           {fetchErrors.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="mb-4">
               {fetchErrors.map((msg, i) => (
-                <div key={i} className="notif notif-e" role="alert" style={{ marginBottom: 4 }}>
-                  <span>{msg}</span>
+                <div key={i} className="flex items-start gap-3 p-4 mb-1 bg-red-50 border-l-4 border-l-support-error text-red-800" role="alert">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  <span className="flex-1 text-sm">{msg}</span>
                   <button
                     onClick={() => setFetchErrors([])}
-                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 4px' }}
+                    className="bg-transparent border-none cursor-pointer text-inherit p-0 shrink-0"
                     aria-label="Dismiss error"
                   >
                     ×
@@ -554,76 +496,51 @@ export default function Home() {
                 </div>
               ))}
               <button
-                className="btn btn-g btn-sm"
+                className="inline-flex items-center justify-center gap-2 h-8 px-3 text-xs bg-transparent border border-border-strong text-text-primary hover:bg-surface-hover active:bg-surface-active cursor-pointer mt-2"
                 onClick={fetchData}
-                style={{ marginTop: 8 }}
               >
                 Retry
               </button>
             </div>
           )}
+
           {isLoading ? (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              height: '50vh',
-              flexDirection: 'column',
-              gap: 16
-            }}>
-              <div className="loading-spinner" style={{
-                width: 40,
-                height: 40,
-                border: '3px solid var(--cds-border-subtle)',
-                borderTopColor: 'var(--cds-interactive)',
-                borderRadius: '50%',
-              }} />
-              <p style={{ color: 'var(--cds-text-secondary)' }}>Loading data...</p>
+            <div className="flex flex-col items-center justify-center gap-4 h-[50vh] text-text-secondary">
+              <div className="w-10 h-10 border-3 border-border-subtle border-t-interactive rounded-full animate-spin" />
+              <p>Loading data...</p>
             </div>
           ) : (
             <>
               {showAddJob && perm.canManageJobs && (
-                <AddJobModal 
-                  techs={techs} 
-                  customers={customers} 
-                  jobs={jobs} 
-                  onSave={addJob} 
-                  onClose={() => { setShowAddJob(false); }} 
+                <AddJobModal
+                  techs={techs}
+                  customers={customers}
+                  jobs={jobs}
+                  onSave={addJob}
+                  onClose={() => setShowAddJob(false)}
                 />
               )}
-              
-              {!showAddJob && page === "home" && perm.canManageJobs && (
-                <AdminDashboard 
-                  jobs={jobs} 
-                  techs={techs} 
-                  customers={customers} 
+
+              {!showAddJob && page === 'home' && perm.canManageJobs && (
+                <AdminDashboard
+                  jobs={jobs}
+                  techs={techs}
+                  customers={customers}
                   gasStock={gasStock}
                   gasUsage={gasUsage}
-                  onJobClick={setSelectedJob} 
+                  onJobClick={setSelectedJob}
                 />
               )}
-              
-              {!showAddJob && page === "home" && !perm.canManageJobs && (
-                <CalendarView 
-                  jobs={jobs} 
-                  techs={techs} 
-                  customers={customers} 
-                  currentUser={currentUser} 
-                  onJobClick={setSelectedJob} 
-                />
+
+              {!showAddJob && page === 'home' && !perm.canManageJobs && (
+                <CalendarView jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
               )}
-              
-              {!showAddJob && page === "calendar" && (
-                <CalendarView 
-                  jobs={jobs} 
-                  techs={techs} 
-                  customers={customers} 
-                  currentUser={currentUser} 
-                  onJobClick={setSelectedJob} 
-                />
+
+              {!showAddJob && page === 'calendar' && (
+                <CalendarView jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
               )}
-              
-              {!showAddJob && page === "jobs" && (
+
+              {!showAddJob && page === 'jobs' && (
                 <JobsTable
                   jobs={jobs}
                   techs={techs}
@@ -634,11 +551,11 @@ export default function Home() {
                   onAddJob={perm.canManageJobs ? () => setShowAddJob(true) : undefined}
                 />
               )}
-              
-              {!showAddJob && page === "customers" && perm.canManageCustomers && (
-                <CustomerDB 
-                  customers={customers} 
-                  jobs={jobs} 
+
+              {!showAddJob && page === 'customers' && perm.canManageCustomers && (
+                <CustomerDB
+                  customers={customers}
+                  jobs={jobs}
                   currentUser={currentUser}
                   onJobClick={setSelectedJob}
                   onAddCustomer={(customer) => {
@@ -647,8 +564,8 @@ export default function Home() {
                   }}
                 />
               )}
-              
-              {!showAddJob && page === "gas-stock" && perm.canManageGasStock && (
+
+              {!showAddJob && page === 'gas-stock' && perm.canManageGasStock && (
                 <GasStock
                   stock={gasStock}
                   currentUser={currentUser}
@@ -659,23 +576,23 @@ export default function Home() {
                   onRefresh={fetchData}
                 />
               )}
-              
-              {!showAddJob && page === "gas-usage" && perm.canManageGasUsage && (
-                <GasUsage 
+
+              {!showAddJob && page === 'gas-usage' && perm.canManageGasUsage && (
+                <GasUsage
                   usage={gasUsage}
                   currentUser={currentUser}
-                  stock={gasStock.map(s => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
-                  customers={customers.map(c => ({ id: c.id, name: c.name }))}
-                  jobs={jobs.map(j => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
+                  stock={gasStock.map((s) => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
+                  customers={customers.map((c) => ({ id: c.id, name: c.name }))}
+                  jobs={jobs.map((j) => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
                   onAdd={(record) => {
                     setNewGasUsage(record);
                     setShowAddGasUsage(true);
                   }}
                 />
               )}
-              
-              {!showAddJob && page === "crm" && perm.canManageCRM && (
-                <CRM 
+
+              {!showAddJob && page === 'crm' && perm.canManageCRM && (
+                <CRM
                   records={crmRecords}
                   customers={customers}
                   onAdd={(record) => {
@@ -684,20 +601,16 @@ export default function Home() {
                   }}
                 />
               )}
-              
-              {!showAddJob && page === "ods-report" && perm.canViewODSReport && (
-                <ODSReport
-                  jobs={jobs}
-                  customers={customers}
-                  currentUser={currentUser}
-                />
+
+              {!showAddJob && page === 'ods-report' && perm.canViewODSReport && (
+                <ODSReport jobs={jobs} customers={customers} currentUser={currentUser} />
               )}
 
-              {!showAddJob && page === "users" && perm.canManageUsers && (
+              {!showAddJob && page === 'users' && perm.canManageUsers && (
                 <UserManagement currentUserId={user.id!} />
               )}
 
-              {!showAddJob && page === "audit-log" && perm.canViewAuditLog && (
+              {!showAddJob && page === 'audit-log' && perm.canViewAuditLog && (
                 <AuditLogView techs={techs} />
               )}
             </>
@@ -705,7 +618,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Job Card Modal */}
+      {/* Modals */}
       {selectedJob && (
         <JobCardModal
           job={selectedJob}
@@ -715,35 +628,33 @@ export default function Home() {
           onClose={() => setSelectedJob(null)}
           onUpdate={updateJob}
           onDelete={perm.canManageJobs ? deleteJob : undefined}
-          onPrint={(job) => { setPrintJob(job); setSelectedJob(null); }}
+          onPrint={(job) => {
+            setPrintJob(job);
+            setSelectedJob(null);
+          }}
         />
       )}
 
-      {/* Print Modal */}
       {printJob && (
         <JobCardPrint
           job={printJob}
-          customer={customers.find(c => c.id === printJob.customerId)}
-          technician={techs.find(t => printJob.techIds.includes(t.id))}
+          customer={customers.find((c) => c.id === printJob.customerId)}
+          technician={techs.find((t) => printJob.techIds.includes(t.id))}
           onClose={() => setPrintJob(null)}
         />
       )}
 
-      {/* Password Change Modal - Forces password change on first login */}
-      {/* Only show if passwordChanged is explicitly false (not undefined for existing sessions) */}
-      {user.passwordChanged === false && (
+      {(user as any).passwordChanged === false && (
         <PasswordChangeModal
           isOpen={true}
           isTempPassword={true}
           onSuccess={async () => {
-            // Update session to reflect passwordChanged = true
             await update();
           }}
           onLogout={handleLogout}
         />
       )}
 
-      {/* Add Customer Modal */}
       {showAddCustomer && (
         <AddCustomerModal
           customer={newCustomer}
@@ -753,7 +664,6 @@ export default function Home() {
         />
       )}
 
-      {/* Add Gas Stock Modal */}
       {showAddGasStock && (
         <AddGasStockModal
           stock={newGasStock}
@@ -763,7 +673,6 @@ export default function Home() {
         />
       )}
 
-      {/* Add Gas Usage Modal */}
       {showAddGasUsage && (
         <AddGasUsageModal
           usage={newGasUsage}
@@ -776,7 +685,6 @@ export default function Home() {
         />
       )}
 
-      {/* Add CRM Record Modal */}
       {showAddCRM && (
         <AddCRMModal
           record={newCRM}

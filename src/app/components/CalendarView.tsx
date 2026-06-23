@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, TECH_STATUS } from '@/app/lib/config';
 import { Avatar } from './ui';
-import { ChevronLeft, ChevronRight } from '@carbon/icons-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { canViewAllJobs } from '@/app/lib/permissions';
 
 type ViewMode = 'day' | 'week' | 'month';

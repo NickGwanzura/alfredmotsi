@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { WarningFilled, View, ViewOff } from '@carbon/icons-react';
+import { AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 interface PasswordChangeModalProps {
   isOpen: boolean;
@@ -85,7 +85,7 @@ export default function PasswordChangeModal({
       <div style={modalStyle}>
         <div style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <WarningFilled size={24} style={{ color: '#f1c21b' }} />
+            <AlertTriangle size={24} style={{ color: '#f1c21b' }} />
             <h2 style={{ margin: 0, fontSize: 18 }}>
               {isTempPassword ? 'Set Your Password' : 'Change Password'}
             </h2>
@@ -99,7 +99,7 @@ export default function PasswordChangeModal({
 
           {error && (
             <div style={errorStyle}>
-              <WarningFilled size={16} />
+              <AlertTriangle size={16} />
               {error}
             </div>
           )}
@@ -123,7 +123,7 @@ export default function PasswordChangeModal({
                   style={toggleStyle}
                   tabIndex={-1}
                 >
-                  {showPassword ? <ViewOff size={16} /> : <View size={16} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               <small style={{ color: '#6f6f6f', fontSize: 12 }}>

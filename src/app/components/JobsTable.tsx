@@ -5,7 +5,7 @@ import { Job, User, Customer, JobStatus, JobType, GasUsageRecord } from '@/app/t
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag } from './ui';
-import { Add, WarningAltFilled } from '@carbon/icons-react';
+import { Plus, AlertTriangle } from 'lucide-react';
 import { canViewAllJobs, canManageJobs } from '@/app/lib/permissions';
 
 interface JobsTableProps {
@@ -48,7 +48,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             onClick={onAddJob}
           >
-            <Add size={16} />
+            <Plus size={16} />
             Add Job
           </button>
         )}
@@ -131,7 +131,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
                           style={{ color, marginLeft: 4, display: 'inline-flex', verticalAlign: 'middle' }}
                           title={warn.message}
                         >
-                          <WarningAltFilled size={16} />
+                          <AlertTriangle size={16} />
                         </span>
                       );
                     })()}

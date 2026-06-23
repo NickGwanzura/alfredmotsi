@@ -3,12 +3,6 @@
 echo "========================================="
 echo "🚀 Starting Splash Air CRM"
 echo "========================================="
-echo "📂 Working directory: $(pwd)"
-echo ""
-
-# List files to debug
-echo "📂 Directory contents:"
-ls -la
 echo ""
 
 # Check server.js
@@ -22,24 +16,27 @@ else
 fi
 echo ""
 
-# Sync database schema (db push avoids migration conflicts from schema drift)
-echo "📦 Syncing database schema..."
+# Run database migrations (safe, versioned)
+echo "📦 Running database migrations..."
 if [ -x "./node_modules/.bin/prisma" ]; then
-  ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ Schema sync failed, continuing..."
+  ./node_modules/.bin/prisma migrate deploy 2>&1 || echo "⚠️ Migration failed, continuing..."
 else
-  echo "⚠️ Prisma CLI not found in image, skipping schema sync"
+  echo "⚠️ Prisma CLI not found in image, skipping migrations"
 fi
 echo ""
 
-# Run seed (creates admin users if they don't exist)
-echo "🌱 Seeding database..."
-if [ -f "./prisma/seed.ts" ]; then
-  # Use npx tsx directly (pnpm exec is unreliable in Docker)
-  npx --yes tsx ./prisma/seed.ts 2>&1 || echo "⚠️ Seed may have failed, continuing..."
+# Run seed only if RUN_SEED=true
+if [ "$RUN_SEED" = "true" ]; then
+  echo "🌱 Seeding database..."
+  if [ -f "./prisma/seed.ts" ]; then
+    npx --yes tsx ./prisma/seed.ts 2>&1 || echo "⚠️ Seed may have failed, continuing..."
+  else
+    echo "⚠️ Seed file not found, skipping seed"
+  fi
+  echo ""
 else
-  echo "⚠️ Seed file not found, skipping seed"
+  echo "⏭️  Seed skipped (set RUN_SEED=true to seed)"
 fi
-echo ""
 
 # Start
 echo "========================================="

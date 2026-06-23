@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { signIn, signOut } from "next-auth/react";
-import { 
-  User, 
-  Enterprise, 
-  ArrowRight, 
-  WarningFilled,
-  CheckmarkFilled,
-  View,
-  ViewOff,
-  Snowflake
-} from '@carbon/icons-react';
+import {
+  User,
+  Building2,
+  ArrowRight,
+  AlertTriangle,
+  CheckCheck,
+  Eye,
+  EyeOff,
+  Snowflake,
+} from 'lucide-react';
 
 interface LoginProps {
   onLogin?: () => void;
@@ -117,19 +117,19 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           
           <div style={styles.featuresList}>
             <div style={styles.featureItem}>
-              <CheckmarkFilled size={20} style={styles.featureIcon} />
+              <CheckCheck size={20} style={styles.featureIcon} />
               <span style={styles.featureText}>Field Service Management</span>
             </div>
             <div style={styles.featureItem}>
-              <CheckmarkFilled size={20} style={styles.featureIcon} />
+              <CheckCheck size={20} style={styles.featureIcon} />
               <span style={styles.featureText}>Real-time Job Tracking</span>
             </div>
             <div style={styles.featureItem}>
-              <CheckmarkFilled size={20} style={styles.featureIcon} />
+              <CheckCheck size={20} style={styles.featureIcon} />
               <span style={styles.featureText}>Digital Job Cards</span>
             </div>
             <div style={styles.featureItem}>
-              <CheckmarkFilled size={20} style={styles.featureIcon} />
+              <CheckCheck size={20} style={styles.featureIcon} />
               <span style={styles.featureText}>Customer Portal</span>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
               }}
               aria-pressed={mode === 'staff'}
             >
-              <Enterprise size={18} />
+              <Building2 size={18} />
               <span>Staff Login</span>
             </button>
             <button
@@ -190,7 +190,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
           {/* Error Message */}
           {err && (
             <div style={styles.errorMessage} role="alert">
-              <WarningFilled size={20} />
+              <AlertTriangle size={20} />
               <span>{err}</span>
             </div>
           )}
@@ -262,7 +262,7 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     tabIndex={-1}
                   >
-                    {showPassword ? <ViewOff size={20} /> : <View size={20} />}
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>

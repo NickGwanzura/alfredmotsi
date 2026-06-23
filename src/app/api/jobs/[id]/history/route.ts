@@ -81,8 +81,8 @@ export async function POST(
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string; historyId: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -91,7 +91,11 @@ export async function DELETE(
     const forbidden = authorizeRole(session, ['admin']);
     if (forbidden) return forbidden;
 
-    const { id, historyId } = await params;
+    const { id } = await params;
+    const historyId = request.nextUrl.searchParams.get('historyId');
+    if (!historyId) {
+      return NextResponse.json({ error: 'historyId query parameter is required' }, { status: 400 });
+    }
 
     const entry = await prisma.historyEntry.findUnique({ where: { id: historyId } });
     if (!entry || entry.jobId !== id) {

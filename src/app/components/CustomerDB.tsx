@@ -7,7 +7,7 @@ import { canManageCustomers } from '@/app/lib/permissions';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
 import { sendPortalInviteEmail } from '@/app/lib/email/client';
 import { StatusTag, SectionTitle, Avatar, Notification } from './ui';
-import { Add, Edit, Chat, Email, UserMultiple, ChevronRight, Close, Send, CheckmarkFilled } from '@carbon/icons-react';
+import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck } from 'lucide-react';
 
 interface CustomerDBProps {
   customers: Customer[];
@@ -184,7 +184,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
         </div>
         {onAddCustomer && (
           <button className="btn btn-p btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={openEmpty}>
-            <Add size={16} /> Add Customer
+            <Plus size={16} /> Add Customer
           </button>
         )}
       </div>
@@ -257,7 +257,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                 </div>
                 {onEditCustomer && (
                   <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={() => onEditCustomer(active)}>
-                    <Edit size={14} /> Edit
+                    <FileEdit size={14} /> Edit
                   </button>
                 )}
               </div>
@@ -291,18 +291,18 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   onClick={openWACompose}
                 >
-                  <Chat size={16} /> WhatsApp {compose === 'wa' ? <Close size={14} /> : null}
+                  <MessageCircle size={16} /> WhatsApp {compose === 'wa' ? <X size={14} /> : null}
                 </button>
                 <button
                   className={`btn btn-sm ${compose === 'email' ? 'btn-p' : 'btn-mail'}`}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   onClick={openEmailCompose}
                 >
-                  <Email size={16} /> Email {compose === 'email' ? <Close size={14} /> : null}
+                  <Mail size={16} /> Email {compose === 'email' ? <X size={14} /> : null}
                 </button>
                 <button className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                   onClick={() => window.open(buildWA(active.whatsapp || active.phone, portalInviteText(active)), '_blank')}>
-                  <UserMultiple size={16} /> Portal Invite
+                  <Users size={16} /> Portal Invite
                 </button>
               </div>
 
@@ -425,7 +425,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                       onClick={sendEmail}
                       disabled={emailSending || (emailTemplate === 'portal-invite' && !active.portalCode)}
                     >
-                      {emailSending ? 'Sending…' : <><CheckmarkFilled size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
+                      {emailSending ? 'Sending…' : <><CheckCheck size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
                     </button>
                   </div>
                 </div>

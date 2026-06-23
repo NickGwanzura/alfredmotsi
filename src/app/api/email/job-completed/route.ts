@@ -16,7 +16,6 @@ interface JobCompletedRequest {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  console.log('[API /email/job-completed] Received request');
   
   try {
     const session = await auth();
@@ -42,7 +41,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-completed] Request body:', body);
 
     const {
       to,
@@ -73,7 +71,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-completed] Calling sendJobCompletedEmail');
 
     const result = await sendJobCompletedEmail({
       to: to.trim(),
@@ -95,7 +92,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log('[API /email/job-completed] Email sent successfully');
     return NextResponse.json({ success: true, data: result.data });
   } catch (error: unknown) {
     console.error('[API /email/job-completed] Unhandled error:', error);
