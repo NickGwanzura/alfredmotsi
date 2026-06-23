@@ -10,7 +10,6 @@ import {
   CheckCheck,
   Eye,
   EyeOff,
-  Snowflake,
   Container,
 } from 'lucide-react';
 
@@ -34,8 +33,12 @@ export default function Login({ onLogin }: LoginProps) {
   const [resetSending, setResetSending] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('logout') === '1') signOut({ redirect: false });
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('logout') === '1') signOut({ redirect: false });
+    } catch {
+      // Safe to ignore — signOut may fail if not authenticated
+    }
   }, []);
 
   const validateForm = () => {
@@ -77,7 +80,7 @@ export default function Login({ onLogin }: LoginProps) {
       <div className="hidden lg:flex w-[480px] flex-col justify-between px-14 py-12 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #00695c 0%, #004d40 50%, #00332a 100%)' }}>
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
-            <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl drop-shadow-lg" />
+            <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
           </div>
           <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
           <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>
