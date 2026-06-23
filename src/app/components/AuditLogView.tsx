@@ -4,8 +4,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, User as UserIcon, Clock, FileText, Filter, Activity } from 'lucide-react';
 import { User, AuditLogEntry, AuditAction } from '@/app/types';
 
-interface AuditLogViewProps { techs: User[]; }
-interface AuditLogResponse { logs: AuditLogEntry[]; total: number; page: number; pages: number; }
+interface AuditLogViewProps {
+  techs: User[];
+}
+
+interface AuditLogResponse {
+  logs: AuditLogEntry[];
+  total: number;
+  page: number;
+  pages: number;
+}
 
 const PAGE_SIZE = 50;
 
@@ -37,17 +45,18 @@ function formatDateTime(iso: string): string {
 }
 
 export default function AuditLogView({ techs }: AuditLogViewProps) {
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(1);
-  const [page, setPage] = useState(1);
+  const [logs, setLogs]       = useState<AuditLogEntry[]>([]);
+  const [total, setTotal]     = useState(0);
+  const [pages, setPages]     = useState(1);
+  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-  const [filterUser, setFilterUser] = useState('');
+  const [err, setErr]         = useState('');
+
+  const [filterUser,   setFilterUser]   = useState('');
   const [filterAction, setFilterAction] = useState('');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterTo, setFilterTo] = useState('');
-  const [filterJobId, setFilterJobId] = useState('');
+  const [filterFrom,   setFilterFrom]   = useState('');
+  const [filterTo,     setFilterTo]     = useState('');
+  const [filterJobId,  setFilterJobId]  = useState('');
 
   const fetchLogs = useCallback(async (targetPage: number) => {
     setLoading(true); setErr('');
@@ -63,11 +72,12 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       if (!res.ok) throw new Error('Failed to load audit logs');
       const data: AuditLogResponse = await res.json();
       setLogs(data.logs); setTotal(data.total); setPages(data.pages); setPage(data.page);
-    } catch { setErr('Could not load audit records.'); }
+    } catch { setErr('Could not load audit records. Please try again.'); }
     finally { setLoading(false); }
   }, [filterUser, filterAction, filterFrom, filterTo, filterJobId]);
 
   useEffect(() => { fetchLogs(1); }, [fetchLogs]);
+
   function handleRefresh() { fetchLogs(page); }
   function handlePrev() { if (page > 1) fetchLogs(page - 1); }
   function handleNext() { if (page < pages) fetchLogs(page + 1); }
@@ -87,7 +97,8 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Audit Log</h1>
           <p className="text-sm text-gray-500 mt-0.5">Track all user activity across the platform.</p>
         </div>
-        <button onClick={handleRefresh} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors border-none cursor-pointer">
+        <button onClick={handleRefresh}
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors border-none cursor-pointer">
           <Clock size={16} /> Refresh
         </button>
       </div>
@@ -112,110 +123,43 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex items-center gap-1.5 text-gray-400 mr-2 self-center">
-            <Filter size={14} /><span className="text-xs font-medium uppercase tracking-wider">Filters</span>
+            <Filter size={14} />
+            <span className="text-xs font-medium uppercase tracking-wider">Filters</span>
           </div>
           <div className="flex gap-1">
             {[{ label: 'Today', days: 1 }, { label: '7 days', days: 7 }, { label: '30 days', days: 30 }].map(({ label, days }) => (
-              <button key={label} onClick={() => applyDateRange(days)} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">{label}</button>
+              <button key={label} onClick={() => applyDateRange(days)}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">{label}</button>
             ))}
           </div>
           <div className="min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><UserIcon size={12} className="inline mr-1" />User</label>
-            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+              value={filterUser} onChange={e => setFilterUser(e.target.value)}>
               <option value="">All users</option>
               {techs.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
           <div className="min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Action</label>
-            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+            <select className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer"
+              value={filterAction} onChange={e => setFilterAction(e.target.value)}>
               <option value="">All actions</option>
-              {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} \u00b7 {cfg.label}</option>)}
+              {ACTION_OPTIONS.map(([value, cfg]) => <option key={value} value={value}>{cfg.group} · {cfg.label}</option>)}
             </select>
           </div>
           <div className="min-w-[160px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><FileText size={12} className="inline mr-1" />Job ID</label>
-            <input type="search" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
+            <input type="search" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+              value={filterJobId} onChange={e => setFilterJobId(e.target.value)} placeholder="Exact job id" />
           </div>
           <div className="min-w-[140px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />From</label>
-            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
+            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+              value={filterFrom} onChange={e => setFilterFrom(e.target.value)} />
           </div>
           <div className="min-w-[140px]">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block"><Clock size={12} className="inline mr-1" />To</label>
-            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={filterTo} onChange={e => setFilterTo(e.target.value)} />
+            <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+              value={filterTo} onChange={e => setFilterTo(e.target.value)} />
           </div>
-          {hasFilters && (
-            <button onClick={clearFilters} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer self-end">Clear</button>
-          )}
-        </div>
-      </div>
-
-      {!loading && logs.length > 0 && (
-        <div className="flex items-start gap-3 p-4 mb-4 rounded-lg bg-blue-50 border border-blue-200">
-          <div className="text-sm">
-            <p className="font-semibold text-blue-800">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</p>
-            <p className="text-blue-600 mt-0.5">Latest activity {latestLog ? formatDateTime(latestLog) : '\u2014'} \u00b7 Page {page} of {pages || 1}</p>
-          </div>
-        </div>
-      )}
-
-      {err && <div className="p-4 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-50">
-              {[
-                { icon: Clock, label: 'Time' }, { icon: UserIcon, label: 'User' },
-                { icon: FileText, label: 'Action' }, { label: 'Job ID' },
-                { label: 'Reason' }, { icon: MapPin, label: 'Location' }, { label: 'IP Address' },
-              ].map(col => (
-                <th key={col.label} className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100 whitespace-nowrap">
-                  <span className="flex items-center gap-1.5">{col.icon && <col.icon size={13} />} {col.label}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <tr><td colSpan={7} className="text-center text-gray-400 py-10 text-sm">Loading audit records...</td></tr>}
-            {!loading && logs.length === 0 && (
-              <tr><td colSpan={7}><div className="flex flex-col items-center justify-center py-10 text-gray-400"><Activity size={40} className="mb-3 opacity-30" /><p className="text-sm">No audit records found.</p></div></td></tr>
-            )}
-            {!loading && logs.map(log => {
-              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: '#6f6f6f', bg: 'bg-gray-100', group: 'Other' };
-              const hasLocation = log.latitude != null && log.longitude != null;
-              return (
-                <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.userName}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${action.bg}`} style={{ color: action.color }}>{action.label}</span></td>
-                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.jobId ?? '\u2014'}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 max-w-[260px] truncate" title={log.reason ?? undefined}>{log.reason || '\u2014'}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {hasLocation ? (
-                      <a href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-600 no-underline hover:underline">
-                        <MapPin size={12} /> View Map
-                      </a>
-                    ) : <span className="text-gray-400">\u2014</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ipAddress ?? '\u2014'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {!loading && logs.length > 0 && (
-        <div className="flex items-center justify-between mt-4 px-1">
-          <span className="text-xs text-gray-400">Page {page} of {pages} \u00b7 {total} record{total !== 1 ? 's' : ''} total</span>
-          <div className="flex gap-1">
-            <button onClick={handlePrev} disabled={page <= 1} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">\u2190 Prev</button>
-            <button onClick={handleNext} disabled={page >= pages} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next \u2192</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

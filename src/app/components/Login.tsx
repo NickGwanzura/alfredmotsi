@@ -82,7 +82,7 @@ export default function Login({ onLogin }: LoginProps) {
         <img src="/commercial-comfort.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="relative z-10">
           <div className="mb-10 flex items-center justify-center w-[140px] h-[140px] rounded-2xl bg-white/10 backdrop-blur-sm">
-            <img src="/logo.png" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
+            <img src="/logo.svg" alt="Splash Air" className="w-full max-w-[120px] h-auto rounded-xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))' }} />
           </div>
           <h1 className="text-[42px] font-light mb-2 tracking-tight">Splash Air</h1>
           <p className="text-base opacity-80 mb-12 font-light">Professional HVAC Services</p>
@@ -112,7 +112,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="w-full max-w-[420px] bg-white p-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <img src="/logo.png" alt="Splash Air" className="w-20 h-auto" />
+            <img src="/logo.svg" alt="Splash Air" className="w-20 h-auto" />
           </div>
 
           {/* Mode Toggle */}

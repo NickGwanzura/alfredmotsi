@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, FormItem, Notification } from './ui';
-import { X, Plus, Mail, Trash2, FileEdit, AlertTriangle } from 'lucide-react';
+import { X, Plus, Mail, Trash2, FileEdit, AlertTriangle, Users, Shield, Wrench } from 'lucide-react';
 
 interface ManagedUser {
   id: string;
@@ -19,6 +19,12 @@ const ROLE_TAG: Record<string, { bg: string; txt: string; label: string }> = {
   admin:  { bg: '#491d8b22', txt: '#491d8b', label: 'Administrator' },
   tech:   { bg: '#0043ce22', txt: '#0043ce', label: 'Technician'    },
   client: { bg: '#005d5d22', txt: '#005d5d', label: 'Client'        },
+};
+
+const ROLE_AVATAR_COLORS: Record<string, string> = {
+  admin: '#6929c4',
+  tech: '#0f62fe',
+  client: '#005d5d',
 };
 
 function generateTempPassword(): string {
@@ -163,109 +169,132 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
   const admins = users.filter(u => u.role === 'admin').length;
   const techsCount = users.filter(u => u.role === 'tech').length;
 
-  const tb = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs';
-
   return (
-    <div>
+    <div className="animate-fade-in max-w-7xl mx-auto">
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-support-success text-white px-5 py-3 text-sm font-medium shadow-lg max-w-[380px]">
+        <div className="fixed bottom-6 right-6 z-[9999] bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
           {toast}
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">User Management</h1>
-          <p className="text-sm text-text-secondary">Invite staff, manage roles, and control access to the platform.</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Invite staff, manage roles, and control access to the platform.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           {dupCount > 0 && (
-            <button className={`${tb} bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity`}
-              onClick={handleCleanDuplicates} disabled={deduping}>
+            <button onClick={handleCleanDuplicates} disabled={deduping}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer disabled:opacity-50">
               <AlertTriangle size={16} />{deduping ? 'Cleaning...' : `Remove ${dupCount} Duplicate${dupCount > 1 ? 's' : ''}`}
             </button>
           )}
-          <button className={`${tb} bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors gap-2`} onClick={openInvite}>
+          <button onClick={openInvite}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer">
             <Plus size={16} /> Invite User
           </button>
         </div>
       </div>
 
-      {pageErr && <Notification kind="e" title="Error" body={pageErr} />}
-
-      {dupCount > 0 && (
-        <div className="flex items-start gap-3 p-4 mb-4 bg-amber-50 border-l-4 border-l-support-warning">
+      {pageErr && (
+        <div className="flex items-start gap-3 p-4 mb-6 rounded-lg bg-red-50 border border-red-200">
+          <div className="p-1 rounded-full bg-red-100 text-red-600"><AlertTriangle size={16} /></div>
           <div>
-            <div className="font-semibold text-sm text-text-primary">{dupCount} duplicate account{dupCount > 1 ? 's' : ''} detected</div>
-            <div className="text-sm text-text-secondary">Multiple accounts share the same email. Click "Remove Duplicates" to keep the oldest account per email and delete the rest.</div>
+            <p className="font-semibold text-sm text-red-800">Error</p>
+            <p className="text-sm text-red-600">{pageErr}</p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{users.length}</div>
-          <div className="text-xs text-text-secondary mt-1">Total Users</div>
+      {dupCount > 0 && (
+        <div className="flex items-start gap-4 p-4 mb-6 rounded-lg bg-amber-50 border border-amber-200">
+          <div className="p-1.5 rounded-full bg-amber-100 text-amber-600 shrink-0"><AlertTriangle size={18} /></div>
+          <div>
+            <p className="font-semibold text-sm text-amber-800">{dupCount} duplicate account{dupCount > 1 ? 's' : ''} detected</p>
+            <p className="text-sm text-amber-600 mt-0.5">Multiple accounts share the same email. Click "Remove Duplicates" to keep the oldest account per email and delete the rest.</p>
+          </div>
         </div>
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{admins}</div>
-          <div className="text-xs text-text-secondary mt-1">Administrators</div>
-        </div>
-        <div className="bg-layer p-4 border-t-4 border-t-interactive">
-          <div className="text-3xl font-bold text-text-primary">{techsCount}</div>
-          <div className="text-xs text-text-secondary mt-1">Technicians</div>
-        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-5 mb-8">
+        {[
+          { label: 'Total Users', value: users.length, icon: Users, color: 'from-blue-500 to-blue-600' },
+          { label: 'Administrators', value: admins, icon: Shield, color: 'from-purple-500 to-purple-600' },
+          { label: 'Technicians', value: techsCount, icon: Wrench, color: 'from-amber-500 to-amber-600' },
+        ].map((s, i) => (
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-500">{s.label}</span>
+              <div className={`p-2 rounded-lg bg-gradient-to-br ${s.color} text-white shadow-sm`}><s.icon size={18} /></div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 tracking-tight">{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="overflow-x-auto border border-border-subtle">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-surface">
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">User</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Email</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Role</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Phone</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Specialty</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle">Joined</th>
-              <th className="text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] px-4 py-3 border-b border-border-subtle" style={{ width: 148 }}>Actions</th>
+            <tr className="bg-gray-50">
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">User</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">Email</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">Role</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">Phone</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">Specialty</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">Joined</th>
+              <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3" style={{ width: 180 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr><td colSpan={7} className="text-center text-text-secondary p-8 text-sm">Loading users...</td></tr>
-            )}
+            {loading && <tr><td colSpan={7} className="text-center text-gray-400 py-10 text-sm">Loading users...</td></tr>}
             {!loading && users.length === 0 && (
-              <tr><td colSpan={7} className="text-center text-text-secondary p-8 text-sm">No users found. Invite your first team member.</td></tr>
+              <tr><td colSpan={7}>
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                  <Users size={40} className="mb-3 opacity-30" />
+                  <p className="text-sm">No users found. Invite your first team member.</p>
+                </div>
+              </td></tr>
             )}
             {!loading && users.map(u => {
               const role = ROLE_TAG[u.role] || ROLE_TAG.tech;
               const isSelf = u.id === currentUserId;
               const isDuplicate = emailCounts[u.email.toLowerCase()] > 1;
               return (
-                <tr key={u.id} className="border-b border-border-subtle hover:bg-surface-hover transition-colors" style={isDuplicate ? { background: '#fff1f1' } : undefined}>
+                <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors" style={isDuplicate ? { background: '#fef2f2' } : undefined}>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={u.name} size={28} color={u.role === 'admin' ? '#6929c4' : u.role === 'tech' ? '#0f62fe' : '#005d5d'} />
-                      <span className="font-medium text-text-primary">
-                        {u.name}
-                        {isSelf && <span className="text-xs text-text-secondary ml-1.5">(you)</span>}
-                        {isDuplicate && <span className="text-xs text-support-error ml-1.5">duplicate</span>}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={u.name} size={32} color={ROLE_AVATAR_COLORS[u.role] || '#00695c'} />
+                      <div>
+                        <span className="font-medium text-sm text-gray-900">
+                          {u.name}
+                          {isSelf && <span className="text-xs text-gray-400 ml-1.5 font-normal">(you)</span>}
+                        </span>
+                        {isDuplicate && <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700 ml-2">duplicate</span>}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{u.email}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center h-6 px-2 text-[11px] font-medium" style={{ background: role.bg, color: role.txt }}>{role.label}</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full" style={{ background: role.bg, color: role.txt }}>{role.label}</span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{u.phone || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{u.specialty || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-text-secondary">{new Date(u.createdAt).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{u.phone || '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{u.specialty || '—'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-0.5">
-                      <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => openEdit(u)} title="Edit user"><FileEdit size={14} /> Edit</button>
-                      <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => openResend(u)} title="Resend login credentials"><Mail size={14} /></button>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => openEdit(u)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer" title="Edit user">
+                        <FileEdit size={13} /> Edit
+                      </button>
+                      <button onClick={() => openResend(u)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer" title="Resend login credentials">
+                        <Mail size={13} />
+                      </button>
                       {!isSelf && (
-                        <button className={`${tb} bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity`} onClick={() => openDelete(u)} title="Remove user"><Trash2 size={14} /></button>
+                        <button onClick={() => openDelete(u)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer" title="Remove user">
+                          <Trash2 size={13} />
+                        </button>
                       )}
                     </div>
                   </td>
@@ -278,48 +307,69 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Invite Modal */}
       {modal === 'invite' && (
-        <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={() => setModal('none')}>
-          <div className="bg-layer w-full max-w-[780px] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border-subtle">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-8" onClick={() => setModal('none')}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">User Management</p>
-                <h2 className="text-xl font-semibold text-text-primary mt-1">Invite Team Member</h2>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-1">Invite Team Member</h2>
               </div>
-              <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={() => setModal('none')}><X size={20} /></button>
+              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
-            <div className="p-6">
+            <div className="px-6 py-5 space-y-4">
               {inviteErr && <Notification kind="e" title="Check form" body={inviteErr} />}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <FormItem label="Full name *"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. Tendai Moyo" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} /></FormItem>
-                <FormItem label="Email address *"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="email" placeholder="e.g. tendai@company.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} /></FormItem>
+              <div className="grid grid-cols-2 gap-4">
+                <FormItem label="Full name *">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Tendai Moyo" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
+                </FormItem>
+                <FormItem label="Email address *">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" placeholder="e.g. tendai@company.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                </FormItem>
               </div>
               <FormItem label="Role *" helper="Administrators have full access. Technicians can only view their assigned jobs.">
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
+                <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
                   <option value="tech">Technician</option><option value="admin">Administrator</option>
                 </select>
               </FormItem>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <FormItem label="Phone number"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. +263 77 123 4567" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} /></FormItem>
-                <FormItem label="Specialty" helper="e.g. VRV/VRF, Refrigeration"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. Split Systems, Ducted" value={inviteForm.specialty} onChange={e => setInviteForm(f => ({ ...f, specialty: e.target.value }))} /></FormItem>
+              <div className="grid grid-cols-2 gap-4">
+                <FormItem label="Phone number">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. +263 77 123 4567" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
+                </FormItem>
+                <FormItem label="Specialty" helper="e.g. VRV/VRF, Refrigeration">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, Ducted" value={inviteForm.specialty} onChange={e => setInviteForm(f => ({ ...f, specialty: e.target.value }))} />
+                </FormItem>
               </div>
-              <hr className="border-border-subtle my-4" />
+              <hr className="border-gray-100" />
               <FormItem label="Temporary password" helper="Generated automatically. Will be emailed to the user.">
-                <div className="flex">
-                  <input className="w-full h-9 px-3 text-sm bg-surface-hover border border-border-strong outline-none mono tracking-wider" value={tempPw} readOnly />
-                  <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors ${copied ? 'bg-support-success text-white border-support-success' : ''}`} onClick={copyPassword}>{copied ? '✓ Copied' : 'Copy'}</button>
-                  <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => { setTempPw(generateTempPassword()); setCopied(false); }}>New</button>
+                <div className="flex gap-2">
+                  <input className="flex-1 h-9 px-3 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none font-mono tracking-wider" value={tempPw} readOnly />
+                  <button onClick={copyPassword}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer border ${
+                      copied ? 'text-white bg-emerald-600 border-emerald-600' : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                    }`}>
+                    {copied ? '✓ Copied' : 'Copy'}
+                  </button>
+                  <button onClick={() => { setTempPw(generateTempPassword()); setCopied(false); }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">
+                    New
+                  </button>
                 </div>
               </FormItem>
-              <div className="flex items-start gap-3 p-4 mt-4 bg-blue-50 border-l-4 border-l-support-info">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="p-1 rounded-full bg-blue-100 text-blue-600 shrink-0"><Mail size={14} /></div>
                 <div>
-                  <div className="font-semibold text-sm text-text-primary">Login credentials will be emailed</div>
-                  <div className="text-sm text-text-secondary">{inviteForm.email || 'The user'} will receive their username and temporary password by email.</div>
+                  <p className="font-semibold text-sm text-blue-800">Login credentials will be emailed</p>
+                  <p className="text-sm text-blue-600 mt-0.5">{inviteForm.email || 'The user'} will receive their username and temporary password by email.</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-              <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => setModal('none')}>Cancel</button>
-              <button className={`${tb} bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors`} onClick={handleInvite} disabled={inviting}>{inviting ? 'Sending invite...' : 'Send Invite'}</button>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setModal('none')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+              <button onClick={handleInvite} disabled={inviting}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
+                {inviting ? 'Sending invite...' : 'Send Invite'}
+              </button>
             </div>
           </div>
         </div>
@@ -327,34 +377,46 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Edit Modal */}
       {modal === 'edit' && target && (
-        <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={() => setModal('none')}>
-          <div className="bg-layer w-full max-w-[780px] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border-subtle">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-8" onClick={() => setModal('none')}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">User Management</p>
-                <h2 className="text-xl font-semibold text-text-primary mt-1">Edit User</h2>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-1">Edit User</h2>
               </div>
-              <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={() => setModal('none')}><X size={20} /></button>
+              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
-            <div className="p-6">
+            <div className="px-6 py-5 space-y-4">
               {editErr && <Notification kind="e" title="Error" body={editErr} />}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <FormItem label="Full name *"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></FormItem>
-                <FormItem label="Email address *"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></FormItem>
+              <div className="grid grid-cols-2 gap-4">
+                <FormItem label="Full name *">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                </FormItem>
+                <FormItem label="Email address *">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                </FormItem>
               </div>
               <FormItem label="Role" helper={target.id === currentUserId ? 'You cannot change your own role.' : 'Changing role takes effect immediately.'}>
-                <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={editForm.role} disabled={target.id === currentUserId} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+                <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.role} disabled={target.id === currentUserId} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
                   <option value="tech">Technician</option><option value="admin">Administrator</option><option value="client">Client</option>
                 </select>
               </FormItem>
               <div className="grid grid-cols-2 gap-4">
-                <FormItem label="Phone number"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="+263 77 123 4567" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></FormItem>
-                <FormItem label="Specialty"><input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. Split Systems, VRV" value={editForm.specialty} onChange={e => setEditForm(f => ({ ...f, specialty: e.target.value }))} /></FormItem>
+                <FormItem label="Phone number">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="+263 77 123 4567" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                </FormItem>
+                <FormItem label="Specialty">
+                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, VRV" value={editForm.specialty} onChange={e => setEditForm(f => ({ ...f, specialty: e.target.value }))} />
+                </FormItem>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-              <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => setModal('none')}>Cancel</button>
-              <button className={`${tb} bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors`} onClick={handleEdit} disabled={editLoading}>{editLoading ? 'Saving...' : 'Save Changes'}</button>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setModal('none')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+              <button onClick={handleEdit} disabled={editLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>
@@ -362,34 +424,37 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Resend Modal */}
       {modal === 'resend' && target && (
-        <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={() => setModal('none')}>
-          <div className="bg-layer w-full max-w-[480px] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border-subtle">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-8" onClick={() => setModal('none')}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">User Management</p>
-                <h2 className="text-xl font-semibold text-text-primary mt-1">Resend Credentials</h2>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-1">Resend Credentials</h2>
               </div>
-              <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={() => setModal('none')}><X size={20} /></button>
+              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
-            <div className="p-6">
+            <div className="px-6 py-5 space-y-4">
               {resendErr && <Notification kind="e" title="Error" body={resendErr} />}
-              <div className="flex items-center gap-4 p-4 mb-4 bg-surface-hover border border-border-subtle">
-                <Avatar name={target.name} size={40} color={target.role === 'admin' ? '#6929c4' : '#0f62fe'} />
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 border border-gray-100">
+                <Avatar name={target.name} size={40} color={ROLE_AVATAR_COLORS[target.role] || '#00695c'} />
                 <div>
-                  <p className="font-semibold text-text-primary">{target.name}</p>
-                  <p className="text-xs text-text-secondary">{target.email}</p>
+                  <p className="font-semibold text-sm text-gray-900">{target.name}</p>
+                  <p className="text-xs text-gray-500">{target.email}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-support-warning">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="p-1 rounded-full bg-amber-100 text-amber-600 shrink-0"><Mail size={14} /></div>
                 <div>
-                  <div className="font-semibold text-sm text-text-primary">A new temporary password will be generated</div>
-                  <div className="text-sm text-text-secondary">The user&apos;s current password will be replaced and they will receive new login credentials at <strong>{target.email}</strong>.</div>
+                  <p className="font-semibold text-sm text-amber-800">A new temporary password will be generated</p>
+                  <p className="text-sm text-amber-600 mt-0.5">The user's current password will be replaced and they will receive new login credentials at <strong>{target.email}</strong>.</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-              <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => setModal('none')}>Cancel</button>
-              <button className={`${tb} bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors gap-1.5`} onClick={handleResend} disabled={resending}>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setModal('none')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+              <button onClick={handleResend} disabled={resending}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
                 <Mail size={16} />{resending ? 'Sending...' : 'Send New Credentials'}
               </button>
             </div>
@@ -399,21 +464,31 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Delete Modal */}
       {modal === 'delete' && target && (
-        <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-12" onClick={() => setModal('none')}>
-          <div className="bg-layer w-full max-w-[480px] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between p-6 border-b border-border-subtle">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-8" onClick={() => setModal('none')}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">User Management</p>
-                <h2 className="text-xl font-semibold text-text-primary mt-1">Remove User</h2>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-1">Remove User</h2>
               </div>
-              <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={() => setModal('none')}><X size={20} /></button>
+              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
-            <div className="p-6">
-              <Notification kind="e" title={`Remove ${target.name}?`} body="This will permanently delete their account. Jobs they are assigned to will remain but their user record will be removed." />
+            <div className="px-6 py-5">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
+                <div className="p-1 rounded-full bg-red-100 text-red-600 shrink-0"><AlertTriangle size={16} /></div>
+                <div>
+                  <p className="font-semibold text-sm text-red-800">Remove {target.name}?</p>
+                  <p className="text-sm text-red-600 mt-0.5">This will permanently delete their account. Jobs they are assigned to will remain but their user record will be removed.</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-              <button className={`${tb} bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors`} onClick={() => setModal('none')}>Cancel</button>
-              <button className={`${tb} bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity`} onClick={handleDelete} disabled={deleting}>{deleting ? 'Removing...' : 'Remove User'}</button>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setModal('none')}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer disabled:opacity-50">
+                {deleting ? 'Removing...' : 'Remove User'}
+              </button>
             </div>
           </div>
         </div>
