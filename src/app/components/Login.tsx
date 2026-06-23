@@ -347,7 +347,46 @@ export default function Login({ onLogin, onPortalLogin }: LoginProps) {
                     Found on your service invoice or email
                   </span>
                 </div>
-              ) : null}
+              ) : (
+                /* Password Field */
+                <div style={styles.fieldGroup}>
+                  <label 
+                    htmlFor="password"
+                    style={{
+                      ...styles.label,
+                      ...(focusedField === 'password' ? styles.labelFocused : {}),
+                    }}
+                  >
+                    Password
+                  </label>
+                  <div style={styles.inputWrapper}>
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Enter your password"
+                      style={{
+                        ...styles.input,
+                        ...(focusedField === 'password' ? styles.inputFocused : {}),
+                      }}
+                      autoComplete="current-password"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={styles.passwordToggle}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
