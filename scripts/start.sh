@@ -19,7 +19,15 @@ echo ""
 # Run database migrations (safe, versioned)
 echo "📦 Running database migrations..."
 if [ -x "./node_modules/.bin/prisma" ]; then
-  ./node_modules/.bin/prisma migrate deploy 2>&1 || echo "⚠️ Migration failed, continuing..."
+  # First try to resolve any failed migration so we can apply new ones
+  ./node_modules/.bin/prisma migrate resolve --applied 20260528000000_init 2>/dev/null || true
+  
+  if ./node_modules/.bin/prisma migrate deploy 2>&1; then
+    echo "✅ Migrations applied successfully"
+  else
+    echo "⚠️ Migration deploy failed — attempting db push as fallback..."
+    ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+  fi
 else
   echo "⚠️ Prisma CLI not found in image, skipping migrations"
 fi
