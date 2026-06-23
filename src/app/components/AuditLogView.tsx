@@ -163,3 +163,87 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             <input type="date" className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
               value={filterTo} onChange={e => setFilterTo(e.target.value)} />
           </div>
+          {hasFilters && (
+            <button onClick={clearFilters}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer self-end">Clear</button>
+          )}
+        </div>
+      </div>
+
+      {!loading && logs.length > 0 && (
+        <div className="flex items-start gap-3 p-4 mb-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div className="text-sm">
+            <p className="font-semibold text-blue-800">Showing {logs.length} of {total} record{total !== 1 ? 's' : ''}</p>
+            <p className="text-blue-600 mt-0.5">Latest activity {latestLog ? formatDateTime(latestLog) : '—'} · Page {page} of {pages || 1}</p>
+          </div>
+        </div>
+      )}
+
+      {err && <div className="p-4 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              {[
+                { icon: Clock, label: 'Time' },
+                { icon: UserIcon, label: 'User' },
+                { icon: FileText, label: 'Action' },
+                { label: 'Job ID' },
+                { label: 'Reason' },
+                { icon: MapPin, label: 'Location' },
+                { label: 'IP Address' },
+              ].map(col => (
+                <th key={col.label} className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100 whitespace-nowrap">
+                  <span className="flex items-center gap-1.5">{col.icon && <col.icon size={13} />} {col.label}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={7} className="text-center text-gray-400 py-10 text-sm">Loading audit records...</td></tr>}
+            {!loading && logs.length === 0 && (
+              <tr><td colSpan={7}><div className="flex flex-col items-center justify-center py-10 text-gray-400"><Activity size={40} className="mb-3 opacity-30" /><p className="text-sm">No audit records found.</p></div></td></tr>
+            )}
+            {!loading && logs.map(log => {
+              const action = ACTION_CONFIG[log.action] ?? { label: log.action, color: '#6f6f6f', bg: 'bg-gray-100', group: 'Other' };
+              const hasLocation = log.latitude != null && log.longitude != null;
+              return (
+                <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.userName}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${action.bg}`} style={{ color: action.color }}>{action.label}</span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.jobId ?? '—'}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 max-w-[260px] truncate" title={log.reason ?? undefined}>{log.reason || '—'}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {hasLocation ? (
+                      <a href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-brand-600 no-underline hover:underline">
+                        <MapPin size={12} /> View Map
+                      </a>
+                    ) : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ipAddress ?? '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {!loading && logs.length > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <span className="text-xs text-gray-400">Page {page} of {pages} · {total} record{total !== 1 ? 's' : ''} total</span>
+          <div className="flex gap-1">
+            <button onClick={handlePrev} disabled={page <= 1}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">← Prev</button>
+            <button onClick={handleNext} disabled={page >= pages}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -346,7 +346,7 @@ export default function Home() {
         >
           <MenuIcon size={20} />
         </button>
-        <img src="/logo.svg" alt="Splash Air" className="w-7 h-7 rounded" />
+        <img src="/logos.svg" alt="Splash Air" className="w-7 h-7 rounded" />
         <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-semibold text-text-primary no-underline">
           Splash Air <span className="font-normal text-text-secondary">/ Service Platform v10</span>
         </a>
@@ -392,7 +392,7 @@ export default function Home() {
       <nav className={`sidebar no-print ${sideNavOpen ? 'open' : ''}`}>
         {/* Sidebar Logo */}
         <div className="px-5 pb-5 mb-4 border-b border-border-subtle flex items-center gap-3">
-          <img src="/logo.svg" alt="Splash Air" className="w-9 h-9 rounded-lg" />
+          <img src="/logos.svg" alt="Splash Air" className="w-9 h-9 rounded-lg" />
           <div>
             <p className="text-sm font-semibold text-text-primary">Splash Air</p>
             <p className="text-[10px] text-text-secondary">Service Platform v10</p>
