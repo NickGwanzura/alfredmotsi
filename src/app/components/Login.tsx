@@ -563,7 +563,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.11s ease',
   },
   modeButtonActive: {
-    borderBottomColor: '#0f62fe',
+    borderBottom: '2px solid #0f62fe',
     color: '#161616',
     fontWeight: 600,
   },
@@ -636,7 +636,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.11s ease',
   },
   inputFocused: {
-    borderBottomColor: '#0f62fe',
+    borderBottom: '2px solid #0f62fe',
     background: '#ffffff',
   },
   codeInput: {
