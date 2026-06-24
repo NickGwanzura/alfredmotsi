@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { InvoicePDF } from '@/app/lib/pdf/invoicePdf';
+import { loadCompany } from '@/app/lib/pdf/company';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -15,7 +16,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   });
   if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const buffer = await renderToBuffer(InvoicePDF({ invoice }));
+  const company = await loadCompany();
+  const buffer = await renderToBuffer(InvoicePDF({ invoice, company }));
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

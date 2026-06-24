@@ -1,6 +1,6 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, renderToBuffer } from '@react-pdf/renderer';
-import { COMPANY, COMPANY_PHONE_LINE, COMPANY_SERVICES_LINE } from './company';
+import { Document, Page, Text, View, StyleSheet, renderToBuffer, Image } from '@react-pdf/renderer';
+import { COMPANY, COMPANY_PHONE_LINE, COMPANY_SERVICES_LINE, CompanyData, loadCompany } from './company';
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: 'Helvetica', color: '#161616' },
@@ -98,20 +98,28 @@ function formatDate(s?: string | null): string {
   return d.toLocaleDateString('en-ZA', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-export function JobCardPdfDoc({ job }: { job: JobForPdf }) {
+export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: CompanyData }) {
   const address = job.customer.siteAddress || job.customer.address || '—';
   const leadTech = job.technicians?.[0]?.name || 'Not assigned';
   const coTechs = job.coTechnicians?.map(t => t.name).join(', ') || '';
+  const co = c || { name: COMPANY.name, address: COMPANY.address, phone: COMPANY_PHONE_LINE, email: '', website: '', vatRate: 15.5, vatNumber: '', logoUrl: '', tagline: 'Air Conditioning & Refrigeration', services: COMPANY_SERVICES_LINE };
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* ───── Company Header ───── */}
         <View style={styles.header} fixed>
-          <Text style={styles.coName}>{COMPANY.name}</Text>
-          <Text style={styles.coMeta}>Address: {COMPANY.address}</Text>
-          <Text style={styles.coMeta}>Phone: {COMPANY_PHONE_LINE}</Text>
-          <Text style={styles.coServices}>Our Services: {COMPANY_SERVICES_LINE}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {co.logoUrl ? (
+              <Image source={{ uri: co.logoUrl, method: 'GET', headers: { Accept: 'image/*' } }} style={{ width: 32, height: 32 }} />
+            ) : null}
+            <View>
+              <Text style={styles.coName}>{co.name}</Text>
+              <Text style={styles.coMeta}>Address: {co.address}</Text>
+              <Text style={styles.coMeta}>Phone: {co.phone}</Text>
+              <Text style={styles.coServices}>Our Services: {co.services}</Text>
+            </View>
+          </View>
         </View>
 
         {/* ───── Title + Ref ───── */}
@@ -249,6 +257,6 @@ export function JobCardPdfDoc({ job }: { job: JobForPdf }) {
 /**
  * Generate a Job Card PDF as a Buffer, ready for email attachment or HTTP download.
  */
-export async function generateJobCardPdf(job: JobForPdf): Promise<Buffer> {
-  return await renderToBuffer(<JobCardPdfDoc job={job} />);
+export async function generateJobCardPdf(job: JobForPdf, company?: CompanyData): Promise<Buffer> {
+  return await renderToBuffer(<JobCardPdfDoc job={job} company={company} />);
 }

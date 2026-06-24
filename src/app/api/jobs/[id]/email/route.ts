@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
+import { loadCompany } from '@/app/lib/pdf/company';
 import { sendEmailWithBestPractices } from '@/app/lib/email/send';
 import { generatePreviewText } from '@/app/lib/email/standards';
 
@@ -34,8 +35,9 @@ export async function POST(
   if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
   if (!job.customer?.email) return NextResponse.json({ error: 'Customer has no email address' }, { status: 400 });
 
-  // Generate PDF
-  const pdfBuffer = await generateJobCardPdf(job);
+  // Generate PDF with company branding
+  const company = await loadCompany();
+  const pdfBuffer = await generateJobCardPdf(job, company);
 
   // Build branded HTML email
   const address = job.customer.siteAddress || job.customer.address || '—';

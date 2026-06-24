@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { loadCompany } from '@/app/lib/pdf/company';
 
 interface GasUsageRecord {
   id: string;
@@ -32,14 +33,23 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 18, left: 36, right: 36, borderTop: '1 solid #e0e0e0', paddingTop: 6, fontSize: 7, color: '#6f6f6f', textAlign: 'center' },
 });
 
-function GasUsagePdfDoc({ usage, dateStr }: { usage: GasUsageRecord[]; dateStr: string }) {
+function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: any }) {
   const totalKg = usage.reduce((s, r) => s + r.quantityUsed, 0);
+  const co = c || { name: 'Splash Air', address: '', phone: '', tagline: 'Air Conditioning & Refrigeration', website: '' };
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header} fixed>
-          <Text style={styles.coName}>Splash Air Conditioning</Text>
-          <Text style={styles.coMeta}>Gas Usage Report — Generated {dateStr}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {co.logoUrl ? (
+              <Image source={{ uri: co.logoUrl, method: 'GET', headers: { Accept: 'image/*' } }} style={{ width: 28, height: 28 }} />
+            ) : null}
+            <View>
+              <Text style={styles.coName}>{co.name}</Text>
+              <Text style={styles.coMeta}>Gas Usage Report — Generated {dateStr}</Text>
+              <Text style={styles.coMeta}>{co.address} · {co.phone}</Text>
+            </View>
+          </View>
         </View>
 
         <Text style={styles.title}>Refrigerant Gas Usage Log</Text>
@@ -80,7 +90,7 @@ function GasUsagePdfDoc({ usage, dateStr }: { usage: GasUsageRecord[]; dateStr: 
         ))}
 
         <View style={styles.footer} fixed>
-          <Text>Splash Air Conditioning · Gas Usage Report · Generated {dateStr}</Text>
+          <Text>{co.name} · Gas Usage Report · {co.website}</Text>
         </View>
       </Page>
     </Document>
@@ -97,7 +107,8 @@ export async function POST(req: NextRequest) {
   }
 
   const dateStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' });
-  const buffer = await renderToBuffer(<GasUsagePdfDoc usage={usage as GasUsageRecord[]} dateStr={dateStr} />);
+  const company = await loadCompany();
+  const buffer = await renderToBuffer(<GasUsagePdfDoc usage={usage as GasUsageRecord[]} dateStr={dateStr} company={company} />);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

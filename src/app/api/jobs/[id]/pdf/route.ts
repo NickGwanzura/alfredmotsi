@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
+import { loadCompany } from '@/app/lib/pdf/company';
 
 export async function GET(
   _request: Request,
@@ -36,7 +37,8 @@ export async function GET(
     }
   }
 
-  const pdf = await generateJobCardPdf(job);
+  const company = await loadCompany();
+  const pdf = await generateJobCardPdf(job, company);
 
   return new Response(pdf as BodyInit, {
     status: 200,

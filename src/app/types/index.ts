@@ -186,7 +186,7 @@ export interface PriorityTagConfig {
   txt: string;
 }
 
-export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices';
+export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices' | 'settings';
 
 export type ConsumableType = 'gas' | 'compressor' | 'part' | 'other';
 

@@ -19,6 +19,8 @@ import JobCardPrint from '@/app/components/JobCardPrint';
 import UserManagement from '@/app/components/UserManagement';
 import AuditLogView from '@/app/components/AuditLogView';
 import PasswordChangeModal from '@/app/components/PasswordChangeModal';
+import CompanySettings from '@/app/components/CompanySettings';
+import OnboardingWizard from '@/app/components/OnboardingWizard';
 import AddCustomerModal from '@/app/components/AddCustomerModal';
 import AddGasStockModal from '@/app/components/AddGasStockModal';
 import AddGasUsageModal from '@/app/components/AddGasUsageModal';
@@ -46,6 +48,7 @@ import {
   Users,
   Plus,
   LogOut,
+  Settings,
   ShieldAlert,
   Menu as MenuIcon,
   AlertTriangle,
@@ -87,6 +90,8 @@ export default function Home() {
   const [loginTime] = useState<Date>(new Date());
   const [sideNavOpen, setSideNavOpen] = useState(false);
   const [fetchErrors, setFetchErrors] = useState<string[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddGasStock, setShowAddGasStock] = useState(false);
@@ -140,6 +145,17 @@ export default function Home() {
       else errors.push('Failed to load CRM records');
 
       if (errors.length > 0) setFetchErrors(errors);
+
+      // Check if admin onboarding is needed
+      if (isAdmin && !onboardingDone) {
+        try {
+          const profileRes = await fetch('/api/admin/company-profile');
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            if (!profile.onboarded) setShowOnboarding(true);
+          }
+        } catch { /* silent */ }
+      }
     } catch {
       setFetchErrors(['Network error — check your connection']);
     } finally {
@@ -367,6 +383,7 @@ export default function Home() {
     { id: 'ods-report', label: 'ODS Report', Icon: Flag },
     { id: 'users', label: 'Users', Icon: Users },
     { id: 'audit-log', label: 'Audit Log', Icon: ShieldAlert },
+    { id: 'settings', label: 'Settings', Icon: Settings },
   ];
 
   const techNav: NavItem[] = [
@@ -681,6 +698,10 @@ export default function Home() {
               {!showAddJob && page === 'invoices' && isAdmin && (
                 <Invoices customers={customers} jobs={jobs} />
               )}
+
+              {!showAddJob && page === 'settings' && isAdmin && (
+                <CompanySettings />
+              )}
             </>
           )}
         </div>
@@ -709,6 +730,13 @@ export default function Home() {
           customer={customers.find((c) => c.id === printJob.customerId)}
           technician={techs.find((t) => printJob.techIds.includes(t.id))}
           onClose={() => setPrintJob(null)}
+        />
+      )}
+
+      {showOnboarding && isAdmin && (
+        <OnboardingWizard
+          onComplete={() => { setShowOnboarding(false); setOnboardingDone(true); }}
+          onClose={() => setShowOnboarding(false)}
         />
       )}
 

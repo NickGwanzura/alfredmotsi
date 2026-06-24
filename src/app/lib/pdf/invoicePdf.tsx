@@ -1,5 +1,6 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { CompanyData, loadCompany } from './company';
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontSize: 10, fontFamily: 'Helvetica', color: '#161616' },
@@ -59,16 +60,23 @@ type InvoiceData = {
   lineItems: { description: string; quantity: number; unitPrice: number; total: number }[];
 };
 
-export function InvoicePDF({ invoice }: { invoice: InvoiceData }) {
+export function InvoicePDF({ invoice, company }: { invoice: InvoiceData; company?: CompanyData }) {
+  const c = company || { name: 'Splash Air', address: '', phone: '', email: '', website: '', vatRate: 15.5, vatNumber: '', logoUrl: '', tagline: 'Air Conditioning & Refrigeration', services: '' };
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>Splash Air</Text>
-            <Text style={styles.brandSub}>Air Conditioning &amp; Refrigeration</Text>
-            <Text style={[styles.brandSub, { marginTop: 8 }]}>splashaircrmzw.site</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {c.logoUrl ? (
+              <Image source={{ uri: c.logoUrl, method: 'GET', headers: { Accept: 'image/*' } }} style={{ width: 50, height: 50 }} />
+            ) : null}
+            <View>
+              <Text style={styles.brand}>{c.name}</Text>
+              <Text style={styles.brandSub}>{c.tagline}</Text>
+              {c.address && <Text style={[styles.brandSub, { fontSize: 7, marginTop: 4 }]}>{c.address}</Text>}
+              {c.phone && <Text style={[styles.brandSub, { fontSize: 7 }]}>{c.phone}</Text>}
+            </View>
           </View>
           <View>
             <Text style={styles.title}>INVOICE</Text>
@@ -149,9 +157,9 @@ export function InvoicePDF({ invoice }: { invoice: InvoiceData }) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Splash Air Conditioning &amp; Refrigeration</Text>
+          <Text style={styles.footerText}>{c.name} · {c.phone}</Text>
           <Text style={styles.footerText}>{invoice.invoiceRef}</Text>
-          <Text style={styles.footerText}>Thank you for your business</Text>
+          <Text style={styles.footerText}>{c.website}</Text>
         </View>
       </Page>
     </Document>
