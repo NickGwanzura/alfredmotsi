@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'tech' | 'client';
 
 const FINANCIAL_ROLES: Set<UserRole> = new Set(['admin']);
 const ADMIN_ROLES: Set<UserRole> = new Set(['admin']);
+const TECH_MANAGE_ROLES: Set<UserRole> = new Set(['admin', 'tech']);
 
 export function canViewFinancials(role: string): boolean {
   return FINANCIAL_ROLES.has(role as UserRole);
@@ -16,23 +17,23 @@ export function canManageUsers(role: string): boolean {
 }
 
 export function canManageCustomers(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canManageGasStock(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canManageGasUsage(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canManageCRM(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canManageJobs(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canDeleteJobs(role: string): boolean {
@@ -44,7 +45,7 @@ export function canViewAuditLog(role: string): boolean {
 }
 
 export function canViewODSReport(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function canViewAllJobs(role: string): boolean {

@@ -28,7 +28,6 @@ function getGasTypePill(type: string): string {
 }
 
 export default function GasUsage({ usage, currentUser, onExport, onAdd, stock }: GasUsageProps) {
-  if (!canManageGasUsage(currentUser.role)) return null;
   const [gasFilter, setGasFilter] = useState<string>('all');
   const gasTypes = useMemo(() => Array.from(new Set(usage.map(u => u.gasType))).sort(), [usage]);
   const filteredUsage = useMemo(() => gasFilter === 'all' ? usage : usage.filter(u => u.gasType === gasFilter), [usage, gasFilter]);

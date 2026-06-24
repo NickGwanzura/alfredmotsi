@@ -372,7 +372,12 @@ export default function Home() {
   const techNav: NavItem[] = [
     { id: 'home', label: 'My Schedule', Icon: LayoutDashboard },
     { id: 'calendar', label: 'Calendar', Icon: Calendar },
-    { id: 'jobs', label: 'My Jobs', Icon: Table2 },
+    { id: 'jobs', label: 'Jobs', Icon: Table2 },
+    { id: 'customers', label: 'Customers', Icon: UserIcon },
+    { id: 'gas-stock', label: 'Gas Stock', Icon: Container },
+    { id: 'gas-usage', label: 'Gas Usage', Icon: BarChart3 },
+    { id: 'crm', label: 'CRM', Icon: BarChart3 },
+    { id: 'ods-report', label: 'ODS Report', Icon: Flag },
   ];
 
   const nav = isAdmin ? adminNav : techNav;
@@ -606,7 +611,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'customers' && perm.canManageCustomers && (
+              {!showAddJob && page === 'customers' && (
                 <CustomerDB
                   customers={customers}
                   jobs={jobs}
@@ -619,7 +624,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'gas-stock' && perm.canManageGasStock && (
+              {!showAddJob && page === 'gas-stock' && (
                 <GasStock
                   stock={gasStock}
                   currentUser={currentUser}
@@ -631,7 +636,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'gas-usage' && perm.canManageGasUsage && (
+              {!showAddJob && page === 'gas-usage' && (
                 <GasUsage
                   usage={gasUsage}
                   currentUser={currentUser}
@@ -645,7 +650,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'crm' && perm.canManageCRM && (
+              {!showAddJob && page === 'crm' && (
                 <CRM
                   records={crmRecords}
                   customers={customers}

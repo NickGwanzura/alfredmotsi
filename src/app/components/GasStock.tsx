@@ -37,7 +37,6 @@ function formatDate(dateStr: string): string {
 
 export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasStockProps) {
   const [adjustId, setAdjustId] = useState<string | null>(null);
-  if (!canManageGasStock(currentUser.role)) return null;
   const [adjustVal, setAdjustVal] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjusting, setAdjusting] = useState(false);

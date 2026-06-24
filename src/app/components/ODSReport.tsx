@@ -37,7 +37,6 @@ function getStatusStyle(status: string): React.CSSProperties {
 }
 
 export default function ODSReport({ jobs, customers, currentUser, onExport }: ODSReportProps) {
-  if (!canViewODSReport(currentUser.role)) return null;
   const [selectedRefrigerant, setSelectedRefrigerant] = useState<string>('all');
   const [liveJobs, setLiveJobs] = useState<Job[]>(jobs);
 

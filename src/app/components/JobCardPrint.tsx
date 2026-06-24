@@ -165,7 +165,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             letter-spacing: 0.04em;
             background: ${statusConfig?.bg || '#e0e0e0'};
             color: ${statusConfig?.txt || '#161616'};
-            border-radius: 0;
+            border-radius: 999px;
           }
           
           /* Description */
@@ -654,136 +654,134 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
   const statusConfig = STATUS_CFG[job.status];
 
   return (
-    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-lg">
-        <div className="modal-hdr">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
-            <p className="modal-lbl">Print Preview</p>
-            <h2 className="modal-title">Job Card: {job.jobCardRef || job.id}</h2>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Print Preview</p>
+            <h2 className="text-xl font-bold text-gray-900 mt-1">Job Card: {job.jobCardRef || job.id}</h2>
           </div>
           <button 
-            className="x-btn" 
+            className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" 
             onClick={onClose}
             aria-label="Close modal"
-            title="Close"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[60vh] animate-fade-in">
-            {/* Preview Header */}
-            <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-interactive">
-              <div className="flex items-center gap-3">
-                <SplashLogo className="w-10 h-10 shrink-0" />
-                <div>
-                  <div className="text-2xl font-light text-text-primary">Splash Air</div>
-                  <div className="text-[11px] text-text-secondary uppercase tracking-[0.08em]">
-                    Air Conditioning Specialists
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-medium text-interactive" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
-                  {job.jobCardRef || job.id}
-                </div>
-                <div className="text-xs text-text-secondary">{fmtDate(job.date)} at {job.time}</div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center h-6 px-2 text-[11px]" style={{ background: statusConfig?.bg, color: statusConfig?.txt }}>
-                    {statusConfig?.label || job.status}
-                  </span>
+        <div className="px-6 py-5 overflow-y-auto max-h-[60vh] animate-fade-in space-y-5">
+          {/* Preview Header */}
+          <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-brand-600">
+            <div className="flex items-center gap-3">
+              <SplashLogo className="w-10 h-10 shrink-0" />
+              <div>
+                <div className="text-2xl font-light text-gray-900">Splash Air</div>
+                <div className="text-[11px] text-gray-500 uppercase tracking-wider">
+                  Air Conditioning Specialists
                 </div>
               </div>
             </div>
-
-            {/* Customer & Job Summary */}
-            <div className="bg-layer p-4 border border-border-subtle mb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Customer</p>
-                  <p className="font-semibold mb-1 text-text-primary">{customer?.name || 'N/A'}</p>
-                  <p className="text-sm text-text-secondary">{customer?.phone || 'N/A'}</p>
-                  <p className="text-sm text-text-secondary">{customer?.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Job Details</p>
-                  <p className="font-semibold mb-1 text-text-primary">{job.title}</p>
-                  <p className="text-sm text-text-secondary">Type: {job.type}</p>
-                  <p className="text-sm text-text-secondary">Unit: {job.unitType}</p>
-                  <p className="text-sm text-text-secondary">Technician: {technician?.name || 'Unassigned'}</p>
-                </div>
+            <div className="text-right">
+              <div className="text-lg font-medium text-brand-600 font-mono">
+                {job.jobCardRef || job.id}
+              </div>
+              <div className="text-xs text-gray-500">{fmtDate(job.date)} at {job.time}</div>
+              <div className="mt-2">
+                <span className="inline-flex items-center h-6 px-2 text-[11px] font-medium rounded-full" style={{ background: statusConfig?.bg, color: statusConfig?.txt }}>
+                  {statusConfig?.label || job.status}
+                </span>
               </div>
             </div>
+          </div>
 
-            {/* Diagnostics Preview */}
-            {job.diagnostics && (
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
-                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Diagnostic Readings</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-xs text-text-secondary">Voltage</span>
-                    <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.voltage || '--'} V</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-text-secondary">Current</span>
-                    <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.current || '--'} A</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-text-secondary">Suction</span>
-                    <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.suction || '--'} PSI</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-text-secondary">Discharge</span>
-                    <p style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{job.diagnostics.discharge || '--'} PSI</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ODS Preview */}
-            {(job.diagnostics?.refrigerantType || job.diagnostics?.refrigerantUsed) && (
-              <div className="p-4 mb-4 border" style={{ background: '#e0f2f1', borderColor: '#80cbc4' }}>
-                <p className="text-[11px] font-semibold" style={{ color: '#004d40' }}>ODS / Refrigerant Data</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <span className="text-xs" style={{ color: '#004d40' }}>Refrigerant Type</span>
-                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantType || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#004d40' }}>Recovered</span>
-                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantRecovered?.toFixed(1) || '0.0'} kg</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#004d40' }}>Used</span>
-                    <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantUsed?.toFixed(1) || '0.0'} kg</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Signatures Preview */}
+          {/* Customer & Job Summary */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-layer p-4 border border-border-subtle text-center">
-                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Technician</p>
-                <div className="border-b border-text-primary pb-3 mb-1 min-h-[40px]">{technician?.name}</div>
-                <p className="text-xs text-text-secondary">{technician?.name || '____________________'}</p>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Customer</p>
+                <p className="font-semibold mb-1 text-gray-900">{customer?.name || 'N/A'}</p>
+                <p className="text-sm text-gray-600">{customer?.phone || 'N/A'}</p>
+                <p className="text-sm text-gray-600">{customer?.email || 'N/A'}</p>
               </div>
-              <div className="bg-layer p-4 border border-border-subtle text-center">
-                <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Customer</p>
-                <div className="border-b border-text-primary pb-3 mb-1 min-h-[40px] flex items-end justify-center">
-                  {job.signature ? <img src={job.signature} alt="Customer signature" style={{ maxHeight: 36, maxWidth: '100%' }} /> : null}
-                </div>
-                <p className="text-xs text-text-secondary">{customer?.name || '____________________'}</p>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Job Details</p>
+                <p className="font-semibold mb-1 text-gray-900">{job.title}</p>
+                <p className="text-sm text-gray-600">Type: {job.type}</p>
+                <p className="text-sm text-gray-600">Unit: {job.unitType}</p>
+                <p className="text-sm text-gray-600">Technician: {technician?.name || 'Unassigned'}</p>
               </div>
             </div>
+          </div>
+
+          {/* Diagnostics Preview */}
+          {job.diagnostics && (
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Diagnostic Readings</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-xs text-gray-500">Voltage</span>
+                  <p className="font-mono text-gray-900">{job.diagnostics.voltage || '--'} V</p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Current</span>
+                  <p className="font-mono text-gray-900">{job.diagnostics.current || '--'} A</p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Suction</span>
+                  <p className="font-mono text-gray-900">{job.diagnostics.suction || '--'} PSI</p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500">Discharge</span>
+                  <p className="font-mono text-gray-900">{job.diagnostics.discharge || '--'} PSI</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ODS Preview */}
+          {(job.diagnostics?.refrigerantType || job.diagnostics?.refrigerantUsed) && (
+            <div className="p-5 rounded-xl border shadow-sm" style={{ background: '#e0f2f1', borderColor: '#80cbc4' }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#004d40' }}>ODS / Refrigerant Data</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <span className="text-xs" style={{ color: '#004d40' }}>Refrigerant Type</span>
+                  <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantType || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-xs" style={{ color: '#004d40' }}>Recovered</span>
+                  <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantRecovered?.toFixed(1) || '0.0'} kg</p>
+                </div>
+                <div>
+                  <span className="text-xs" style={{ color: '#004d40' }}>Used</span>
+                  <p className="text-lg font-light" style={{ color: '#004d40' }}>{job.diagnostics?.refrigerantUsed?.toFixed(1) || '0.0'} kg</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Signatures Preview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm text-center">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Technician</p>
+              <div className="border-b border-gray-900 pb-3 mb-1 min-h-[40px]">{technician?.name}</div>
+              <p className="text-xs text-gray-500">{technician?.name || '____________________'}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm text-center">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Customer</p>
+              <div className="border-b border-gray-900 pb-3 mb-1 min-h-[40px] flex items-end justify-center">
+                {job.signature ? <img src={job.signature} alt="Customer signature" style={{ maxHeight: 36, maxWidth: '100%' }} /> : null}
+              </div>
+              <p className="text-xs text-gray-500">{customer?.name || '____________________'}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="modal-foot">
-          <button className="btn btn-s" onClick={onClose}>Cancel</button>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+          <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>Cancel</button>
           <button 
-            className="btn btn-p" 
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
             onClick={handlePrint}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <Printer size={16} />
             Print Job Card

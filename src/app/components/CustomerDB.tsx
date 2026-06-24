@@ -34,7 +34,6 @@ function getActiveJobCount(customerId: string, jobs: Job[]): number {
 }
 
 export default function CustomerDB({ customers, jobs, currentUser, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
-  if (!canManageCustomers(currentUser.role)) return null;
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Customer | null>(null);
   const [compose, setCompose] = useState<Compose>(null);
