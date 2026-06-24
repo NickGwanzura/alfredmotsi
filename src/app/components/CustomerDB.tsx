@@ -6,7 +6,7 @@ import { TYPE_CFG } from '@/app/lib/config';
 import { canManageCustomers } from '@/app/lib/permissions';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
 import { sendPortalInviteEmail } from '@/app/lib/email/client';
-import { StatusTag, SectionTitle, Avatar, Notification } from './ui';
+import { StatusTag, SectionTitle, Avatar, Notification, ContextBanner } from './ui';
 import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck, Search, Phone, Briefcase } from 'lucide-react';
 
 interface CustomerDBProps {
@@ -192,6 +192,11 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
           <Notification kind={toast.kind} title={toast.kind === 's' ? 'Sent' : 'Error'} body={toast.msg} />
         </div>
       )}
+
+      <ContextBanner title="Customer Management" icon={<Users size={18} />}>
+        <p>Manage your customer database. Click a customer on the left to view their details, service history, and send <strong>WhatsApp</strong> or <strong>Email</strong> messages directly.</p>
+        <p className="mt-1">Use <strong>Portal Invite</strong> to give customers access to their own Client Portal where they can view jobs and invoices.</p>
+      </ContextBanner>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">

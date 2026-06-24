@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Job, User, Customer, GasStockItem, GasUsageRecord } from '@/app/types';
 import { TYPE_CFG, ALERT_CFG, TECH_STATUS, STATUS_CFG } from '@/app/lib/config';
-import { StatusTag, SectionTitle, Avatar } from './ui';
+import { StatusTag, SectionTitle, Avatar, ContextBanner } from './ui';
 import { Mail, AlertTriangle, CalendarDays, Clock, UserCheck, Wrench, ClipboardList, BarChart3, RefreshCcw, Fuel, TrendingUp, DollarSign, FileText, Users, Plus, X } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -108,6 +108,12 @@ export default function AdminDashboard({
           </button>
         </div>
       </div>
+
+      {/* Context Banner */}
+      <ContextBanner title="Welcome to your Admin Dashboard" icon={<ClipboardList size={18} />}>
+        <p>This is your command centre. Monitor <strong>today&apos;s jobs</strong>, track <strong>technician status</strong>, and watch for <strong>alerts</strong> on diagnostics, missing clock-ins, or low gas stock.</p>
+        <p className="mt-1">Use the sidebar to manage <strong>Jobs</strong>, <strong>Customers</strong>, <strong>Gas Stock</strong>, <strong>Invoices</strong>, and more. Click any job card to open it.</p>
+      </ContextBanner>
 
       {/* Alert Banners */}
       {sendResult && (

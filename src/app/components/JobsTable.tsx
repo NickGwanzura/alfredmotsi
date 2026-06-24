@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Job, User, Customer, JobStatus, JobType, GasUsageRecord } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
-import { StatusTag, PrioTag } from './ui';
+import { StatusTag, PrioTag, ContextBanner } from './ui';
 import { Plus, AlertTriangle, Search, ClipboardList, UserCheck, BarChart3 } from 'lucide-react';
 import { canViewAllJobs, canManageJobs } from '@/app/lib/permissions';
 
@@ -40,6 +40,10 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
+      <ContextBanner title="Jobs Overview" icon={<ClipboardList size={18} />}>
+        <p>View all service jobs. Filter by <strong>status</strong> (Scheduled, On Site, Completed) or <strong>type</strong>. Click any row to open the <strong>Job Card</strong> — your central workspace for diagnostics, gas usage, photos, and sign-off.</p>
+        {canManageJobs(userRole) && onAddJob && <p className="mt-1">Click <strong>Add Job</strong> to create a new service call and assign a technician.</p>}
+      </ContextBanner>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{canViewAllJobs(userRole) ? "All Jobs" : "My Jobs"}</h1>

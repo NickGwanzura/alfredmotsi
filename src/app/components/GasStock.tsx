@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { GasStockItem, User } from '@/app/types';
-import { SectionTitle } from './ui';
+import { SectionTitle, ContextBanner } from './ui';
 import { canManageGasStock } from '@/app/lib/permissions';
 import { Package, Weight, AlertTriangle, RefreshCcw, Plus } from 'lucide-react';
 
@@ -65,6 +65,10 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
+      <ContextBanner title="Refrigerant Gas Stock" icon={<Package size={18} />}>
+        <p>Track your refrigerant cylinder inventory. When gas is used on a job, stock levels update automatically. Items below <strong>20% remaining</strong> trigger a low-stock alert.</p>
+        <p className="mt-1">Click <strong>Add Stock</strong> for new deliveries. Use <strong>Adjust Stock</strong> to correct levels with an audit reason.</p>
+      </ContextBanner>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Refrigerant Stock</h1>

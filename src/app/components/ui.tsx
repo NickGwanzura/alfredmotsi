@@ -152,8 +152,88 @@ const outcomeLabels: Record<CRMOutcome, string> = {
 
 export function CRMOutcomeTag({ outcome }: { outcome: CRMOutcome }) {
   return (
-    <span className={`inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap ${outcomeStyles[outcome]}`}>
+    <span className={`inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap rounded-full ${outcomeStyles[outcome]}`}>
       {outcomeLabels[outcome]}
     </span>
+  );
+}
+
+// ─── Contextual Help Tip ──────────────────────────────────────────
+
+interface HelpTipProps {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}
+
+export function HelpTip({ title, children, icon }: HelpTipProps) {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setShow(!show)}
+        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer px-1 py-0.5"
+        aria-label="Help"
+        title="Help"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <path d="M12 17h.01" />
+        </svg>
+        {title}
+      </button>
+      {show && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-72 p-3 bg-white border border-gray-200 rounded-xl shadow-xl text-xs text-gray-600 leading-relaxed animate-fade-in" style={{ minWidth: '280px' }}>
+          <div className="flex items-start gap-2">
+            {icon && <span className="shrink-0 mt-0.5">{icon}</span>}
+            <div>
+              <p className="font-semibold text-gray-900 mb-1">{title}</p>
+              {children}
+            </div>
+          </div>
+          <button onClick={() => setShow(false)} className="mt-2 text-[10px] text-brand-600 font-medium bg-transparent border-none cursor-pointer hover:underline">
+            Got it
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Onboarding / Context Banner ────────────────────────────────
+
+interface ContextBannerProps {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  color?: 'blue' | 'green' | 'amber';
+}
+
+export function ContextBanner({ title, children, icon, color = 'blue' }: ContextBannerProps) {
+  const [dismissed, setDismissed] = React.useState(false);
+  if (dismissed) return null;
+
+  const colorStyles = {
+    blue: 'bg-blue-50 border-blue-200 text-blue-800',
+    green: 'bg-green-50 border-green-200 text-green-800',
+    amber: 'bg-amber-50 border-amber-200 text-amber-800',
+  };
+
+  return (
+    <div className={`flex items-start gap-3 p-4 mb-6 rounded-lg border ${colorStyles[color]}`}>
+      {icon && <span className="shrink-0 mt-0.5">{icon}</span>}
+      <div className="flex-1">
+        <p className="font-semibold text-sm">{title}</p>
+        <div className="text-sm mt-0.5 opacity-90">{children}</div>
+      </div>
+      <button
+        onClick={() => setDismissed(true)}
+        className="shrink-0 bg-transparent border-none cursor-pointer opacity-50 hover:opacity-100 text-inherit p-0.5"
+        aria-label="Dismiss"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
   );
 }

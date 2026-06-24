@@ -3,7 +3,7 @@
 import React from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { TYPE_CFG, STATUS_CFG } from '@/app/lib/config';
-import { StatusTag, Avatar } from './ui';
+import { StatusTag, Avatar, ContextBanner } from './ui';
 import { ClipboardList, MapPin, Clock, CalendarDays, CheckCircle, ArrowRight, Wrench, AlertTriangle } from 'lucide-react';
 
 interface TechDashboardProps {
@@ -49,6 +49,12 @@ export default function TechDashboard({ jobs, techs, customers, currentUser, onJ
           </div>
         </div>
       </div>
+
+      {/* Context Banner */}
+      <ContextBanner title="Your Day at a Glance" icon={<ClipboardList size={18} />}>
+        <p>Your <strong>Next Job</strong> is shown at the top. Click <strong>Open Job Card</strong> to clock in, record diagnostics, log gas usage, and capture signatures.</p>
+        <p className="mt-1">Use the sidebar to view <strong>Jobs</strong>, <strong>Customers</strong>, <strong>Gas Stock</strong>, and log <strong>Gas Usage</strong>. Tap any job below to open it.</p>
+      </ContextBanner>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">

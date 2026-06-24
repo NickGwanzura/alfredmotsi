@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { GasUsageRecord, User } from '@/app/types';
-import { SectionTitle } from './ui';
+import { SectionTitle, ContextBanner } from './ui';
 import { Beaker, CalendarDays, TrendingUp, Plus, Download, FileText, Search } from 'lucide-react';
 import { useToast } from './Toast';
 
@@ -119,6 +119,10 @@ export default function GasUsage({ usage, currentUser, onExport, onAdd, stock, c
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
+      <ContextBanner title="Refrigerant Gas Usage Tracking" icon={<Beaker size={18} />}>
+        <p>Every time refrigerant is used on a job, it is recorded here and <strong>automatically deducted</strong> from gas stock inventory. Use <strong>CSV</strong> or <strong>PDF</strong> export for compliance reporting.</p>
+        <p className="mt-1">To log usage, open a <strong>Job Card</strong> → <strong>ODS tab</strong> or click <strong>Record Usage</strong> above. Records include customer, technician, job reference, and purpose.</p>
+      </ContextBanner>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gas Usage Log</h1>
