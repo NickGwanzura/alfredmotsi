@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/app/lib/auth/auth-provider";
+import { ToastProvider } from "@/app/components/Toast";
 
 export const metadata: Metadata = {
   title: "Splash Air — Service Platform v10",
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><ToastProvider>{children}</ToastProvider></AuthProvider>
       </body>
     </html>
   );

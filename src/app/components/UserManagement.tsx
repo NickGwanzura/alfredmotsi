@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Avatar, FormItem, Notification } from './ui';
+import { useToast } from './Toast';
 import { X, Plus, Mail, Trash2, FileEdit, AlertTriangle, Users, Shield, Wrench } from 'lucide-react';
 
 interface ManagedUser {
@@ -44,7 +45,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageErr, setPageErr] = useState('');
-  const [toast, setToast] = useState('');
+  const { success: showToast } = useToast();
   const [modal, setModal] = useState<ModalState>('none');
   const [target, setTarget] = useState<ManagedUser | null>(null);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'tech', phone: '', specialty: '' });
@@ -59,8 +60,6 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
   const [resendErr, setResendErr] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deduping, setDeduping] = useState(false);
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 5000); };
 
   const loadUsers = useCallback(async () => {
     setLoading(true); setPageErr('');
@@ -100,7 +99,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: inviteForm.email, userName: inviteForm.name, tempPassword: tempPw, role: inviteForm.role, loginUrl: `${window.location.origin}/` }),
       });
-      setModal('none'); showToast(`${inviteForm.name} invited — credentials sent to ${inviteForm.email}.`);
+      setModal('none'); showToast('User invited', `${inviteForm.name} — credentials sent to ${inviteForm.email}`);
       await loadUsers();
     } catch { setInviteErr('An error occurred. Please try again.'); }
     finally { setInviting(false); }
@@ -122,7 +121,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       const data = await res.json();
       if (!res.ok) { setEditErr(data.error || 'Failed to save changes.'); return; }
       setUsers(prev => prev.map(u => u.id === target.id ? { ...u, ...data.user } : u));
-      setModal('none'); showToast(`${editForm.name} updated successfully.`);
+      setModal('none'); showToast('User updated', `${editForm.name} saved successfully.`);
     } catch { setEditErr('An error occurred. Please try again.'); }
     finally { setEditLoading(false); }
   }
@@ -138,7 +137,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       });
       const data = await res.json();
       if (!res.ok) { setResendErr(data.error || 'Failed to resend.'); return; }
-      setModal('none'); showToast(`New credentials sent to ${target.email}.`);
+      setModal('none'); showToast('Credentials sent', `New login details sent to ${target.email}.`);
     } catch { setResendErr('An error occurred. Please try again.'); }
     finally { setResending(false); }
   }
@@ -149,7 +148,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
     if (!target) return; setDeleting(true);
     try {
       const res = await fetch(`/api/admin/users/${target.id}`, { method: 'DELETE' });
-      if (res.ok) { setUsers(prev => prev.filter(u => u.id !== target.id)); setModal('none'); showToast(`${target.name} removed.`); }
+      if (res.ok) { setUsers(prev => prev.filter(u => u.id !== target.id)); setModal('none'); showToast('User removed', `${target.name} deleted.`); }
       else { const d = await res.json(); alert(d.error || 'Failed to delete user'); }
     } finally { setDeleting(false); }
   }
@@ -159,7 +158,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
     try {
       const res = await fetch('/api/admin/users/cleanup-duplicates', { method: 'POST' });
       const data = await res.json();
-      if (res.ok) { showToast(data.removed > 0 ? `${data.removed} duplicate account${data.removed > 1 ? 's' : ''} removed.` : 'No duplicates found.'); await loadUsers(); }
+      if (res.ok) { showToast('Duplicates cleaned', data.removed > 0 ? `${data.removed} duplicate account${data.removed > 1 ? 's' : ''} removed.` : 'No duplicates found.'); await loadUsers(); }
       else { alert(data.error || 'Failed to clean duplicates'); }
     } finally { setDeduping(false); }
   }
@@ -171,12 +170,6 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[9999] bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
-          {toast}
-        </div>
-      )}
-
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>

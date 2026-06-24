@@ -158,13 +158,15 @@ export function validateEmailContent(params: {
     errors.push('Subject should be 78 characters or less for optimal display');
   }
   
-  // Check for spammy words
-  const spamWords = ['viagra', 'cialis', 'lottery', 'winner', 'free money', 'click here'];
+  // Check for spammy words (word-boundary match to avoid false positives like "specialist" matching "cialis")
+  const spamWords = ['viagra', 'lottery', 'winner', 'free money', 'click here'];
   const lowerSubject = params.subject.toLowerCase();
   const lowerHtml = params.html.toLowerCase();
-  
+
   for (const word of spamWords) {
-    if (lowerSubject.includes(word) || lowerHtml.includes(word)) {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`);
+    if (regex.test(lowerSubject) || regex.test(lowerHtml)) {
       errors.push(`Content contains potential spam word: "${word}"`);
     }
   }
