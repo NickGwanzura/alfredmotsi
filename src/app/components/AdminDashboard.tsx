@@ -45,6 +45,7 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ ok: boolean; sent?: number; total?: number; error?: string } | null>(null);
+  const [sentThisSession, setSentThisSession] = useState(false);
 
   const todayJobs = jobs.filter(j => j.date === todayStr);
   const alertJobs = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed");
@@ -64,8 +65,9 @@ export default function AdminDashboard({
   ];
 
   const sendAnnouncement = async () => {
+    if (sentThisSession) return; // Prevent double-send in same session
     if (!window.confirm('Send mass announcement email to all users? This cannot be undone.')) return;
-    setSending(true); setSendResult(null);
+    setSending(true); setSendResult(null); setSentThisSession(true);
     try {
       const res = await fetch('/api/admin/announce-big-fixes', { method: 'POST' });
       setSendResult(await res.json());

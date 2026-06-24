@@ -15,6 +15,18 @@ export async function POST(): Promise<NextResponse> {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  // Guard: only allow one announcement per 24 hours to prevent accidental spam
+  const recentLog = await prisma.emailDeliveryLog.findFirst({
+    where: { category: 'big-fixes-announcement', createdAt: { gte: new Date(Date.now() - 86400000) } },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (recentLog) {
+    return NextResponse.json({
+      ok: false,
+      error: 'Announcement was already sent within the last 24 hours. Please wait before sending again.',
+    }, { status: 429 });
+  }
+
   // Fetch all active users (admins + techs)
   const users = await prisma.user.findMany({
     where: { role: { in: ['admin', 'tech'] } },
