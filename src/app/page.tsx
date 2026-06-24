@@ -714,6 +714,7 @@ export default function Home() {
           isTempPassword={true}
           onSuccess={async () => {
             await update();
+            window.location.reload();
           }}
           onLogout={handleLogout}
         />
