@@ -42,4 +42,14 @@ export const PRIO_TAG: Record<JobPriority, PriorityTagConfig> = {
 
 export const UNIT_TYPES = ["Split System", "Ducted", "Package Unit", "Multi-Head", "Cassette", "VRV/VRF", "Refrigeration System", "Chiller", "Heat Pump", "Precision Cooling"];
 
-export const REFRIGERANT_TYPES = ["R-32", "R-410A", "R-22", "R-134a", "R-407C", "R-600A", "R-290"];
+export const REFRIGERANT_TYPES = [
+  // HFCs — common AC
+  "R-32", "R-410A", "R-22", "R-134a", "R-407C", "R-407A", "R-407F",
+  "R-404A", "R-507A", "R-422D", "R-417A", "R-438A",
+  // Low-GWP / next-gen
+  "R-454B", "R-452A", "R-448A", "R-449A", "R-513A", "R-466A", "R-1234yf",
+  // Hydrocarbons
+  "R-290", "R-600A", "R-1270",
+  // Other
+  "R-744 (CO₂)", "R-717 (Ammonia)",
+];

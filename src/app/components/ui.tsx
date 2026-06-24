@@ -32,7 +32,7 @@ export function StatusTag({ status }: { status: JobStatus }) {
   const c = STATUS_CFG[status] || { label: status, bg: '#e0e0e0', txt: '#161616' };
   return (
     <span
-      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap"
+      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap rounded-full"
       style={{ background: c.bg, color: c.txt }}
     >
       {c.label}
@@ -44,7 +44,7 @@ export function PrioTag({ p }: { p: JobPriority }) {
   const c = PRIO_TAG[p] || PRIO_TAG.low;
   return (
     <span
-      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap"
+      className="inline-flex items-center h-6 px-2 text-[11px] font-normal tracking-[0.32px] whitespace-nowrap rounded-full"
       style={{ background: c.bg, color: c.txt }}
     >
       {p.toUpperCase()}
@@ -56,7 +56,7 @@ export function Avatar({ name, size = 32, color = '#00695c' }: { name: string; s
   const initials = name.split(' ').map((n) => n[0]).join('');
   return (
     <div
-      className="flex items-center justify-center font-semibold shrink-0 font-sans text-white"
+      className="flex items-center justify-center font-semibold shrink-0 font-sans text-white rounded-full"
       style={{ width: size, height: size, background: color, fontSize: size * 0.34 }}
     >
       {initials}
@@ -117,7 +117,7 @@ export function FormItem({
   return (
     <div className="mb-5">
       {label && (
-        <label className="block text-[11px] font-normal text-text-secondary mb-1 tracking-[0.32px]" htmlFor={htmlFor}>
+        <label className="block text-xs font-normal text-text-secondary mb-1 tracking-[0.32px]" htmlFor={htmlFor}>
           {label}
         </label>
       )}
@@ -130,7 +130,7 @@ export function FormItem({
 
 export function AlertTag({ alert }: { alert: AlertType }) {
   return (
-    <span className="inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap bg-red-50 text-support-error">
+    <span className="inline-flex items-center h-6 px-2 text-[11px] whitespace-nowrap bg-red-50 text-support-error rounded-full">
       {ALERT_CFG[alert]?.label || alert}
     </span>
   );

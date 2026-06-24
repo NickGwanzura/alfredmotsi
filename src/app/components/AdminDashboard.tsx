@@ -64,6 +64,7 @@ export default function AdminDashboard({
   ];
 
   const sendAnnouncement = async () => {
+    if (!window.confirm('Send mass announcement email to all users? This cannot be undone.')) return;
     setSending(true); setSendResult(null);
     try {
       const res = await fetch('/api/admin/announce-big-fixes', { method: 'POST' });

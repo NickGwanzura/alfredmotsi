@@ -312,82 +312,91 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   };
   const refrigerantNet = toNum(diag.refrigerantUsed) - toNum(diag.refrigerantRecovered);
 
+  const inputBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
+  const selectBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
+  const textareaBase = "px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full resize-vertical";
+  const cardBase = "bg-white rounded-xl border border-gray-100 p-5 shadow-sm";
+  const btnBase = "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer";
+  const btnPrimary = "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer";
+  const btnSecondary = "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer";
+  const tagBase = "inline-flex items-center h-6 px-2 text-[11px] font-medium rounded-full";
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-60 flex items-start justify-center overflow-y-auto p-4 sm:p-8 lg:p-12" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-layer w-full max-w-[780px] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-border-subtle">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
-            <p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">{job.id} — {t.label}</p>
-            <h2 className="text-xl font-semibold text-text-primary mt-1">{job.title}</h2>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{job.id} — {t.label}</p>
+            <h2 className="text-xl font-bold text-gray-900 mt-1">{job.title}</h2>
             <div className="flex gap-1 mt-2 flex-wrap">
               <StatusTag status={status} />
               <PrioTag p={job.priority} />
               {alerts.map(a => <AlertTag key={a} alert={a} />)}
               {job.recurring && (
-                <span className="inline-flex items-center h-6 px-2 text-[11px] bg-[#f0f0f0] text-text-primary">
+                <span className="inline-flex items-center h-6 px-2 text-[11px] bg-gray-100 text-gray-600 rounded-full">
                   ↻ Recurring
                 </span>
               )}
             </div>
           </div>
-          <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={onClose} aria-label="Close modal">
+          <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
 
         {/* Time Tracking Bar */}
         {canEdit && job.type !== "sales" && (
-          <div className="bg-surface-hover border-b border-border-subtle px-6 py-3 flex items-center gap-3 flex-wrap">
+          <div className="bg-gray-50 border-b border-gray-100 px-6 py-3 flex items-center gap-3 flex-wrap">
             <div className="min-w-[150px]">
-              <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-0.5">Technician workflow</p>
-              <p className="text-xs text-text-secondary m-0">{clockIn ? `Clocked in ${clockIn}` : 'Start when arriving on site'}</p>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Technician workflow</p>
+              <p className="text-xs text-gray-500 m-0">{clockIn ? `Clocked in ${clockIn}` : 'Start when arriving on site'}</p>
             </div>
             {!clockIn ? (
-              <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs bg-support-success text-white border-none cursor-pointer hover:bg-[#166331] transition-colors min-h-[44px]" onClick={handleClockIn}>
+              <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-emerald-600 border-none rounded-lg cursor-pointer hover:bg-emerald-700 transition-colors min-h-[44px]" onClick={handleClockIn}>
                 <Play size={16} /> Clock In
               </button>
             ) : (
-              <span className="mono text-support-success font-semibold">IN {clockIn}</span>
+              <span className="font-mono text-emerald-600 font-semibold text-sm">IN {clockIn}</span>
             )}
             {clockIn && !clockOut ? (
-              <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs bg-support-error text-white border-none cursor-pointer hover:bg-[#b81922] transition-colors min-h-[44px]" onClick={handleClockOut}>
+              <button className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-red-600 border-none rounded-lg cursor-pointer hover:bg-red-700 transition-colors min-h-[44px]" onClick={handleClockOut}>
                 <Square size={16} /> Clock Out
               </button>
             ) : clockOut && (
-              <span className="mono text-support-error font-semibold">OUT {clockOut}</span>
+              <span className="font-mono text-red-600 font-semibold text-sm">OUT {clockOut}</span>
             )}
-            {dur && <span className="mono text-text-secondary">Duration: {dur}</span>}
+            {dur && <span className="font-mono text-gray-500 text-sm">Duration: {dur}</span>}
           </div>
         )}
 
         {/* Quick Action Bar */}
         {canEdit && (
-          <div className="border-b border-border-subtle p-3 px-6 grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2 bg-layer">
-            <button className="inline-flex items-center justify-center h-11 px-3 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setTab('diagnostics')}>
+          <div className="border-b border-gray-100 p-3 px-6 grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2 bg-white">
+            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('diagnostics')}>
               Diagnostics {diagDone ? 'started' : 'start'}
             </button>
-            <button className="inline-flex items-center justify-center h-11 px-3 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setTab('ods')}>
+            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('ods')}>
               Gas usage
             </button>
-            <button className="inline-flex items-center justify-center h-11 px-3 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors gap-1.5" onClick={() => setTab('media')}>
+            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('media')}>
               <Camera size={16} /> Photos
             </button>
-            <button className="inline-flex items-center justify-center h-11 px-3 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setTab('sign-off')}>
+            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('sign-off')}>
               {sig ? 'Signed' : 'Signature'}
             </button>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-border-subtle">
+        <div className="flex border-b border-gray-100 bg-gray-50">
           {TABS.map(tName => (
             <div 
               key={tName} 
-              className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] cursor-pointer select-none transition-colors ${
+              className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${
                 tab === tName 
-                  ? 'text-text-primary border-b-2 border-interactive bg-layer' 
-                  : 'text-text-secondary hover:text-text-primary bg-surface'
+                  ? 'text-gray-900 border-b-2 border-brand-600 bg-white' 
+                  : 'text-gray-500 hover:text-gray-700 bg-gray-50'
               }`}
               onClick={() => setTab(tName)}
             >
@@ -399,17 +408,17 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           ))}
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="px-6 py-5 overflow-y-auto max-h-[60vh] space-y-5">
           {(() => {
             const warn = getGasUsageWarning(job, gasUsage, job.id);
             if (!warn) return null;
             const isOverdue = warn.level === 'overdue';
             return (
-              <div className={`flex items-start gap-3 p-4 mb-4 border-l-4 cursor-pointer ${isOverdue ? 'bg-red-50 border-l-support-error' : 'bg-amber-50 border-l-support-warning'}`}
+              <div className={`flex items-start gap-3 p-4 rounded-lg border-l-4 cursor-pointer ${isOverdue ? 'bg-red-50 border-l-red-500' : 'bg-amber-50 border-l-amber-500'}`}
                 onClick={() => setTab('ods')} role="button" title="Click to open the ODS tab and log gas usage">
                 <div>
-                  <div className="font-semibold text-sm text-text-primary">{isOverdue ? 'Refrigerant usage not logged' : 'Log refrigerant usage'}</div>
-                  <div className="text-sm text-text-secondary">{warn.message}</div>
+                  <div className="font-semibold text-sm text-gray-900">{isOverdue ? 'Refrigerant usage not logged' : 'Log refrigerant usage'}</div>
+                  <div className="text-sm text-gray-600">{warn.message}</div>
                 </div>
               </div>
             );
@@ -417,93 +426,93 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
           {/* Details Tab */}
           {tab === "details" && (
-            <div className="animate-fade-in">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-layer p-4 border border-border-subtle">
+            <div className="animate-fade-in space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={cardBase}>
                   <SectionTitle>Customer</SectionTitle>
-                  <p className="font-semibold mb-1 text-text-primary">{cust.name}</p>
-                  <p className="text-sm text-text-secondary">{cust.phone}</p>
-                  <p className="text-sm text-text-secondary">{cust.email}</p>
+                  <p className="font-semibold mb-1 text-gray-900">{cust.name}</p>
+                  <p className="text-sm text-gray-600">{cust.phone}</p>
+                  <p className="text-sm text-gray-600">{cust.email}</p>
                 </div>
-                <div className="bg-layer p-4 border border-border-subtle">
+                <div className={cardBase}>
                   <SectionTitle>Scheduled</SectionTitle>
-                  <p className="font-semibold mb-1 text-text-primary">{fmtDate(job.date)} at {job.time}</p>
-                  <p className="text-sm text-text-secondary">Unit type: {job.unitType}</p>
+                  <p className="font-semibold mb-1 text-gray-900">{fmtDate(job.date)} at {job.time}</p>
+                  <p className="text-sm text-gray-600">Unit type: {job.unitType}</p>
                 </div>
               </div>
               
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Site Address</SectionTitle>
-                <p className="mb-1 text-text-primary">{cust.address}</p>
-                <a href={`https://maps.google.com/?q=${encodeURIComponent(cust.address || "")}`} target="_blank" rel="noreferrer" className="text-sm text-interactive no-underline font-medium cursor-pointer">
+                <p className="mb-1 text-gray-900">{cust.address}</p>
+                <a href={`https://maps.google.com/?q=${encodeURIComponent(cust.address || "")}`} target="_blank" rel="noreferrer" className="text-sm text-brand-600 no-underline font-medium cursor-pointer hover:text-brand-700">
                   Open in Google Maps →
                 </a>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Scope of Work</SectionTitle>
-                <p className="text-sm text-text-secondary leading-relaxed">{job.description}</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{job.description}</p>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Team</SectionTitle>
-                <p className="mb-0.5 text-text-primary">Lead technician: <strong>{techName}</strong></p>
-                {coName && <p className="text-sm text-text-secondary">Assisting: <strong className="text-text-primary">{coName}</strong></p>}
+                <p className="mb-0.5 text-gray-900">Lead technician: <strong>{techName}</strong></p>
+                {coName && <p className="text-sm text-gray-600">Assisting: <strong className="text-gray-900">{coName}</strong></p>}
               </div>
 
               {(job.history || []).length > 0 && (
-                <div className="bg-layer p-4 border border-border-subtle mb-4">
+                <div className={cardBase}>
                   <SectionTitle>Site Service History</SectionTitle>
                   <div>
                     {job.history.map((h, i) => (
-                      <div key={i} className="flex gap-2 py-2 border-b border-border-subtle last:border-none">
-                        <span className="mono text-xs text-text-secondary shrink-0">{h.date}</span>
-                        <span className="text-sm text-text-primary">{h.note}</span>
+                      <div key={i} className="flex gap-2 py-2 border-b border-gray-100 last:border-none">
+                        <span className="font-mono text-xs text-gray-400 shrink-0">{h.date}</span>
+                        <span className="text-sm text-gray-900">{h.note}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Customer Communication</SectionTitle>
                 <div className="flex gap-2 flex-wrap">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#25D366] text-white border-none cursor-pointer hover:opacity-90 transition-opacity" onClick={handleWhatsAppReminder}>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] border-none rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={handleWhatsAppReminder}>
                     WhatsApp Reminder
                   </button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#0052CC] text-white border-none cursor-pointer hover:opacity-90 transition-opacity" onClick={handleEmailReminder}>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#0052CC] border-none rounded-lg cursor-pointer hover:opacity-90 transition-opacity" onClick={handleEmailReminder}>
                     Email Reminder
                   </button>
                   {onPrint && (
-                    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={handlePrint}>
+                    <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50`} onClick={handlePrint}>
                       <Printer size={14} /> Print / PDF
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle">
+              <div className={cardBase}>
                 <SectionTitle>Comments ({comments.length})</SectionTitle>
                 {comments.map((c, i) => (
-                  <div key={i} className="py-3 border-b border-border-subtle last:border-none">
+                  <div key={i} className="py-3 border-b border-gray-100 last:border-none">
                     <div className="flex justify-between mb-0.5">
-                      <span className="font-semibold text-xs text-interactive">{c.author}</span>
-                      <span className="mono text-xs text-text-helper">{c.time}</span>
+                      <span className="font-semibold text-xs text-brand-600">{c.author}</span>
+                      <span className="font-mono text-xs text-gray-400">{c.time}</span>
                     </div>
-                    <p className="text-sm text-text-secondary">{c.text}</p>
+                    <p className="text-sm text-gray-600">{c.text}</p>
                   </div>
                 ))}
                 {canEdit && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-3">
                     <FormItem label="Add comment">
                       <textarea 
-                        className="w-full h-20 px-3 py-2 text-sm text-text-primary bg-[#f9fafb] border border-border-strong outline-none transition-colors focus:border-interactive focus:bg-white resize-vertical"
+                        className={textareaBase}
                         placeholder="Describe progress, observations, or issues..." 
                         value={comment} 
                         onChange={e => setComment(e.target.value)} 
                       />
                     </FormItem>
-                    <button className="inline-flex items-center px-3 py-1.5 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={handleAddComment}>
+                    <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50`} onClick={handleAddComment}>
                       Post Comment
                     </button>
                   </div>
@@ -514,27 +523,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
           {/* Diagnostics Tab */}
           {tab === "diagnostics" && (
-            <div className="animate-fade-in">
+            <div className="animate-fade-in space-y-4">
               {alerts.map(a => (
                 <Notification key={a} kind="e" title={`${ALERT_CFG[a]?.icon} ${ALERT_CFG[a]?.label}`} body="This reading exceeds safe operating thresholds. Admin has been notified." />
               ))}
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>1 — Equipment Identification</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Machine type">
-                    <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={diag.unitType || ""} onChange={e => setD("unitType", e.target.value as UnitType)}>
+                    <select className={selectBase} value={diag.unitType || ""} onChange={e => setD("unitType", e.target.value as UnitType)}>
                       <option value="">Select</option>
                       {UNIT_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   </FormItem>
                   <FormItem label="Brand / Model">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. Samsung AR18" value={diag.brand || ""} onChange={e => setD("brand", e.target.value)} />
+                    <input className={inputBase} placeholder="e.g. Samsung AR18" value={diag.brand || ""} onChange={e => setD("brand", e.target.value)} />
                   </FormItem>
                   <FormItem label="Serial number" helper="Enter manually or scan barcode">
                     <div className="flex">
-                      <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="Serial number" value={diag.serial || ""} onChange={e => setD("serial", e.target.value)} />
-                      <button className="shrink-0 inline-flex items-center justify-center px-2 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" aria-label="Scan barcode" title="Scan">
+                      <input className={inputBase} placeholder="Serial number" value={diag.serial || ""} onChange={e => setD("serial", e.target.value)} />
+                      <button className="shrink-0 inline-flex items-center justify-center px-2 text-xs bg-white border border-gray-200 rounded-r-lg text-gray-700 cursor-pointer hover:bg-gray-50" aria-label="Scan barcode" title="Scan">
                         <Camera size={14} />
                       </button>
                     </div>
@@ -542,39 +551,39 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>2 — Electrical Readings</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Supply voltage (V)" error={(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? `Below ${DIAG_THRESHOLDS.minVoltage} V minimum — LOW_VOLTAGE alert` : undefined; })()}>
-                    <input className={`w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors ${(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? 'border-support-error' : ''; })()}`} type="number" placeholder="e.g. 230" value={diag.voltage || ""} onChange={e => setD("voltage", e.target.value)} />
+                    <input className={`${inputBase} ${(() => { const v = num(diag.voltage); return v !== null && v < DIAG_THRESHOLDS.minVoltage ? 'border-red-400' : ''; })()}`} type="number" placeholder="e.g. 230" value={diag.voltage || ""} onChange={e => setD("voltage", e.target.value)} />
                   </FormItem>
                   <FormItem label="Current draw (A)" error={(() => { const v = num(diag.current); return v !== null && v > DIAG_THRESHOLDS.maxCurrent ? `Exceeds ${DIAG_THRESHOLDS.maxCurrent} A max — HIGH_CURRENT alert` : undefined; })()}>
-                    <input className={`w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors ${(() => { const v = num(diag.current); return v !== null && v > DIAG_THRESHOLDS.maxCurrent ? 'border-support-error' : ''; })()}`} type="number" placeholder="e.g. 12.5" value={diag.current || ""} onChange={e => setD("current", e.target.value)} />
+                    <input className={`${inputBase} ${(() => { const v = num(diag.current); return v !== null && v > DIAG_THRESHOLDS.maxCurrent ? 'border-red-400' : ''; })()}`} type="number" placeholder="e.g. 12.5" value={diag.current || ""} onChange={e => setD("current", e.target.value)} />
                   </FormItem>
                   <FormItem label="Refrigerant type">
-                    <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={diag.refrigerantType || "R-410A"} onChange={e => setD("refrigerantType", e.target.value)}>
+                    <select className={selectBase} value={diag.refrigerantType || "R-410A"} onChange={e => setD("refrigerantType", e.target.value)}>
                       {REFRIGERANT_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   </FormItem>
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>3 — Thermal Readings</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <FormItem label="Avg operating temp (°C)">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" placeholder="e.g. 22" value={diag.avgTemp || ""} onChange={e => setD("avgTemp", e.target.value)} />
+                    <input className={inputBase} type="number" placeholder="e.g. 22" value={diag.avgTemp || ""} onChange={e => setD("avgTemp", e.target.value)} />
                   </FormItem>
                   <FormItem label="Max design temp (°C)">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" placeholder="e.g. 40" value={diag.maxTemp || ""} onChange={e => setD("maxTemp", e.target.value)} />
+                    <input className={inputBase} type="number" placeholder="e.g. 40" value={diag.maxTemp || ""} onChange={e => setD("maxTemp", e.target.value)} />
                   </FormItem>
                   <FormItem label="Delta T — return vs supply (°C)" helper="Measures cooling efficiency">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" placeholder="e.g. 11" value={diag.deltaT || ""} onChange={e => setD("deltaT", e.target.value)} />
+                    <input className={inputBase} type="number" placeholder="e.g. 11" value={diag.deltaT || ""} onChange={e => setD("deltaT", e.target.value)} />
                   </FormItem>
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>4 — Refrigeration Pressure Test</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
@@ -592,18 +601,18 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                       if (v > max) return `${field.key.charAt(0).toUpperCase() + field.key.slice(1)} ${v} PSI is above ${p.refrigerant} normal range (${min}-${max} PSI)`;
                       return undefined;
                     })()}>
-                      <input className={`w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors ${(() => {
+                      <input className={`${inputBase} ${(() => {
                         const v = num(diag[field.key]); if (v === null) return '';
                         const p = getPressureThresholds(diag.refrigerantType);
                         const isSuction = field.key === 'suction';
                         const min = isSuction ? p.suctionMin : p.dischargeMin;
                         const max = isSuction ? p.suctionMax : p.dischargeMax;
-                        return v < min || v > max ? 'border-support-error' : '';
+                        return v < min || v > max ? 'border-red-400' : '';
                       })()}`} type="number" placeholder={field.placeholder} value={diag[field.key] || ""} onChange={e => setD(field.key, e.target.value)} />
                     </FormItem>
                   ))}
                   <FormItem label="System status">
-                    <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={diag.status || "optimal"} onChange={e => setD("status", e.target.value as SystemStatus)}>
+                    <select className={selectBase} value={diag.status || "optimal"} onChange={e => setD("status", e.target.value as SystemStatus)}>
                       <option value="optimal">Optimal</option>
                       <option value="sub-optimal">Sub-Optimal</option>
                       <option value="critical">Critical Failure</option>
@@ -616,9 +625,9 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                       const labels: Record<SystemStatus, string> = { optimal: "Optimal", "sub-optimal": "Sub-Optimal", critical: "Critical Failure" };
                       const reason = liveAlerts.length > 0 ? liveAlerts.join(", ") + " detected" : "no alerts";
                       return (
-                        <div className="mt-1 text-sm text-text-secondary flex items-center gap-2 flex-wrap">
+                        <div className="mt-1 text-sm text-gray-600 flex items-center gap-2 flex-wrap">
                           <span>Suggested: <strong>{labels[suggested]}</strong> ({reason})</span>
-                          <button type="button" className="inline-flex items-center px-2 py-1 text-[11px] bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setD("status", suggested)}>
+                          <button type="button" className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 text-[11px]`} onClick={() => setD("status", suggested)}>
                             Apply
                           </button>
                         </div>
@@ -627,27 +636,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   </FormItem>
                 </div>
                 <FormItem label="Functional notes">
-                  <textarea className="w-full h-20 px-3 py-2 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors resize-vertical" placeholder="Describe observations, parts used, repairs made..." value={diag.notes || ""} onChange={e => setD("notes", e.target.value)} />
+                  <textarea className={textareaBase} placeholder="Describe observations, parts used, repairs made..." value={diag.notes || ""} onChange={e => setD("notes", e.target.value)} />
                 </FormItem>
               </div>
 
-              <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors" onClick={runCheck}>Run Diagnostic Check</button>
+              <button className={btnPrimary} onClick={runCheck}>Run Diagnostic Check</button>
             </div>
           )}
 
           {/* Media Tab */}
           {tab === "media" && (
-            <div className="animate-fade-in">
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+            <div className="animate-fade-in space-y-4">
+              <div className={cardBase}>
                 <div className="flex justify-between gap-3 items-center flex-wrap mb-4">
                   <div>
                     <SectionTitle>Job Photos and Evidence</SectionTitle>
-                    <p className="text-sm text-text-secondary m-0">Capture before, after, serial plate, and customer evidence while on site.</p>
+                    <p className="text-sm text-gray-600 m-0">Capture before, after, serial plate, and customer evidence while on site.</p>
                   </div>
                   {canEdit && (
                     <>
                       <input ref={fileInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={e => handleUploadAttachment(e.target.files)} />
-                      <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors min-h-[44px]" onClick={() => fileInputRef.current?.click()} disabled={uploadingAttachment}>
+                      <button className={btnPrimary} onClick={() => fileInputRef.current?.click()} disabled={uploadingAttachment}>
                         <Camera size={16} /> {uploadingAttachment ? 'Uploading...' : 'Add Photo'}
                       </button>
                     </>
@@ -657,27 +666,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 {attachmentError && <Notification kind="e" title="Attachment issue" body={attachmentError} />}
 
                 {attachmentsLoading ? (
-                  <p className="text-sm text-text-helper mb-4">Loading attachments...</p>
+                  <p className="text-sm text-gray-400 mb-4">Loading attachments...</p>
                 ) : attachments.length === 0 ? (
-                  <p className="text-sm text-text-helper mb-4">No uploaded evidence yet.</p>
+                  <p className="text-sm text-gray-400 mb-4">No uploaded evidence yet.</p>
                 ) : (
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2 mb-4">
                     {attachments.map(a => {
                       const href = a.dataUrl || a.url || undefined;
                       const isImage = a.contentType.startsWith('image/');
                       return (
-                        <a key={a.id} href={href} target="_blank" rel="noreferrer" className="border border-border-subtle rounded overflow-hidden text-inherit no-underline bg-[#f5f5f5] min-h-[170px] flex flex-col">
-                          <div className="aspect-[4/3] bg-surface-hover flex items-center justify-center">
+                        <a key={a.id} href={href} target="_blank" rel="noreferrer" className="border border-gray-200 rounded-lg overflow-hidden text-inherit no-underline bg-gray-50 min-h-[170px] flex flex-col">
+                          <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
                             {isImage && href ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={href} alt={a.fileName} className="w-full h-full object-cover" />
                             ) : (
-                              <Camera size={28} />
+                              <Camera size={28} className="text-gray-400" />
                             )}
                           </div>
                           <div className="p-2 flex flex-col gap-1">
-                            <span className="text-sm font-semibold break-words">{a.fileName}</span>
-                            <span className="text-xs text-text-secondary">{a.uploader?.name || 'Uploaded'} · {new Date(a.uploadedAt).toLocaleDateString()}</span>
+                            <span className="text-sm font-semibold break-words text-gray-900">{a.fileName}</span>
+                            <span className="text-xs text-gray-500">{a.uploader?.name || 'Uploaded'} · {new Date(a.uploadedAt).toLocaleDateString()}</span>
                           </div>
                         </a>
                       );
@@ -686,11 +695,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 )}
 
                 {photos.length > 0 && (
-                  <div className="border-t border-border-subtle pt-3">
-                    <p className="text-sm text-text-secondary mb-2">Legacy photo references</p>
+                  <div className="border-t border-gray-100 pt-3">
+                    <p className="text-sm text-gray-500 mb-2">Legacy photo references</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {photos.map((p, i) => (
-                        <div key={i} className="min-w-[120px] min-h-[44px] bg-surface-hover border border-border-strong flex items-center gap-1.5 text-xs text-text-helper p-1">
+                        <div key={i} className="min-w-[120px] min-h-[44px] bg-gray-100 border border-gray-200 rounded-lg flex items-center gap-1.5 text-xs text-gray-500 p-2">
                           <Camera size={14} />
                           <span className="break-words">{p}</span>
                         </div>
@@ -700,16 +709,16 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 )}
 
                 {canEdit && (
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={handleAddPhoto} title="Add a legacy text photo reference">
+                  <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50`} onClick={handleAddPhoto} title="Add a legacy text photo reference">
                     <Plus size={14} /> Add Reference
                   </button>
                 )}
               </div>
               
-              <div className="bg-layer p-4 border border-border-subtle">
+              <div className={cardBase}>
                 <SectionTitle>Job Card Reference</SectionTitle>
                 <FormItem label="Reference number" helper="e.g. JC-001-SIPHO or upload reference">
-                  <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="Job card reference" value={jobCardRef} onChange={e => setJCR(e.target.value)} />
+                  <input className={inputBase} placeholder="Job card reference" value={jobCardRef} onChange={e => setJCR(e.target.value)} />
                 </FormItem>
               </div>
             </div>
@@ -717,15 +726,15 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
           {/* Sign-Off Tab */}
           {tab === "sign-off" && (
-            <div className="animate-fade-in">
+            <div className="animate-fade-in space-y-4">
               {!canSign && (
                 <Notification kind="w" title="Diagnostics required" body="Complete the Diagnostics tab before the customer sign-off becomes available." />
               )}
               
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Job Status</SectionTitle>
                 <FormItem label="Update status">
-                  <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors max-w-[240px]" value={status} onChange={e => {
+                  <select className={selectBase + " max-w-[240px]"} value={status} onChange={e => {
                     const next = e.target.value as JobStatus;
                     if (status === 'completed' && next !== 'completed') setPendingStatus(next);
                     else setStatus(next);
@@ -736,15 +745,15 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 {diag.status === "sub-optimal" && <Notification kind="w" title="Sub-optimal system status" body="A follow-up task will be created for admin review." />}
                 {diag.status === "critical" && <Notification kind="e" title="Critical failure detected" body="Admin has been alerted. Do not close job until reviewed." />}
                 {pendingStatus && (
-                  <div className="flex items-start gap-3 p-4 mt-3 bg-amber-50 border-l-4 border-l-support-warning" role="alert">
+                  <div className="flex items-start gap-3 p-4 mt-3 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg" role="alert">
                     <div>
-                      <div className="font-semibold text-sm text-text-primary">Confirm status change</div>
-                      <div className="text-sm text-text-secondary mt-1">
+                      <div className="font-semibold text-sm text-gray-900">Confirm status change</div>
+                      <div className="text-sm text-gray-600 mt-1">
                         This job was marked completed. Changing to "{STATUS_CFG[pendingStatus]?.label}" will undo completion.
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <button className="inline-flex items-center px-3 py-1.5 text-xs bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setPendingStatus(null)}>Cancel</button>
-                        <button className="inline-flex items-center px-3 py-1.5 text-xs bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity" onClick={() => { setStatus(pendingStatus); setPendingStatus(null); }}>Confirm change</button>
+                        <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50`} onClick={() => setPendingStatus(null)}>Cancel</button>
+                        <button className={`${btnBase} text-white bg-red-600 border-red-600 hover:bg-red-700`} onClick={() => { setStatus(pendingStatus); setPendingStatus(null); }}>Confirm change</button>
                       </div>
                     </div>
                   </div>
@@ -752,14 +761,14 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               </div>
 
               {job.type !== "sales" && (
-                <div className="bg-layer p-4 border border-border-subtle">
+                <div className={cardBase}>
                   <SectionTitle>Customer Sign-Off</SectionTitle>
                   {sig ? (
                     <Notification kind="s" title="Customer has signed" body={`Signature captured at ${clockOut || nowTime()}.`} />
                   ) : canSign ? (
                     <SignaturePad onSave={s => setSig(s)} />
                   ) : (
-                    <p className="text-sm text-text-helper">Complete diagnostics to unlock customer signature.</p>
+                    <p className="text-sm text-gray-400">Complete diagnostics to unlock customer signature.</p>
                   )}
                 </div>
               )}
@@ -768,13 +777,13 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
           {/* ODS Tab */}
           {tab === "ods" && (
-            <div className="animate-fade-in">
-              <div className="p-4 mb-4 border" style={{ background: '#00695c', borderColor: '#00897b' }}>
-                <h3 className="text-white text-xl font-light mb-2">Ozone Depleting Substances (ODS) Tracking</h3>
+            <div className="animate-fade-in space-y-4">
+              <div className="p-5 rounded-xl shadow-sm" style={{ background: '#00695c', color: 'white' }}>
+                <h3 className="text-xl font-bold mb-2">Ozone Depleting Substances (ODS) Tracking</h3>
                 <p className="text-white/80 text-sm">Regulatory compliance tracking for refrigerant handling and recovery.</p>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Refrigerant Type</SectionTitle>
                 {(() => {
                   const key = (diag.refrigerantType || '').trim();
@@ -782,17 +791,17 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                       <div>
-                        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">Current System Refrigerant</p>
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Current System Refrigerant</p>
                         <p className="text-2xl font-light" style={{ color: '#004d40' }}>{diag.refrigerantType || "Not specified"}</p>
                         {info && <p className="text-sm mt-1" style={{ color: '#00695c' }}>Family: <strong>{info.family}</strong></p>}
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">ODS Classification</p>
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">ODS Classification</p>
                         <p className="text-sm" style={{ color: '#004d40' }}>{info ? `${info.odsClass} (${info.family})` : 'Check classification'}</p>
                         {info && <p className="text-xs mt-1 leading-relaxed" style={{ color: '#00695c' }}>{info.notes}</p>}
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] mb-1">GWP Rating</p>
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">GWP Rating</p>
                         <p className="text-sm" style={{ color: '#004d40' }}>{info ? `${info.gwp.toLocaleString()} (${info.gwpRating})` : 'Unknown'}</p>
                       </div>
                     </div>
@@ -801,27 +810,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               </div>
 
               {/* Gas Usage inline form */}
-              <div className="mb-4">
+              <div className={cardBase}>
                 <div className="flex justify-between items-center mb-2">
                   <SectionTitle>Log Gas Usage to Stock</SectionTitle>
                   {canEdit && (
-                    <button className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer transition-colors ${showGasLog ? 'bg-surface border border-border-strong text-text-primary' : 'bg-interactive text-white border-none'} hover:opacity-90`}
+                    <button className={`${showGasLog ? btnSecondary : btnPrimary} text-xs`}
                       onClick={() => { setShowGasLog(g => !g); setGasError(null); setGasSuccess(null); }}>
                       {showGasLog ? 'Cancel' : <><Plus size={14} /> Log Usage</>}
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-text-secondary mb-2">Records refrigerant used and deducts from your gas stock inventory.</p>
+                <p className="text-sm text-gray-600 mb-2">Records refrigerant used and deducts from your gas stock inventory.</p>
 
                 {gasSuccess && (
-                  <div className="flex items-start gap-3 p-4 mb-3 bg-green-50 border-l-4 border-l-support-success">
-                    <div><div className="font-semibold text-sm text-text-primary">Logged</div><div className="text-sm text-text-secondary">{gasSuccess}</div></div>
+                  <div className="flex items-start gap-3 p-4 mb-3 bg-green-50 border-l-4 border-l-emerald-500 rounded-lg">
+                    <div><div className="font-semibold text-sm text-gray-900">Logged</div><div className="text-sm text-gray-600">{gasSuccess}</div></div>
                   </div>
                 )}
 
                 {gasMismatchWarning && (
-                  <div className="flex items-start gap-3 p-4 mb-3 bg-amber-50 border-l-4 border-l-support-warning">
-                    <div><div className="font-semibold text-sm text-text-primary">Refrigerant type mismatch</div><div className="text-sm text-text-secondary">{gasMismatchWarning}</div></div>
+                  <div className="flex items-start gap-3 p-4 mb-3 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
+                    <div><div className="font-semibold text-sm text-gray-900">Refrigerant type mismatch</div><div className="text-sm text-gray-600">{gasMismatchWarning}</div></div>
                   </div>
                 )}
 
@@ -831,27 +840,27 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                   const selectedStock = gasStock.find(s => s.id === gasForm.stockId);
                   const selectedDepleted = !!selectedStock && selectedStock.remaining <= 0;
                   return (
-                    <div className="bg-layer p-4 border animate-fade-in" style={{ borderColor: 'var(--color-interactive)' }}>
-                      {gasStockLoading && <p className="text-sm text-text-secondary">Loading stock…</p>}
+                    <div className="p-4 border-2 border-brand-200 rounded-xl bg-white animate-fade-in">
+                      {gasStockLoading && <p className="text-sm text-gray-500">Loading stock…</p>}
                       {!gasStockLoading && gasStock.length === 0 && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-support-warning">
-                          <div><div className="font-semibold text-sm text-text-primary">No stock available</div><div className="text-sm text-text-secondary">No gas stock items exist in inventory. Contact admin to add stock.</div></div>
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
+                          <div><div className="font-semibold text-sm text-gray-900">No stock available</div><div className="text-sm text-gray-600">No gas stock items exist in inventory. Contact admin to add stock.</div></div>
                         </div>
                       )}
                       {!gasStockLoading && allDepleted && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-support-warning">
-                          <div><div className="font-semibold text-sm text-text-primary">All stock depleted</div><div className="text-sm text-text-secondary">Every gas stock item is at zero. Contact admin to top up before logging usage.</div></div>
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
+                          <div><div className="font-semibold text-sm text-gray-900">All stock depleted</div><div className="text-sm text-gray-600">Every gas stock item is at zero. Contact admin to top up before logging usage.</div></div>
                         </div>
                       )}
                       {!gasStockLoading && gasStock.length > 0 && (
                         <div className="flex flex-col gap-3">
                           {gasError && (
-                            <div className="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-l-support-error">
-                              <div><div className="font-semibold text-sm text-text-primary">Notice</div><div className="text-sm text-text-secondary">{gasError}</div></div>
+                            <div className="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-l-red-500 rounded-lg">
+                              <div><div className="font-semibold text-sm text-gray-900">Notice</div><div className="text-sm text-gray-600">{gasError}</div></div>
                             </div>
                           )}
                           <FormItem label="Gas Stock *">
-                            <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={gasForm.stockId} onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}>
+                            <select className={selectBase} value={gasForm.stockId} onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}>
                               <option value="">Select gas…</option>
                               {sortedStock.map(s => (
                                 <option key={s.id} value={s.id} disabled={s.remaining <= 0}>{s.gasType} — {s.brand} ({s.remaining} {s.unit} remaining){s.remaining <= 0 ? ' (empty)' : ''}</option>
@@ -860,14 +869,14 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                           </FormItem>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormItem label={`Quantity Used (${selectedStock?.unit || 'kg'}) *`}>
-                              <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" step="0.1" min="0.1" max={selectedStock?.remaining} placeholder="e.g. 2.5" value={gasForm.quantityUsed} onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))} disabled={!gasForm.stockId || selectedDepleted} />
+                              <input className={inputBase} type="number" step="0.1" min="0.1" max={selectedStock?.remaining} placeholder="e.g. 2.5" value={gasForm.quantityUsed} onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))} disabled={!gasForm.stockId || selectedDepleted} />
                             </FormItem>
                             <FormItem label="Purpose (optional)">
-                              <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. System recharge" value={gasForm.purpose} onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))} />
+                              <input className={inputBase} placeholder="e.g. System recharge" value={gasForm.purpose} onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))} />
                             </FormItem>
                           </div>
                           <div className="flex justify-end">
-                            <button className="inline-flex items-center px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={submitGasUsage} disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed || selectedDepleted}>
+                            <button className={btnPrimary + " text-xs disabled:opacity-50"} onClick={submitGasUsage} disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed || selectedDepleted}>
                               {gasSubmitting ? 'Saving…' : 'Record Usage'}
                             </button>
                           </div>
@@ -878,7 +887,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 })()}
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Refrigerant Movement Log</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   {[
@@ -887,35 +896,35 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                     { key: 'refrigerantReused' as const, label: 'Refrigerant Reused (kg)', helper: 'Recovered refrigerant recharged' },
                   ].map(f => (
                     <FormItem key={f.key} label={f.label} helper={f.helper}>
-                      <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" step="0.1" placeholder="0.0" value={diag[f.key] || ""} onChange={e => setD(f.key, parseFloat(e.target.value) || 0)} />
+                      <input className={inputBase} type="number" step="0.1" placeholder="0.0" value={diag[f.key] || ""} onChange={e => setD(f.key, parseFloat(e.target.value) || 0)} />
                     </FormItem>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+              <div className={cardBase}>
                 <SectionTitle>Summary</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-text-primary">{toNum(diag.refrigerantRecovered).toFixed(1)} kg</p>
-                    <p className="text-xs text-text-secondary">Total Recovered</p>
+                    <p className="text-2xl font-bold text-gray-900">{toNum(diag.refrigerantRecovered).toFixed(1)} kg</p>
+                    <p className="text-xs text-gray-500">Total Recovered</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-text-primary">{toNum(diag.refrigerantUsed).toFixed(1)} kg</p>
-                    <p className="text-xs text-text-secondary">Total Used</p>
+                    <p className="text-2xl font-bold text-gray-900">{toNum(diag.refrigerantUsed).toFixed(1)} kg</p>
+                    <p className="text-xs text-gray-500">Total Used</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold" style={{ color: refrigerantNet >= 0 ? '#198038' : '#da1e28' }}>
+                    <p className="text-2xl font-bold" style={{ color: refrigerantNet >= 0 ? '#16a34a' : '#dc2626' }}>
                       {refrigerantNet >= 0 ? '+' : ''}{refrigerantNet.toFixed(1)} kg
                     </p>
-                    <p className="text-xs text-text-secondary">Net Change</p>
+                    <p className="text-xs text-gray-500">Net Change</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle">
+              <div className={cardBase}>
                 <SectionTitle>Compliance Notes</SectionTitle>
-                <p className="text-sm text-text-secondary leading-relaxed">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   All refrigerant handling must comply with the Montreal Protocol and local environmental regulations.
                   Recovered refrigerant must be stored in certified recovery cylinders and properly labeled.
                   R-22 (HCFC) systems must be reported for phase-out tracking.
@@ -926,70 +935,70 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
           {/* Consumables Tab */}
           {tab === "consumables" && (
-            <div className="animate-fade-in">
-              <div className="bg-layer p-4 border border-border-subtle mb-4">
+            <div className="animate-fade-in space-y-4">
+              <div className={cardBase}>
                 <SectionTitle>Add Consumable</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   <FormItem label="Type">
-                    <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={newConsumable.type} onChange={e => setNewConsumable(p => ({ ...p, type: e.target.value as ConsumableType }))}>
+                    <select className={selectBase} value={newConsumable.type} onChange={e => setNewConsumable(p => ({ ...p, type: e.target.value as ConsumableType }))}>
                       {CONSUMABLE_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                     </select>
                   </FormItem>
                   <FormItem label="Name / Description">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="e.g. R-410A Gas, Compressor unit" value={newConsumable.name} onChange={e => setNewConsumable(p => ({ ...p, name: e.target.value }))} />
+                    <input className={inputBase} placeholder="e.g. R-410A Gas, Compressor unit" value={newConsumable.name} onChange={e => setNewConsumable(p => ({ ...p, name: e.target.value }))} />
                   </FormItem>
                   <FormItem label="Brand">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="Optional" value={newConsumable.brand} onChange={e => setNewConsumable(p => ({ ...p, brand: e.target.value }))} />
+                    <input className={inputBase} placeholder="Optional" value={newConsumable.brand} onChange={e => setNewConsumable(p => ({ ...p, brand: e.target.value }))} />
                   </FormItem>
                   <FormItem label="Quantity">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" type="number" placeholder="0" value={newConsumable.quantity} onChange={e => setNewConsumable(p => ({ ...p, quantity: e.target.value }))} />
+                    <input className={inputBase} type="number" placeholder="0" value={newConsumable.quantity} onChange={e => setNewConsumable(p => ({ ...p, quantity: e.target.value }))} />
                   </FormItem>
                   <FormItem label="Unit">
-                    <select className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" value={newConsumable.unit} onChange={e => setNewConsumable(p => ({ ...p, unit: e.target.value }))}>
+                    <select className={selectBase} value={newConsumable.unit} onChange={e => setNewConsumable(p => ({ ...p, unit: e.target.value }))}>
                       {CONSUMABLE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </FormItem>
                   <FormItem label="Notes">
-                    <input className="w-full h-9 px-3 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors" placeholder="Optional notes" value={newConsumable.notes} onChange={e => setNewConsumable(p => ({ ...p, notes: e.target.value }))} />
+                    <input className={inputBase} placeholder="Optional notes" value={newConsumable.notes} onChange={e => setNewConsumable(p => ({ ...p, notes: e.target.value }))} />
                   </FormItem>
                 </div>
                 {canEdit && (
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors" onClick={handleAddConsumable}>
+                  <button className={btnPrimary + " text-xs"} onClick={handleAddConsumable}>
                     <Plus size={14} /> Add Consumable
                   </button>
                 )}
               </div>
 
-              <div className="bg-layer p-4 border border-border-subtle">
+              <div className={cardBase}>
                 <SectionTitle>Consumables Used on This Job</SectionTitle>
                 {consumablesLoading ? (
-                  <p className="text-sm text-text-secondary">Loading...</p>
+                  <p className="text-sm text-gray-500">Loading...</p>
                 ) : consumables.length === 0 ? (
-                  <p className="text-sm text-text-secondary">No consumables recorded yet.</p>
+                  <p className="text-sm text-gray-500">No consumables recorded yet.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-sm">
                       <thead>
-                        <tr className="bg-surface-hover">
+                        <tr className="bg-gray-50">
                           {['Type', 'Name', 'Brand', 'Qty', 'Unit', 'Notes', 'Recorded'].map(h => (
-                            <th key={h} className="p-2 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-[0.08em] border-b border-border-subtle">{h}</th>
+                            <th key={h} className="p-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">{h}</th>
                           ))}
                           {canEdit && <th className="p-2" />}
                         </tr>
                       </thead>
                       <tbody>
                         {consumables.map(c => (
-                          <tr key={c.id} className="border-b border-border-subtle">
-                            <td className="p-2"><span className="inline-flex items-center h-6 px-2 text-[11px] font-semibold uppercase bg-surface-hover">{c.type}</span></td>
-                            <td className="p-2 font-medium">{c.name}</td>
-                            <td className="p-2 text-text-secondary">{c.brand || '—'}</td>
-                            <td className="p-2 font-semibold">{c.quantity}</td>
-                            <td className="p-2 text-text-secondary">{c.unit}</td>
-                            <td className="p-2 text-text-secondary max-w-[160px]">{c.notes || '—'}</td>
-                            <td className="p-2 text-text-secondary text-xs">{new Date(c.recordedAt).toLocaleDateString()}</td>
+                          <tr key={c.id} className="border-b border-gray-100">
+                            <td className="p-2"><span className={tagBase + " bg-gray-100 text-gray-700 uppercase"}>{c.type}</span></td>
+                            <td className="p-2 font-medium text-gray-900">{c.name}</td>
+                            <td className="p-2 text-gray-500">{c.brand || '—'}</td>
+                            <td className="p-2 font-semibold text-gray-900">{c.quantity}</td>
+                            <td className="p-2 text-gray-500">{c.unit}</td>
+                            <td className="p-2 text-gray-500 max-w-[160px]">{c.notes || '—'}</td>
+                            <td className="p-2 text-gray-500 text-xs">{new Date(c.recordedAt).toLocaleDateString()}</td>
                             {canEdit && (
                               <td className="p-2">
-                                <button className="inline-flex items-center px-2 py-1 text-[11px] bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity" onClick={() => handleDeleteConsumable(c.id)}>
+                                <button className="inline-flex items-center px-2 py-1 text-[11px] font-medium text-white bg-red-600 border-none rounded-lg cursor-pointer hover:bg-red-700 transition-colors" onClick={() => handleDeleteConsumable(c.id)}>
                                   <Trash2 size={12} />
                                 </button>
                               </td>
@@ -1006,46 +1015,49 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-          <button className="inline-flex items-center px-4 py-2 text-sm bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={onClose}>Cancel</button>
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+          <button className={btnSecondary} onClick={onClose}>Cancel</button>
           {canDeleteJobs(userRole) && onDelete && (
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity" onClick={() => { setDeleteReason(''); setDeleteError(null); setShowDeleteConfirm(true); }}>
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-red-600 border-none rounded-lg cursor-pointer hover:bg-red-700 transition-colors" onClick={() => { setDeleteReason(''); setDeleteError(null); setShowDeleteConfirm(true); }}>
               <Trash2 size={14} /> Delete Job
             </button>
           )}
           {onPrint && (
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={handlePrint}>
+            <button className={btnSecondary} onClick={handlePrint}>
               <Download size={14} /> Download PDF
             </button>
           )}
-          {canEdit && <button className="inline-flex items-center px-4 py-2 text-sm bg-interactive text-white border-none cursor-pointer hover:bg-interactive-hover transition-colors" onClick={save}>Save Job Card</button>}
+          {canEdit && <button className={btnPrimary} onClick={save}>Save Job Card</button>}
         </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-[9500] flex items-start justify-center overflow-y-auto p-4 sm:p-8 lg:p-12"
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8"
           onClick={e => e.target === e.currentTarget && !deleting && setShowDeleteConfirm(false)}>
-          <div className="bg-layer w-full max-w-[480px] flex flex-col">
-            <div className="flex items-start justify-between p-6 border-b border-border-subtle">
-              <div><p className="text-xs text-text-secondary font-semibold uppercase tracking-[0.08em]">{job.id}</p><h2 className="text-xl font-semibold text-text-primary mt-1">Delete job?</h2></div>
-              <button className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary p-1" onClick={() => !deleting && setShowDeleteConfirm(false)} aria-label="Close" disabled={deleting}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] mx-auto overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
+              <div>
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{job.id}</p>
+                <h2 className="text-xl font-bold text-gray-900 mt-1">Delete job?</h2>
+              </div>
+              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => !deleting && setShowDeleteConfirm(false)} aria-label="Close" disabled={deleting}>
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6 flex flex-col gap-3">
-              <p className="text-sm text-text-secondary m-0">
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm text-gray-600 m-0">
                 This permanently removes <strong>{job.title}</strong> and all its related records
                 (diagnostics, comments, history, consumables, gas usage). This cannot be undone.
               </p>
               <FormItem label="Reason for deletion *">
-                <textarea className="w-full px-3 py-2 text-sm bg-[#f9fafb] border border-border-strong outline-none focus:border-interactive transition-colors resize-vertical" rows={3} value={deleteReason} onChange={e => setDeleteReason(e.target.value)} placeholder="e.g. Duplicate entry, created in error, cancelled by customer…" disabled={deleting} />
+                <textarea className={textareaBase} rows={3} value={deleteReason} onChange={e => setDeleteReason(e.target.value)} placeholder="e.g. Duplicate entry, created in error, cancelled by customer…" disabled={deleting} />
               </FormItem>
               {deleteError && <Notification kind="e" title="Cannot delete" body={deleteError} />}
             </div>
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-border-subtle bg-surface">
-              <button className="inline-flex items-center px-4 py-2 text-sm bg-surface border border-border-strong text-text-primary cursor-pointer hover:bg-surface-hover transition-colors" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>Cancel</button>
-              <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-support-error text-white border-none cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleConfirmDelete} disabled={deleting || !deleteReason.trim()}>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button className={btnSecondary} onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>Cancel</button>
+              <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-red-600 border-none rounded-lg cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleConfirmDelete} disabled={deleting || !deleteReason.trim()}>
                 <Trash2 size={14} /> {deleting ? 'Deleting…' : 'Delete Job'}
               </button>
             </div>

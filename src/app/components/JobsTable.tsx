@@ -87,7 +87,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
           <div className="relative flex-1 w-full sm:w-auto min-w-[200px] max-w-[300px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"
+              className="w-full h-11 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"
               placeholder="Search jobs..."
               value={q}
               onChange={e => setQ(e.target.value)}
@@ -135,7 +135,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
               const typeConfig = TYPE_CFG[j.type];
               return (
                 <tr key={j.id} onClick={() => onJobClick(j)} className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-400">{j.id}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-400">{j.jobCardRef}</td>
                   <td className="px-4 py-3 font-medium text-sm text-gray-900">{j.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{cust?.name}</td>
                   <td className="px-4 py-3 whitespace-nowrap">

@@ -455,7 +455,7 @@ export default function Home() {
                 key={n.id}
                 role="button"
                 tabIndex={0}
-                className={`flex items-center gap-4 h-8 px-5 cursor-pointer text-sm text-text-secondary border-l-4 border-transparent transition-colors duration-100 select-none ${
+                className={`flex items-center gap-4 min-h-[44px] px-5 cursor-pointer text-sm text-text-secondary border-l-4 border-transparent transition-colors duration-100 select-none ${
                   isActive
                     ? 'bg-layer-selected text-text-primary border-l-interactive font-semibold'
                     : 'hover:bg-layer-hover hover:text-text-primary'
@@ -494,7 +494,7 @@ export default function Home() {
               <div
                 role="button"
                 tabIndex={0}
-                className="flex items-center gap-4 h-8 px-5 cursor-pointer text-sm text-interactive font-semibold border-l-4 border-transparent hover:bg-layer-hover"
+                className="flex items-center gap-4 min-h-[44px] px-5 cursor-pointer text-sm text-interactive font-semibold border-l-4 border-transparent hover:bg-layer-hover"
                 onClick={() => setShowAddJob(true)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
