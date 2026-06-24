@@ -28,9 +28,11 @@ export async function POST(): Promise<NextResponse> {
   const toDelete: string[] = [];
   for (const [, group] of byEmail) {
     if (group.length < 2) continue;
-    // Oldest (index 0) is kept; all newer duplicates are deleted unless it's the current admin
-    for (const u of group.slice(1)) {
-      if (u.id !== session.user.id) toDelete.push(u.id);
+    // Prefer keeping an admin account over a tech account
+    const adminAcc = group.find(u => u.id === session.user.id || u.role === 'admin');
+    const keep = adminAcc || group[0];
+    for (const u of group) {
+      if (u.id !== keep.id && u.id !== session.user.id) toDelete.push(u.id);
     }
   }
 
