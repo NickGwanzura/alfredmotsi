@@ -13,7 +13,7 @@ export async function POST(): Promise<NextResponse> {
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const users = await prisma.user.findMany({
-    select: { id: true, email: true, createdAt: true },
+    select: { id: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   });
 
