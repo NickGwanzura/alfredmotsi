@@ -643,6 +643,7 @@ export default function Home() {
                   stock={gasStock.map((s) => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
                   customers={customers.map((c) => ({ id: c.id, name: c.name }))}
                   jobs={jobs.map((j) => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
+                  techs={techs.map((t) => ({ id: t.id, name: t.name }))}
                   onAdd={(record) => {
                     setNewGasUsage(record);
                     setShowAddGasUsage(true);
