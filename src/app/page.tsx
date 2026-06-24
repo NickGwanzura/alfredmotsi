@@ -12,7 +12,6 @@ import GasStock from '@/app/components/GasStock';
 import GasUsage from '@/app/components/GasUsage';
 import CRM from '@/app/components/CRM';
 import ODSReport from '@/app/components/ODSReport';
-import SplashLogo from '@/app/components/SplashLogo';
 import Login from '@/app/components/Login';
 import AddJobModal from '@/app/components/AddJobModal';
 import JobCardModal from '@/app/components/JobCardModal';
@@ -172,9 +171,11 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-surface" style={{ fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
         <header className="header no-print">
-          <SplashLogo className="w-7 h-7" />
-          <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-semibold text-text-primary no-underline">
-            Splash Air <span className="font-normal text-text-secondary">/ Client Portal</span>
+          <div style={{ overflow: 'hidden', height: '34px', flexShrink: 0 }}>
+            <img src="/logos.svg" alt="Splash Air" style={{ width: '88px', height: 'auto', display: 'block' }} />
+          </div>
+          <a className="flex items-center gap-2 px-4 h-12 border-l border-border-subtle text-sm font-normal text-text-secondary no-underline">
+            Client Portal
           </a>
           <div className="flex-1" />
           <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white bg-brand-500">CLIENT</span>
@@ -387,10 +388,9 @@ export default function Home() {
         >
           <MenuIcon size={20} />
         </button>
-        <SplashLogo className="w-7 h-7 shrink-0" />
-        <a className="flex items-center gap-1.5 px-2 sm:px-4 h-12 border-l border-border-subtle text-xs sm:text-sm font-semibold text-text-primary no-underline truncate">
-          Splash Air <span className="hidden sm:inline font-normal text-text-secondary">/ Service Platform v10</span>
-        </a>
+        <div style={{ overflow: 'hidden', height: '34px', flexShrink: 0 }}>
+          <img src="/logos.svg" alt="Splash Air" style={{ width: '88px', height: 'auto', display: 'block' }} />
+        </div>
         <div className="flex-1 min-w-0" />
 
         {/* Role badge */}
@@ -432,11 +432,9 @@ export default function Home() {
       {/* Sidebar */}
       <nav className={`sidebar no-print ${sideNavOpen ? 'open' : ''}`}>
         {/* Sidebar Logo */}
-        <div className="px-5 pb-4 mb-4 border-b border-border-subtle flex items-center gap-3">
-          <SplashLogo className="w-8 h-8 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-text-primary truncate">Splash Air</p>
-            <p className="text-[10px] text-text-secondary">Service Platform v10</p>
+        <div className="px-5 pb-4 mb-4 border-b border-border-subtle flex items-center justify-between">
+          <div style={{ overflow: 'hidden', height: '48px' }}>
+            <img src="/logos.svg" alt="Splash Air" style={{ width: '124px', height: 'auto', display: 'block' }} />
           </div>
           <button
             className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] bg-transparent hover:bg-surface-hover border-none cursor-pointer lg:hidden shrink-0"
