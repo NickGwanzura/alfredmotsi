@@ -6,6 +6,7 @@ import { Job, Customer, User, GasStockItem, GasUsageRecord, CRMRecord, PageId } 
 import { Avatar } from '@/app/components/ui';
 import AdminDashboard from '@/app/components/AdminDashboard';
 import CalendarView from '@/app/components/CalendarView';
+import TechDashboard from '@/app/components/TechDashboard';
 import JobsTable from '@/app/components/JobsTable';
 import CustomerDB from '@/app/components/CustomerDB';
 import GasStock from '@/app/components/GasStock';
@@ -609,7 +610,7 @@ export default function Home() {
               )}
 
               {!showAddJob && page === 'home' && !perm.canManageJobs && (
-                <CalendarView jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
+                <TechDashboard jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
               )}
 
               {!showAddJob && page === 'calendar' && (

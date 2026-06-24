@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Job, User, Customer, GasStockItem, GasUsageRecord } from '@/app/types';
-import { TYPE_CFG, ALERT_CFG, TECH_STATUS } from '@/app/lib/config';
+import { TYPE_CFG, ALERT_CFG, TECH_STATUS, STATUS_CFG } from '@/app/lib/config';
 import { StatusTag, SectionTitle, Avatar } from './ui';
-import { Mail, AlertTriangle, CalendarDays, Clock, UserCheck, Wrench, ClipboardList, BarChart3, RefreshCcw } from 'lucide-react';
+import { Mail, AlertTriangle, CalendarDays, Clock, UserCheck, Wrench, ClipboardList, BarChart3, RefreshCcw, Fuel, TrendingUp, DollarSign, FileText, Users, Plus, X } from 'lucide-react';
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -46,9 +46,10 @@ export default function AdminDashboard({
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ ok: boolean; sent?: number; total?: number; error?: string } | null>(null);
   const [sentThisSession, setSentThisSession] = useState(false);
+  const [dismissAlerts, setDismissAlerts] = useState<Set<string>>(new Set());
 
   const todayJobs = jobs.filter(j => j.date === todayStr);
-  const alertJobs = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed");
+  const alertJobs = jobs.filter(j => j.alerts && j.alerts.length > 0 && j.status !== "completed").filter(j => !dismissAlerts.has(j.id));
   const unallocatedCount = jobs.filter(j => j.status === "unallocated").length;
   const jobsMissingClock = jobs.filter(j => j.status !== 'cancelled' && (!j.clockIn || (j.status === 'completed' && !j.clockOut))).sort(sortByDateDesc);
   const completedJobs = jobs.filter(j => j.status === 'completed');
@@ -57,15 +58,20 @@ export default function AdminDashboard({
   const completedMissingGas = completedJobs.filter(j => GAS_RELEVANT_TYPES.has(j.type) && !hasRecordedGas(j, gasUsage)).sort(sortByDateDesc);
   const lowGasStock = gasStock.filter(item => { const r = item.quantity > 0 && item.remaining / item.quantity <= 0.2; return item.remaining <= 2 || r; }).sort((a, b) => a.remaining - b.remaining);
 
+  const activeJobs = jobs.filter(j => j.status !== 'completed' && j.status !== 'cancelled');
+  const onSiteCount = jobs.filter(j => j.status === "on-site").length;
+  const pendingCount = jobs.filter(j => j.status === "scheduled" || j.status === "pending-booking").length;
+  const completedThisMonth = jobs.filter(j => j.status === 'completed' && j.date?.startsWith(todayStr.slice(0, 7))).length;
+
   const stats = [
-    { label: "Total Jobs", v: jobs.length, icon: ClipboardList, color: "from-blue-500 to-blue-600" },
-    { label: "On Site Now", v: jobs.filter(j => j.status === "on-site").length, icon: UserCheck, color: "from-amber-500 to-amber-600" },
-    { label: "Scheduled", v: jobs.filter(j => j.status === "scheduled").length, icon: CalendarDays, color: "from-purple-500 to-purple-600" },
-    { label: "Completed", v: jobs.filter(j => j.status === "completed").length, icon: BarChart3, color: "from-emerald-500 to-emerald-600" },
+    { label: 'Active Jobs', value: activeJobs.length, icon: ClipboardList, color: 'from-blue-500 to-blue-600' },
+    { label: 'On Site Now', value: onSiteCount, icon: UserCheck, color: 'from-amber-500 to-amber-600' },
+    { label: 'Pending / Scheduled', value: pendingCount, icon: CalendarDays, color: 'from-purple-500 to-purple-600' },
+    { label: 'Completed This Month', value: completedThisMonth, icon: BarChart3, color: 'from-emerald-500 to-emerald-600' },
   ];
 
   const sendAnnouncement = async () => {
-    if (sentThisSession) return; // Prevent double-send in same session
+    if (sentThisSession) return;
     if (!window.confirm('Send mass announcement email to all users? This cannot be undone.')) return;
     setSending(true); setSendResult(null); setSentThisSession(true);
     try {
@@ -76,19 +82,26 @@ export default function AdminDashboard({
     } finally { setSending(false); }
   };
 
+  const upcomingJobs = [...jobs]
+    .filter(j => j.status !== 'completed' && j.status !== 'cancelled')
+    .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+    .slice(0, 5);
+
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Dashboard</h1>
-          <p className="text-sm text-text-secondary mt-0.5">Field operations overview — {new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Admin Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Field operations overview — {today.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={sendAnnouncement}
             disabled={sending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all duration-200 border-none cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50"
           >
             {sending ? <RefreshCcw size={16} className="animate-spin" /> : <Mail size={16} />}
             {sending ? 'Sending...' : 'Send Announcement'}
@@ -96,7 +109,7 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      {/* Status Banners */}
+      {/* Alert Banners */}
       {sendResult && (
         <div className={`flex items-start gap-4 p-4 mb-6 rounded-lg border-l-4 shadow-sm ${
           sendResult.ok ? 'bg-emerald-50 border-l-emerald-500' : 'bg-red-50 border-l-red-500'
@@ -118,7 +131,7 @@ export default function AdminDashboard({
           onClick={() => { const j = jobs.find(j => j.status === "unallocated"); if (j) onJobClick(j); }}>
           <div className="p-2 rounded-full bg-amber-100 text-amber-600"><AlertTriangle size={20} /></div>
           <div className="flex-1">
-            <p className="font-semibold text-amber-800">{unallocatedCount} unallocated job{unallocatedCount > 1 ? 's' : ''}</p>
+            <p className="font-semibold text-amber-800">{unallocatedCount} unallocated job{unallocatedCount > 1 ? 's' : ''} — needs technician assignment</p>
             <p className="text-sm text-amber-600">Click to view and assign a technician</p>
           </div>
           <span className="text-amber-600 text-sm font-medium group-hover:underline">View →</span>
@@ -130,12 +143,18 @@ export default function AdminDashboard({
           {alertJobs.map(j => (
             <div key={j.id} className="flex items-start gap-4 p-4 rounded-lg bg-red-50 border border-red-200 shadow-sm cursor-pointer hover:bg-red-100/70 transition-colors group"
               onClick={() => onJobClick(j)}>
-              <div className="p-1.5 rounded-full bg-red-100 text-red-600"><AlertTriangle size={16} /></div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm text-red-800">Active Alert — {j.title}</p>
-                <p className="text-sm text-red-600 mt-0.5">{j.alerts.map(a => ALERT_CFG[a]?.label).join(", ")} · {customers.find(c => c.id === j.customerId)?.name}</p>
+              <div className="p-1.5 rounded-full bg-red-100 text-red-600 shrink-0">
+                <AlertTriangle size={16} />
+                <button onClick={(e) => { e.stopPropagation(); setDismissAlerts(s => new Set(s).add(j.id)); }}
+                  className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow border border-gray-100">
+                  <X size={10} />
+                </button>
               </div>
-              <span className="text-red-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+              <div className="flex-1 relative">
+                <p className="font-semibold text-sm text-red-800">Active Alert — {j.title}</p>
+                <p className="text-sm text-red-600 mt-0.5">{j.alerts.map(a => ALERT_CFG[a]?.label).join(', ')} · {customers.find(c => c.id === j.customerId)?.name}</p>
+              </div>
+              <span className="text-red-600 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity shrink-0">View →</span>
             </div>
           ))}
         </div>
@@ -144,26 +163,53 @@ export default function AdminDashboard({
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow duration-200">
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-gray-500">{s.label}</span>
-              <div className={`p-2 rounded-lg bg-gradient-to-br ${s.color} text-white shadow-sm`}>
-                <s.icon size={18} />
-              </div>
+              <div className={`p-2 rounded-lg bg-gradient-to-br ${s.color} text-white shadow-sm`}><s.icon size={18} /></div>
             </div>
-            <p className="text-3xl font-bold text-gray-900 tracking-tight">{s.v}</p>
-            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full bg-gradient-to-r ${s.color} transition-all duration-500`}
-                style={{ width: `${Math.min(100, (s.v / Math.max(1, Math.max(...stats.map(x => x.v)))) * 100)}%` }} />
-            </div>
+            <p className="text-3xl font-bold text-gray-900 tracking-tight">{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Today's Jobs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      {/* Alerts Row — completion quality */}
+      {(completedMissingDiagnostics.length > 0 || completedMissingSignature.length > 0 || completedMissingGas.length > 0) && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+          <SectionTitle>Completion Quality Issues</SectionTitle>
+          <div className="space-y-2">
+            {completedMissingDiagnostics.length > 0 && (
+              <AlertBanner
+                level="warning"
+                icon={<BarChart3 size={16} />}
+                text={`${completedMissingDiagnostics.length} completed jobs missing diagnostic readings`}
+                onClick={() => onJobClick(completedMissingDiagnostics[0])}
+              />
+            )}
+            {completedMissingSignature.length > 0 && (
+              <AlertBanner
+                level="warning"
+                icon={<Users size={16} />}
+                text={`${completedMissingSignature.length} completed jobs missing customer signature`}
+                onClick={() => onJobClick(completedMissingSignature[0])}
+              />
+            )}
+            {completedMissingGas.length > 0 && (
+              <AlertBanner
+                level="warning"
+                icon={<Fuel size={16} />}
+                text={`${completedMissingGas.length} completed jobs missing refrigerant gas log`}
+                onClick={() => onJobClick(completedMissingGas[0])}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action Items + Quick Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Upcoming Jobs */}
+        <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 rounded-lg bg-brand-50 text-brand-600"><CalendarDays size={16} /></div>
@@ -175,13 +221,20 @@ export default function AdminDashboard({
             <div className="flex flex-col items-center justify-center py-10 text-gray-400">
               <CalendarDays size={40} className="mb-3 opacity-30" />
               <p className="text-sm">No jobs scheduled for today.</p>
+              <button className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
+                onClick={() => {
+                  const a = document.querySelector('[data-schedule-job]') as HTMLButtonElement;
+                  a?.click();
+                }}>
+                <Plus size={16} /> Schedule Job
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
               {todayJobs.slice(0, 5).map(j => {
                 const cust = customers.find(c => c.id === j.customerId);
                 const tech = techs.find(t => t.id === j.techIds[0]);
-                const typeColor = TYPE_CFG[j.type]?.color || "#888";
+                const typeColor = TYPE_CFG[j.type]?.color || '#888';
                 return (
                   <div key={j.id} className="group flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm cursor-pointer transition-all duration-200"
                     onClick={() => onJobClick(j)}>
@@ -193,6 +246,7 @@ export default function AdminDashboard({
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         {cust?.name} · <span className="font-medium">{j.time}</span>
+                        {j.jobCardRef && <span className="ml-2 font-mono text-gray-400">{j.jobCardRef}</span>}
                       </p>
                       {tech && (
                         <div className="flex items-center gap-1.5 mt-1.5">
@@ -213,54 +267,88 @@ export default function AdminDashboard({
           )}
         </div>
 
-        {/* Technician Status */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600"><UserCheck size={16} /></div>
-            <h3 className="font-semibold text-gray-900">Technician Status</h3>
-          </div>
-          {techs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-              <UserCheck size={40} className="mb-3 opacity-30" />
-              <p className="text-sm">No technicians available.</p>
+        {/* Quick Stats */}
+        <div className="space-y-4">
+          {/* Technician Status */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600"><UserCheck size={16} /></div>
+              <h3 className="font-semibold text-gray-900">Technicians</h3>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 ml-auto">{techs.length}</span>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {techs.map(t => {
-                const onJob = jobs.find(j => j.techIds.includes(t.id) && (j.status === "on-site" || j.status === "in-progress"));
-                const ts = TECH_STATUS[t.status || "available"] || TECH_STATUS.available;
-                return (
-                  <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-all duration-200">
-                    <div className="relative">
-                      <Avatar name={t.name} size={36} />
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full" style={{ background: ts.color }} />
+            {techs.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">No technicians.</p>
+            ) : (
+              <div className="space-y-2">
+                {techs.slice(0, 4).map(t => {
+                  const onJob = jobs.find(j => j.techIds.includes(t.id) && (j.status === 'on-site' || j.status === 'in-progress'));
+                  const ts = TECH_STATUS[t.status || 'available'] || TECH_STATUS.available;
+                  return (
+                    <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 hover:border-gray-200 transition-all">
+                      <div className="relative">
+                        <Avatar name={t.name} size={32} />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full" style={{ background: ts.color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-xs text-gray-900">{t.name}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {onJob ? (
+                            <><Wrench size={10} className="inline text-amber-500 mr-0.5" />{onJob.title}</>
+                          ) : (
+                            <span className="text-emerald-600 font-medium">Available</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-gray-900">{t.name}</p>
-                      <p className="text-xs text-gray-500">{t.specialty || 'General'}</p>
-                      {onJob ? (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <Wrench size={12} className="text-amber-500" />
-                          <p className="text-xs text-gray-600 truncate">{onJob.title}</p>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span className="text-xs text-emerald-600 font-medium">Available</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                      <Clock size={12} />
-                      <span>{ts.label}</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Low Gas Stock Alert */}
+          {lowGasStock.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 rounded-full bg-amber-100 text-amber-600 shrink-0"><Fuel size={16} /></div>
+                <div>
+                  <p className="font-semibold text-sm text-amber-800">{lowGasStock.length} Low Stock Items</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Gas stock below 20% threshold — reorder required.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Jobs Missing Clock */}
+          {jobsMissingClock.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-orange-200 p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 rounded-full bg-orange-100 text-orange-600 shrink-0"><Clock size={16} /></div>
+                <div>
+                  <p className="font-semibold text-sm text-orange-800">{jobsMissingClock.length} Missing Clock Times</p>
+                  <p className="text-xs text-orange-600 mt-0.5">Jobs without proper clock-in/out records.</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AlertBanner({ level, icon, text, onClick }: { level: 'warning' | 'info' | 'error'; icon: React.ReactNode; text: string; onClick?: () => void }) {
+  const styles = {
+    warning: 'bg-amber-50 border-amber-200 text-amber-700',
+    info: 'bg-blue-50 border-blue-200 text-blue-700',
+    error: 'bg-red-50 border-red-200 text-red-700',
+  };
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${styles[level]}`}
+      onClick={onClick} role="button">
+      <span className="shrink-0">{icon}</span>
+      <p className="text-sm font-medium">{text}</p>
+      <span className="ml-auto text-xs font-medium opacity-60">View →</span>
     </div>
   );
 }
