@@ -149,10 +149,24 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
           setToast({ kind: 'e', msg: result.error ?? 'Failed to send email' });
         }
       } else {
-        // For custom / service reminder: open mailto as fallback
-        window.open(buildMail(active.email, emailSubject, emailBody), '_blank');
-        setToast({ kind: 's', msg: 'Email client opened.' });
-        setCompose(null);
+        // Send via Resend instead of opening mail client
+        const res = await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: active.email,
+            subject: emailSubject,
+            body: emailBody,
+            customerName: active.name,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setToast({ kind: 's', msg: `Email sent to ${active.email}` });
+          setCompose(null);
+        } else {
+          setToast({ kind: 'e', msg: data.error || 'Failed to send email' });
+        }
       }
     } catch {
       setToast({ kind: 'e', msg: 'Failed to send. Check your connection.' });
@@ -488,14 +502,14 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
 
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">
-                      {emailTemplate === 'portal-invite' ? 'Sends via Resend' : 'Opens in your email client'}
+                      {emailSending ? 'Sending...' : 'Sent via Resend'}
                     </span>
                     <button
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={sendEmail}
                       disabled={emailSending || (emailTemplate === 'portal-invite' && !active.portalCode)}
                     >
-                      {emailSending ? 'Sending\u2026' : <><CheckCheck size={14} /> {emailTemplate === 'portal-invite' ? 'Send Email' : 'Open Email'}</>}
+                      {emailSending ? 'Sending\u2026' : <><CheckCheck size={14} /> Send Email</>}
                     </button>
                   </div>
                 </div>
