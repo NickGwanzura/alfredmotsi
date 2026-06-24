@@ -29,7 +29,7 @@ export async function POST(): Promise<NextResponse> {
   for (const [, group] of byEmail) {
     if (group.length < 2) continue;
     // Prefer keeping an admin account over a tech account
-    const adminAcc = group.find(u => u.id === session.user.id || u.role === 'admin');
+    const adminAcc = group.find((u: Record<string, unknown>) => u.id === session.user.id || (u as any).role === 'admin');
     const keep = adminAcc || group[0];
     for (const u of group) {
       if (u.id !== keep.id && u.id !== session.user.id) toDelete.push(u.id);
