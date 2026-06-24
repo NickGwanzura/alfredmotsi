@@ -429,7 +429,7 @@ export default function Home() {
       {/* Mobile overlay */}
       {sideNavOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-[45]"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setSideNavOpen(false)}
         />
       )}
