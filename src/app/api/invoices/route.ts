@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
 
 function genRef(prefix: string) {
