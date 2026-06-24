@@ -33,6 +33,15 @@ import {
 // DESIGN SYSTEM
 // ============================================
 
+const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
+
+const logoImgStyle: React.CSSProperties = {
+  width: '200px',
+  height: 'auto',
+  display: 'block',
+  margin: '0 auto',
+};
+
 const theme = {
   colors: {
     // Primary brand colors
@@ -515,10 +524,7 @@ export function ClientPortalInviteEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -644,10 +650,7 @@ export function ServiceConfirmationEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -775,10 +778,7 @@ export function ServiceCompletionEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -923,10 +923,7 @@ export function StatusUpdateEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -1042,10 +1039,7 @@ export function TechnicianAssignmentEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Field Service Management</Text>
             </Section>
 
@@ -1149,10 +1143,7 @@ export function ReminderEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -1249,10 +1240,7 @@ export function FollowUpEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 
@@ -1357,10 +1345,7 @@ export function WelcomeEmail({
           <Section style={globalStyles.card}>
             {/* Header */}
             <Section style={globalStyles.header}>
-              <Text style={globalStyles.logo}>
-                <span style={globalStyles.logoIcon}>❄</span>
-                {companyName.toUpperCase()}
-              </Text>
+              <Img src={LOGO_URL} alt="Splash Air" width="200" height="auto" style={logoImgStyle} />
               <Text style={globalStyles.tagline}>Professional HVAC Services</Text>
             </Section>
 

@@ -20,6 +20,7 @@ import {
   Hr,
   Row,
   Column,
+  Img,
 } from '@react-email/components';
 
 // Reuse brand styles from templates-new.tsx
@@ -59,12 +60,12 @@ const header = {
   textAlign: 'center' as const,
 };
 
-const logo = {
-  color: '#ffffff',
-  fontSize: '28px',
-  fontWeight: '300',
-  margin: '0',
-  letterSpacing: '2px',
+const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
+const logoImg = {
+  width: '180px',
+  height: 'auto',
+  display: 'block',
+  margin: '0 auto',
 };
 
 const tagline = {
@@ -212,7 +213,7 @@ export function SecureUserInvitationEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -324,7 +325,7 @@ export function PasswordResetEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -416,7 +417,7 @@ export function InvitationExpiredEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -502,7 +503,7 @@ export function AccountSetupCompleteEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           

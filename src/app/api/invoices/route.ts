@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { customerId, jobId, issueDate, dueDate, taxRate = 15, notes, lineItems } = await req.json();
+  const { customerId, jobId, issueDate, dueDate, taxRate = 15.5, notes, lineItems } = await req.json();
 
   const subtotal: number = lineItems.reduce((s: number, l: { total: number }) => s + l.total, 0);
   const tax = subtotal * (taxRate / 100);

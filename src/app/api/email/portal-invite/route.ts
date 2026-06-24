@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { sendPortalInviteEmail } from '@/app/lib/email/send';
-import { isAdmin } from '@/app/lib/auth/auth';
 
 interface PortalInviteRequest {
   to: string;
@@ -20,10 +19,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isAdmin(session.user.role)) {
-      console.error('[API /email/portal-invite] Forbidden - not admin:', session.user.role);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const forbidden = authorizeRole(session, ['admin']);
+    if (forbidden) return forbidden;
 
     let body: PortalInviteRequest;
     try {

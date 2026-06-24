@@ -55,12 +55,22 @@ const header = {
   textAlign: 'center' as const,
 };
 
-const logo = {
+const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
+
+const logoSpan = {
+  display: 'inline-block',
   color: '#ffffff',
-  fontSize: '28px',
-  fontWeight: '300',
+  fontSize: '22px',
+  fontWeight: '600',
   margin: '0',
-  letterSpacing: '2px',
+  letterSpacing: '1px',
+};
+
+const logoImg = {
+  width: '180px',
+  height: 'auto',
+  display: 'block',
+  margin: '0 auto',
 };
 
 const tagline = {
@@ -235,7 +245,7 @@ export function JobScheduledEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -348,7 +358,7 @@ export function JobCompletedEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -449,7 +459,7 @@ export function PortalInviteEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -573,7 +583,7 @@ export function TechAssignmentEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -658,7 +668,7 @@ export function PasswordResetEmail({ userName, resetUrl }: PasswordResetEmailPro
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
 
@@ -724,7 +734,7 @@ export function UserInviteEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -821,7 +831,7 @@ export function StatusUpdateEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
           
@@ -937,7 +947,7 @@ export function AnnouncementEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>❄ SPLASH AIR</Text>
+            <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
             <Text style={tagline}>Professional HVAC Services</Text>
           </Section>
 

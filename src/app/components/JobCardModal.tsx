@@ -26,7 +26,7 @@ import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } fr
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
 import { canDeleteJobs, canManageJobs } from '@/app/lib/permissions';
-import { X, Play, Square, Printer, Camera, Download, Plus, Trash2 } from 'lucide-react';
+import { X, Play, Square, Printer, Camera, Download, Plus, Trash2, Mail } from 'lucide-react';
 
 interface JobCardModalProps {
   job: Job;
@@ -100,6 +100,9 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [deleteReason, setDeleteReason] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const [emailingJobCard, setEmailingJobCard] = useState(false);
+  const [emailJobCardMsg, setEmailJobCardMsg] = useState<string | null>(null);
 
   useEffect(() => { captureAudit('view_job', job.id); }, [job.id]);
 
@@ -292,6 +295,24 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const handleWhatsAppReminder = () => { window.open(buildWA(cust.whatsapp || cust.phone, reminderMsg(job, cust, false)), '_blank'); };
   const handleEmailReminder = () => { window.location.href = buildMail(cust.email, `Service Reminder: ${job.title}`, reminderMsg(job, cust, false)); };
   const handlePrint = () => { if (onPrint) onPrint(job); else window.print(); };
+
+  const handleSendJobCardEmail = async () => {
+    setEmailJobCardMsg(null);
+    setEmailingJobCard(true);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/email`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailJobCardMsg(`✅ Job card sent to ${cust.email}`);
+      } else {
+        setEmailJobCardMsg(`❌ ${data.error || 'Failed to send'}`);
+      }
+    } catch {
+      setEmailJobCardMsg('❌ Network error — please try again.');
+    }
+    setEmailingJobCard(false);
+    setTimeout(() => setEmailJobCardMsg(null), 5000);
+  };
 
   const handleConfirmDelete = async () => {
     if (!onDelete) return;
@@ -1015,7 +1036,12 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 items-center">
+          {emailJobCardMsg && (
+            <span className={`text-xs font-medium mr-auto ${emailJobCardMsg.startsWith('✅') ? 'text-emerald-600' : 'text-red-600'}`}>
+              {emailJobCardMsg}
+            </span>
+          )}
           <button className={btnSecondary} onClick={onClose}>Cancel</button>
           {canDeleteJobs(userRole) && onDelete && (
             <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-red-600 border-none rounded-lg cursor-pointer hover:bg-red-700 transition-colors" onClick={() => { setDeleteReason(''); setDeleteError(null); setShowDeleteConfirm(true); }}>
@@ -1025,6 +1051,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           {onPrint && (
             <button className={btnSecondary} onClick={handlePrint}>
               <Download size={14} /> Download PDF
+            </button>
+          )}
+          {cust.email && canEdit && (
+            <button className={btnSecondary + " text-xs"} onClick={handleSendJobCardEmail} disabled={emailingJobCard}>
+              <Mail size={14} /> {emailingJobCard ? 'Sending...' : 'Email PDF'}
             </button>
           )}
           {canEdit && <button className={btnPrimary} onClick={save}>Save Job Card</button>}
