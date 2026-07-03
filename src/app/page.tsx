@@ -708,8 +708,8 @@ export default function Home() {
                 <CompanySettings />
               )}
 
-              {!showAddJob && page === 'funds' && isAdmin && perm.canManageFunds && (
-                <FundsManagement techs={techs} />
+              {!showAddJob && page === 'funds' && (
+                <FundsManagement techs={techs} currentUser={currentUser} />
               )}
             </>
           )}

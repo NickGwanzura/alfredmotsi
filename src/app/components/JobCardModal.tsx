@@ -16,6 +16,8 @@ import {
   ConsumableType,
   GasUsageRecord,
   JobAttachment,
+  FundExpense,
+  FundAllocation,
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
@@ -39,7 +41,7 @@ interface JobCardModalProps {
   onPrint?: (job: Job) => void;
 }
 
-const TABS = ["details", "diagnostics", "media", "sign-off", "ods", "consumables"] as const;
+const TABS = ["details", "diagnostics", "media", "sign-off", "ods", "consumables", "funds"] as const;
 type Tab = typeof TABS[number];
 
 const CONSUMABLE_TYPES: ConsumableType[] = ['gas', 'compressor', 'part', 'other'];
@@ -424,6 +426,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               {tName === "sign-off" ? "Sign-Off" :
                tName === "ods" ? "ODS" :
                tName === "consumables" ? "Consumables" :
+               tName === "funds" ? "Fund Expenses" :
                tName.charAt(0).toUpperCase() + tName.slice(1)}
             </div>
           ))}
@@ -1033,6 +1036,10 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               </div>
             </div>
           )}
+
+          {tab === "funds" && (
+            <FundExpensesTab jobId={job.id} />
+          )}
         </div>
 
         {/* Footer */}
@@ -1095,6 +1102,76 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Fund Expenses Tab ─────────────────────────────── */
+function FundExpensesTab({ jobId }: { jobId: string }) {
+  const [expenses, setExpenses] = useState<FundExpense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/funds`);
+        if (res.ok) {
+          const funds: FundAllocation[] = await res.json();
+          const all = funds.flatMap((f) => (f.expenses || []).filter((e) => e.jobId === jobId));
+          setExpenses(all);
+        }
+      } catch { /* ignore */ }
+      setLoading(false);
+    })();
+  }, [jobId]);
+
+  if (loading) {
+    return (
+      <div className="animate-fade-in space-y-4">
+        <div className="card-base p-6">
+          <div className="flex items-center justify-center h-20">
+            <div className="w-6 h-6 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-fade-in space-y-4">
+      <div className="card-base p-6">
+        <SectionTitle>Fund Expenses for This Job</SectionTitle>
+        {expenses.length === 0 ? (
+          <p className="text-sm text-text-secondary mt-2">No fund expenses linked to this job.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-text-secondary border-b border-border-subtle">
+                  <th className="text-left py-2 pr-4 font-semibold">Date</th>
+                  <th className="text-left py-2 pr-4 font-semibold">Description</th>
+                  <th className="text-left py-2 pr-4 font-semibold">Amount</th>
+                  <th className="text-left py-2 pr-4 font-semibold">Fund</th>
+                  <th className="text-left py-2 pr-4 font-semibold">Recorded By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((exp) => (
+                  <tr key={exp.id} className="border-b border-gray-50">
+                    <td className="py-2 pr-4 text-text-secondary whitespace-nowrap">
+                      {new Date(exp.recordedAt).toLocaleDateString('en-ZA')}
+                    </td>
+                    <td className="py-2 pr-4 font-medium text-text-primary">{exp.description}</td>
+                    <td className="py-2 pr-4 font-semibold text-red-600">-${exp.amount.toFixed(2)}</td>
+                    <td className="py-2 pr-4 text-text-secondary text-xs">{exp.fundId.slice(0, 8)}…</td>
+                    <td className="py-2 pr-4 text-text-secondary">{exp.recordedBy?.name || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

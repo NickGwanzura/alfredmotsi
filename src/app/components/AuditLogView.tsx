@@ -35,6 +35,12 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; bg: str
   create_user:      { label: 'Created User',       color: '#6929c4', bg: 'bg-purple-100', group: 'Users' },
   update_user:      { label: 'Updated User',       color: '#8a3ffc', bg: 'bg-purple-100', group: 'Users' },
   delete_user:      { label: 'Deleted User',       color: '#da1e28', bg: 'bg-red-100', group: 'Users' },
+  allocate_fund:    { label: 'Allocated Fund',     color: '#0f62fe', bg: 'bg-blue-100', group: 'Funds' },
+  update_fund:      { label: 'Updated Fund',       color: '#8a3ffc', bg: 'bg-purple-100', group: 'Funds' },
+  close_fund:       { label: 'Closed Fund',        color: '#da1e28', bg: 'bg-red-100', group: 'Funds' },
+  record_expense:   { label: 'Recorded Expense',   color: '#198038', bg: 'bg-emerald-100', group: 'Funds' },
+  update_expense:   { label: 'Updated Expense',    color: '#f1c21b', bg: 'bg-amber-100', group: 'Funds' },
+  delete_expense:   { label: 'Deleted Expense',    color: '#da1e28', bg: 'bg-red-100', group: 'Funds' },
 };
 
 const ACTION_OPTIONS = Object.entries(ACTION_CONFIG) as Array<[AuditAction, typeof ACTION_CONFIG[AuditAction]]>;

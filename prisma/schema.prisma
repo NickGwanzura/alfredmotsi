@@ -138,6 +138,12 @@ enum AuditAction {
   create_user
   update_user
   delete_user
+  allocate_fund
+  update_fund
+  close_fund
+  record_expense
+  update_expense
+  delete_expense
 }
 
 enum EmailDeliveryStatus {
@@ -722,6 +728,7 @@ enum FundStatus {
 
 model FundAllocation {
   id          String        @id @default(cuid())
+  name        String?
   amount      Float
   spent       Float         @default(0)
   status      FundStatus    @default(active)
@@ -739,15 +746,16 @@ model FundAllocation {
 }
 
 model FundExpense {
-  id           String   @id @default(cuid())
-  fundId       String   @map("fund_id")
-  jobId        String?  @map("job_id")
-  description  String
-  amount       Float
-  receiptRef   String?  @map("receipt_ref")
-  notes        String?
-  recordedById String   @map("recorded_by_id")
-  recordedAt   DateTime @default(now()) @map("recorded_at")
+  id             String   @id @default(cuid())
+  fundId         String   @map("fund_id")
+  jobId          String?  @map("job_id")
+  description    String
+  amount         Float
+  receiptRef     String?  @map("receipt_ref")
+  receiptDataUrl String?  @map("receipt_data_url") @db.Text
+  notes          String?
+  recordedById   String   @map("recorded_by_id")
+  recordedAt     DateTime @default(now()) @map("recorded_at")
 
   fund       FundAllocation @relation(fields: [fundId], references: [id], onDelete: Cascade)
   job        Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
