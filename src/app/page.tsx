@@ -28,13 +28,14 @@ import AddGasUsageModal from '@/app/components/AddGasUsageModal';
 import AddCRMModal from '@/app/components/AddCRMModal';
 import Inventory from '@/app/components/Inventory';
 import Invoices from '@/app/components/Invoices';
+import FundsManagement from '@/app/components/FundsManagement';
 import CustomerPortal from '@/app/components/CustomerPortal';
 
 import { captureAudit } from '@/app/lib/audit/capture';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
-  canViewFinancials, canViewReports
+  canViewFinancials, canViewReports, canManageFunds
 } from '@/app/lib/permissions';
 
 // Lucide icons
@@ -57,6 +58,7 @@ import {
   Package,
   X,
   FileText,
+  DollarSign,
 } from 'lucide-react';
 
 interface NavItem {
@@ -229,6 +231,7 @@ export default function Home() {
     canManageUsers: canManageUsers(user.role),
     canViewAuditLog: canViewAuditLog(user.role),
     canViewFinancials: canViewFinancials(user.role),
+    canManageFunds: canManageFunds(user.role),
   };
 
   const alertCount = jobs.filter((j) => j.alerts && j.alerts.length > 0 && j.status !== 'completed').length;
@@ -382,6 +385,7 @@ export default function Home() {
     { id: 'gas-usage', label: 'Gas Usage', Icon: BarChart3 },
     { id: 'crm', label: 'CRM', Icon: BarChart3 },
     { id: 'ods-report', label: 'ODS Report', Icon: Flag },
+    { id: 'funds', label: 'Funds', Icon: DollarSign },
     { id: 'users', label: 'Users', Icon: Users },
     { id: 'audit-log', label: 'Audit Log', Icon: ShieldAlert },
     { id: 'settings', label: 'Settings', Icon: Settings },
@@ -702,6 +706,10 @@ export default function Home() {
 
               {!showAddJob && page === 'settings' && isAdmin && (
                 <CompanySettings />
+              )}
+
+              {!showAddJob && page === 'funds' && isAdmin && perm.canManageFunds && (
+                <FundsManagement techs={techs} />
               )}
             </>
           )}

@@ -64,6 +64,14 @@ export function canViewOwnJobs(role: string): boolean {
   return role === 'tech';
 }
 
+export function canManageFunds(role: string): boolean {
+  return ADMIN_ROLES.has(role as UserRole);
+}
+
+export function canViewFunds(role: string): boolean {
+  return ADMIN_ROLES.has(role as UserRole);
+}
+
 export function isAdmin(role: string): boolean {
   return role === 'admin';
 }

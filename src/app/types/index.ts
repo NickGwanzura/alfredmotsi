@@ -186,7 +186,38 @@ export interface PriorityTagConfig {
   txt: string;
 }
 
-export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices' | 'settings';
+export type FundStatus = 'active' | 'exhausted' | 'closed';
+
+export interface FundAllocation {
+  id: string;
+  amount: number;
+  spent: number;
+  status: FundStatus;
+  notes: string | null;
+  techId: string;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  tech?: { id: string; name: string; email: string };
+  createdBy?: { id: string; name: string };
+  expenses?: FundExpense[];
+}
+
+export interface FundExpense {
+  id: string;
+  fundId: string;
+  jobId: string | null;
+  description: string;
+  amount: number;
+  receiptRef: string | null;
+  notes: string | null;
+  recordedById: string;
+  recordedAt: string;
+  job?: { id: string; jobCardRef: string; title: string } | null;
+  recordedBy?: { id: string; name: string };
+}
+
+export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices' | 'funds' | 'settings';
 
 export type ConsumableType = 'gas' | 'compressor' | 'part' | 'other';
 

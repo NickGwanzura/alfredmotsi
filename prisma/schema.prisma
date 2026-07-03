@@ -237,6 +237,11 @@ model User {
   auditLogs           AuditLog[]       @relation("AuditLogByUser")
   uploadedAttachments JobAttachment[]  @relation("JobAttachmentUploadedBy")
 
+  // Fund management
+  fundAllocationsReceived FundAllocation[] @relation("FundsAllocatedTo")
+  fundAllocationsCreated  FundAllocation[] @relation("FundsCreatedBy")
+  fundExpensesRecorded    FundExpense[]    @relation("FundExpenseRecordedBy")
+
   @@map("users")
 }
 
@@ -302,6 +307,7 @@ model Job {
   auditLogs       AuditLog[]         @relation("AuditLogOfJob")
   attachments     JobAttachment[]    @relation("JobAttachmentOfJob")
   invoices        Invoice[]
+  fundExpenses    FundExpense[]
 
   @@map("jobs")
 }
@@ -701,5 +707,53 @@ model CompanyProfile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("company_profile")
+	@@map("company_profile")
+}
+
+// ============================================
+// FUND MANAGEMENT
+// ============================================
+
+enum FundStatus {
+  active
+  exhausted
+  closed
+}
+
+model FundAllocation {
+  id          String        @id @default(cuid())
+  amount      Float
+  spent       Float         @default(0)
+  status      FundStatus    @default(active)
+  notes       String?
+  techId      String        @map("tech_id")
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  tech      User          @relation("FundsAllocatedTo", fields: [techId], references: [id])
+  createdBy User          @relation("FundsCreatedBy", fields: [createdById], references: [id])
+  expenses  FundExpense[]
+
+  @@map("fund_allocations")
+}
+
+model FundExpense {
+  id           String   @id @default(cuid())
+  fundId       String   @map("fund_id")
+  jobId        String?  @map("job_id")
+  description  String
+  amount       Float
+  receiptRef   String?  @map("receipt_ref")
+  notes        String?
+  recordedById String   @map("recorded_by_id")
+  recordedAt   DateTime @default(now()) @map("recorded_at")
+
+  fund       FundAllocation @relation(fields: [fundId], references: [id], onDelete: Cascade)
+  job        Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  recordedBy User           @relation("FundExpenseRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([fundId])
+  @@index([jobId])
+  @@map("fund_expenses")
 }
