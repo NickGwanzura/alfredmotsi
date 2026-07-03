@@ -32,14 +32,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { stockId, gasType, quantityUsed, customer, jobId, purpose } = body;
 
-    if (!stockId || !gasType || !quantityUsed || !customer || !jobId) {
+    if (!stockId || !gasType || customer === undefined || customer === '' || !jobId) {
       return NextResponse.json(
         { error: 'Stock ID, gas type, quantity used, customer, and job ID are required' },
         { status: 400 }
       );
     }
 
-    const qty = parseFloat(quantityUsed);
+    const qty = typeof quantityUsed === 'number' ? quantityUsed : parseFloat(quantityUsed);
     if (isNaN(qty) || qty <= 0) {
       return NextResponse.json(
         { error: 'Quantity must be a positive number' },

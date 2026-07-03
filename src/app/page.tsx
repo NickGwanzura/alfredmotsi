@@ -337,7 +337,7 @@ export default function Home() {
         body: JSON.stringify(usageData),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+        const err = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
         throw new Error(err.error || `Server error ${res.status}`);
       }
       const createdUsage = await res.json();
@@ -351,8 +351,9 @@ export default function Home() {
 
       setShowAddGasUsage(false);
       setNewGasUsage({});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording gas usage:', error);
+      throw error; // Re-throw so the modal can show the error
     }
   };
 

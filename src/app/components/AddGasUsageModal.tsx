@@ -34,8 +34,14 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
     setError('');
     setLoading(true);
 
-    if (!usage.stockId || !usage.quantityUsed || !usage.customer || !usage.jobId) {
-      setError('Gas stock, quantity used, customer, and job are required');
+    if (!usage.stockId || !usage.customer || !usage.jobId) {
+      setError('Gas stock, customer, and job are required');
+      setLoading(false);
+      return;
+    }
+
+    if (!usage.quantityUsed || usage.quantityUsed <= 0) {
+      setError('Quantity must be a positive number');
       setLoading(false);
       return;
     }
@@ -48,8 +54,8 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
 
     try {
       await onSave();
-    } catch (err) {
-      setError('Failed to record gas usage');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to record gas usage');
     } finally {
       setLoading(false);
     }
