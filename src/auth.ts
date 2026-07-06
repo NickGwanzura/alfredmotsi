@@ -122,15 +122,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.passwordChanged = (user as any).passwordChanged;
       }
 
-      if (trigger === "update" && token.id) {
+      // On every token access, verify passwordChanged hasn't changed since token was issued.
+      // This invalidates old sessions after password change/reset.
+      if (trigger !== "signIn" && trigger !== "signUp" && token.id) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { role: true, passwordChanged: true },
+            select: { passwordChanged: true },
           });
-          if (dbUser) {
-            token.role = dbUser.role;
+          // If the DB says passwordChanged differs from what's in the token,
+          // the password was changed after this token was issued → invalidate.
+          if (dbUser && dbUser.passwordChanged !== token.passwordChanged) {
             token.passwordChanged = dbUser.passwordChanged;
+            // Also refresh role in case it changed
+            const roleUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { role: true },
+            });
+            if (roleUser) token.role = roleUser.role;
           }
         } catch {
           // Silently fail — next request will retry
