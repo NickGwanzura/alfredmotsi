@@ -765,7 +765,7 @@ export default function Home() {
           isOpen={true}
           isTempPassword={true}
           onSuccess={async () => {
-            await update();
+            try { await update(); } catch { /* session refresh best-effort */ }
             window.location.reload();
           }}
           onLogout={handleLogout}
