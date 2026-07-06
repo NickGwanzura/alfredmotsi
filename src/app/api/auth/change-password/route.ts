@@ -61,6 +61,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name || user.email,
+        action: 'password_change',
+        reason: user.passwordChanged ? 'Voluntary password change' : 'Forced password change (temp password)',
+      },
+    }).catch(() => {});
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error changing password:', error);

@@ -364,14 +364,17 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(crmData),
       });
-      if (res.ok) {
-        const createdRecord = await res.json();
-        setCrmRecords((prev) => [...prev, createdRecord]);
-        setShowAddCRM(false);
-        setNewCRM({});
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
+        throw new Error(err.error || `Server error ${res.status}`);
       }
-    } catch (error) {
+      const createdRecord = await res.json();
+      setCrmRecords((prev) => [...prev, createdRecord]);
+      setShowAddCRM(false);
+      setNewCRM({});
+    } catch (error: any) {
       console.error('Error creating CRM record:', error);
+      throw error; // Re-throw so the modal can show the error
     }
   };
 
@@ -400,6 +403,7 @@ export default function Home() {
     { id: 'gas-stock', label: 'Gas Stock', Icon: Container },
     { id: 'gas-usage', label: 'Gas Usage', Icon: BarChart3 },
     { id: 'crm', label: 'CRM', Icon: BarChart3 },
+    { id: 'funds', label: 'Funds', Icon: DollarSign },
     { id: 'ods-report', label: 'ODS Report', Icon: Flag },
   ];
 

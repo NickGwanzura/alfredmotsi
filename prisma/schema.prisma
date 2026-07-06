@@ -144,6 +144,9 @@ enum AuditAction {
   record_expense
   update_expense
   delete_expense
+  password_reset
+  password_change
+  failed_login
 }
 
 enum EmailDeliveryStatus {

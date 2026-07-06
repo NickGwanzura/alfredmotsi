@@ -45,8 +45,8 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
 
     try {
       await onSave();
-    } catch (err) {
-      setError('Failed to create CRM record');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create CRM record');
     } finally {
       setLoading(false);
     }

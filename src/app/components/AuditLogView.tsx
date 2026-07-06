@@ -41,6 +41,9 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; bg: str
   record_expense:   { label: 'Recorded Expense',   color: '#198038', bg: 'bg-emerald-100', group: 'Funds' },
   update_expense:   { label: 'Updated Expense',    color: '#f1c21b', bg: 'bg-amber-100', group: 'Funds' },
   delete_expense:   { label: 'Deleted Expense',    color: '#da1e28', bg: 'bg-red-100', group: 'Funds' },
+  password_reset:   { label: 'Password Reset',     color: '#0043ce', bg: 'bg-blue-100', group: 'Access' },
+  password_change:  { label: 'Password Changed',   color: '#8a3ffc', bg: 'bg-purple-100', group: 'Access' },
+  failed_login:     { label: 'Failed Login',       color: '#da1e28', bg: 'bg-red-100', group: 'Access' },
 };
 
 const ACTION_OPTIONS = Object.entries(ACTION_CONFIG) as Array<[AuditAction, typeof ACTION_CONFIG[AuditAction]]>;

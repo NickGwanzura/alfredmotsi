@@ -18,7 +18,9 @@ export default function PasswordChangeModal({
 }: PasswordChangeModalProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -45,7 +47,10 @@ export default function PasswordChangeModal({
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword }),
+        body: JSON.stringify({
+          ...(!isTempPassword ? { currentPassword } : {}),
+          newPassword,
+        }),
       });
 
       const data = await res.json();
@@ -105,6 +110,29 @@ export default function PasswordChangeModal({
           )}
 
           <form onSubmit={handleSubmit}>
+            {!isTempPassword && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>Current Password</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    style={inputStyle}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    style={toggleStyle}
+                    tabIndex={-1}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+            )}
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>New Password</label>
               <div style={{ position: 'relative' }}>

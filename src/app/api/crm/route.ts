@@ -20,6 +20,11 @@ export async function GET(): Promise<NextResponse> {
             name: true,
           },
         },
+        user: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 

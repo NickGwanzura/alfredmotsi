@@ -29,8 +29,8 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
 
     try {
       await onSave();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add gas stock');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to add gas stock');
     } finally {
       setLoading(false);
     }

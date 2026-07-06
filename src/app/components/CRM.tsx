@@ -161,7 +161,7 @@ export default function CRM({ records, customers, onAdd }: CRMProps) {
                 </div>
                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
                   <span>{formatDate(record.date)}</span>
-                  <span>by {record.by}</span>
+                  <span>by {(record as any).user?.name || record.by}</span>
                   {record.followUp && (
                     <span className={followUpOverdue ? 'text-red-500 font-semibold' : ''}>
                       Follow-up: {formatDate(record.followUp)}{followUpOverdue ? ' (Overdue)' : ''}

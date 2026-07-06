@@ -3,16 +3,51 @@ import crypto from 'crypto';
 import { prisma } from '@/app/lib/db';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
 
+// Simple in-memory rate limit: max 3 requests per email per 10 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function checkRateLimit(email: string): { allowed: boolean; retryAfter?: number } {
+  const key = email.toLowerCase().trim();
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= 3) {
+      return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+    }
+    entry.count++;
+    return { allowed: true };
+  }
+
+  // Reset window
+  rateLimitMap.set(key, { count: 1, resetAt: now + 10 * 60 * 1000 });
+  return { allowed: true };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const body = await request.json();
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
 
-    if (!email || typeof email !== 'string') {
+    if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    // Rate limit check
+    const limitCheck = checkRateLimit(email);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many requests. Try again in ${limitCheck.retryAfter} seconds.` },
+        { status: 429 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email },
       select: { id: true, name: true, email: true },
     });
 
@@ -21,21 +56,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    // Generate token and hash it before storing
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Use Prisma Client instead of raw SQL for type safety
     await prisma.passwordResetToken.create({
       data: {
         email: user.email,
-        token,
+        token: hashedToken, // Store HASHED token
         expiresAt,
       },
     });
 
-    // Build reset URL from environment variable with fallback
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://splashaircrmzw.site';
-    const resetUrl = `${appUrl}/auth/reset-password/${token}`;
+    // Build reset URL — send the RAW token (not the hash)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+    if (!appUrl) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    const resetUrl = `${appUrl}/auth/reset-password/${rawToken}`;
 
     const result = await sendPasswordResetEmail({
       to: user.email,
@@ -44,11 +83,22 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
-      // Email failed to send — clean up the token so it's not orphaned
-      await prisma.passwordResetToken.delete({ where: { token } });
+      // Email failed — clean up the hashed token
+      await prisma.passwordResetToken.delete({ where: { token: hashedToken } });
       console.error('Failed to send password reset email:', result.error);
-      return NextResponse.json({ error: 'Failed to send reset email. Please try again later.' }, { status: 500 });
+      // Don't reveal to user that the email exists — return generic success
+      return NextResponse.json({ ok: true });
     }
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name || 'User',
+        action: 'password_reset',
+        reason: `Password reset email sent to ${user.email}`,
+      },
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -16,8 +16,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
+          const email = (credentials.email as string).toLowerCase().trim();
           const user = await prisma.user.findUnique({
-            where: { email: (credentials.email as string).toLowerCase().trim() },
+            where: { email },
             select: { id: true, email: true, name: true, password: true, role: true, image: true, passwordChanged: true },
           });
 
@@ -28,7 +29,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user.password
           );
 
-          if (!isValidPassword) return null;
+          if (!isValidPassword) {
+            // Audit failed login attempt
+            await prisma.auditLog.create({
+              data: {
+                userName: email,
+                action: 'failed_login',
+                reason: `Failed login attempt for ${email}`,
+              },
+            }).catch(() => {});
+            return null;
+          }
 
           return {
             id: user.id,
@@ -60,14 +71,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               portalCode: (credentials.portalCode as string).toUpperCase().trim(),
             },
           });
-          if (!customer) return null;
+          if (!customer) {
+            // Audit failed portal login
+            await prisma.auditLog.create({
+              data: {
+                userName: (credentials.email as string).toLowerCase().trim(),
+                action: 'failed_login',
+                reason: 'Failed portal login attempt',
+              },
+            }).catch(() => {});
+            return null;
+          }
           return {
             id: customer.id,
             email: customer.email,
             name: customer.name,
             role: 'client',
             image: null,
-            passwordChanged: true,
+            passwordChanged: true, // Portal users don't use password auth
           };
         } catch {
           return null;
@@ -78,6 +99,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
     maxAge: 8 * 60 * 60, // 8 hours
+    updateAge: 60 * 60,   // Rolling refresh every 1 hour of activity
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
@@ -118,5 +153,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/",
   },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  trustHost: true,
+  // Only trust specific hosts instead of all hosts
+  trustHost: process.env.NODE_ENV === 'development' || process.env.TRUSTED_HOSTS?.split(',').includes(
+    process.env.NEXTAUTH_URL || ''
+  ),
 });

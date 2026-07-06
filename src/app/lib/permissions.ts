@@ -69,7 +69,7 @@ export function canManageFunds(role: string): boolean {
 }
 
 export function canViewFunds(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
 export function isAdmin(role: string): boolean {

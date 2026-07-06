@@ -125,7 +125,7 @@ export interface GasStockItem {
   supplierRef: string;
   addedBy: string;
   date: string;
-  notes: string;
+  notes: string | null;
 }
 
 export interface GasUsageRecord {
@@ -237,7 +237,7 @@ export interface Consumable {
   recordedAt: string;
 }
 
-export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user' | 'allocate_fund' | 'update_fund' | 'close_fund' | 'record_expense' | 'update_expense' | 'delete_expense';
+export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user' | 'allocate_fund' | 'update_fund' | 'close_fund' | 'record_expense' | 'update_expense' | 'delete_expense' | 'password_reset' | 'password_change' | 'failed_login';
 
 export interface AuditLogEntry {
   id: string;
