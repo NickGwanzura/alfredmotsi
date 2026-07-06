@@ -613,7 +613,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'home' && perm.canManageJobs && (
+              {!showAddJob && page === 'home' && isAdmin && (
                 <AdminDashboard
                   jobs={jobs}
                   techs={techs}
