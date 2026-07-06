@@ -1128,7 +1128,7 @@ function FundExpensesTab({ jobId }: { jobId: string }) {
   if (loading) {
     return (
       <div className="animate-fade-in space-y-4">
-        <div className="card-base p-6">
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm p-6">
           <div className="flex items-center justify-center h-20">
             <div className="w-6 h-6 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
           </div>
@@ -1139,7 +1139,7 @@ function FundExpensesTab({ jobId }: { jobId: string }) {
 
   return (
     <div className="animate-fade-in space-y-4">
-      <div className="card-base p-6">
+      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm p-6">
         <SectionTitle>Fund Expenses for This Job</SectionTitle>
         {expenses.length === 0 ? (
           <p className="text-sm text-text-secondary mt-2">No fund expenses linked to this job.</p>
