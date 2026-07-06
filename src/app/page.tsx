@@ -32,6 +32,7 @@ import FundsManagement from '@/app/components/FundsManagement';
 import CustomerPortal from '@/app/components/CustomerPortal';
 
 import { captureAudit } from '@/app/lib/audit/capture';
+import { useToast } from '@/app/components/Toast';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
@@ -95,6 +96,8 @@ export default function Home() {
   const [fetchErrors, setFetchErrors] = useState<string[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
+
+  const { success: toastSuccess, warning: toastWarning, error: toastError } = useToast();
 
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddGasStock, setShowAddGasStock] = useState(false);
@@ -323,10 +326,11 @@ export default function Home() {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `Server error ${res.status}`);
     }
-    const createdStock = await res.json();
-    setGasStock((prev) => [...prev, createdStock]);
-    setShowAddGasStock(false);
-    setNewGasStock({});
+      const createdStock = await res.json();
+      setGasStock((prev) => [...prev, createdStock]);
+      setShowAddGasStock(false);
+      setNewGasStock({});
+      toastSuccess('Gas stock added', `${createdStock.gasType} ${createdStock.brand} (${createdStock.quantity} ${createdStock.unit})`);
   };
 
   const addGasUsage = async (usageData: Partial<GasUsageRecord>) => {
@@ -342,6 +346,7 @@ export default function Home() {
       }
       const createdUsage = await res.json();
       setGasUsage((prev) => [...prev, createdUsage]);
+      toastSuccess('Gas usage recorded', `${createdUsage.quantityUsed} ${createdUsage.gasType} recorded`);
 
       const stockRes = await fetch('/api/gas-stock');
       if (stockRes.ok) setGasStock(await stockRes.json());
@@ -372,6 +377,7 @@ export default function Home() {
       setCrmRecords((prev) => [...prev, createdRecord]);
       setShowAddCRM(false);
       setNewCRM({});
+      toastSuccess('CRM record created', createdRecord.subject);
     } catch (error: any) {
       console.error('Error creating CRM record:', error);
       throw error; // Re-throw so the modal can show the error

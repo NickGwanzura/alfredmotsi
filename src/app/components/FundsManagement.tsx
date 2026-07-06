@@ -385,6 +385,11 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                 <td colSpan={7} className="text-center py-12 text-text-secondary">
                   <DollarSign size={32} className="mx-auto mb-2 opacity-30" />
                   <p>No fund allocations found</p>
+                  <p className="text-xs mt-1">
+                    {!isAdmin
+                      ? 'You haven\'t been allocated any funds yet. Contact your admin.'
+                      : 'Allocate funds to technicians to get started.'}
+                  </p>
                 </td>
               </tr>
             )}

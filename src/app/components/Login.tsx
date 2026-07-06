@@ -197,6 +197,12 @@ export default function Login({ onLogin }: LoginProps) {
                   className="w-full h-12 flex items-center justify-center gap-3 mt-2 bg-[var(--color-brand-600)] text-white border-none rounded-xl text-sm font-semibold cursor-pointer transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                   onClick={async () => {
                     setResetSending(true); setErr("");
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(resetEmail.trim())) {
+                      setErr('Please enter a valid email address');
+                      setResetSending(false);
+                      return;
+                    }
                     try {
                       const res = await fetch('/api/auth/forgot-password', {
                         method: 'POST',
