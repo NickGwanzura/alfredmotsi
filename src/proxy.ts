@@ -11,14 +11,11 @@ const FINANCE_PATH_PREFIXES = [
   "/api/quotations",
 ];
 
+// Routes like /api/users, /api/crm, /api/gas-stock, /api/gas-usage,
+// /api/audit, and /api/consumables allow tech access and enforce their
+// own role checks in the route handlers — do not blanket-block them here.
 const ADMIN_API_PREFIXES = [
   "/api/admin",
-  "/api/users",
-  "/api/audit",
-  "/api/crm",
-  "/api/gas-stock",
-  "/api/gas-usage",
-  "/api/consumables",
 ];
 
 function pathMatchesPrefix(pathname: string, prefix: string): boolean {
