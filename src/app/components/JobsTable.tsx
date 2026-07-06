@@ -24,7 +24,9 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
   const [tf, setTF] = useState<JobType | "all">("all");
   const [q, setQ] = useState("");
   
-  const base = canViewAllJobs(userRole) ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
+  const base = canViewAllJobs(userRole)
+    ? jobs
+    : jobs.filter(j => j.techIds.includes(currentUser.id) || (j.coTechIds ?? []).includes(currentUser.id));
   const rows = base.filter(j => {
     if (sf !== "all" && j.status !== sf) return false;
     if (tf !== "all" && j.type !== tf) return false;

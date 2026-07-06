@@ -17,11 +17,17 @@ interface CalendarViewProps {
   onJobClick: (job: Job) => void;
 }
 
-const todayBase = new Date();
-const todayStr = todayBase.toISOString().split('T')[0];
-
+// Local-timezone date string (toISOString would shift to UTC and mark the
+// wrong day as "today" between midnight and 02:00 in UTC+2)
 function isoDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function jobAssignedTo(j: Job, techId: string): boolean {
+  return j.techIds.includes(techId) || (j.coTechIds ?? []).includes(techId);
 }
 
 function addDays(base: Date, n: number): Date {
@@ -41,6 +47,10 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
   const [view, setView] = useState<ViewMode>('week');
   const [offset, setOffset] = useState(0);
 
+  // Computed per render so a tab left open overnight rolls over to the new day
+  const todayBase = new Date();
+  const todayStr = isoDate(todayBase);
+
   // Mobile: auto-switch to day view
   useEffect(() => {
     const check = () => {
@@ -51,17 +61,21 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const shownTechs = canViewAllJobs(userRole) ? techs : techs.filter(t => t.id === currentUser.id);
-  const visJobs = canViewAllJobs(userRole) ? jobs : jobs.filter(j => j.techIds.includes(currentUser.id));
+  // Fall back to currentUser so the schedule still renders if the tech list
+  // failed to load (or doesn't include the current user)
+  const shownTechs = canViewAllJobs(userRole)
+    ? techs
+    : [techs.find(t => t.id === currentUser.id) ?? currentUser];
+  const visJobs = canViewAllJobs(userRole) ? jobs : jobs.filter(j => jobAssignedTo(j, currentUser.id));
 
   // ── Computed dates per view ────────────────────────────────────────────────
   // Day view: single date
   const dayDate = addDays(todayBase, offset);
   const dayDateStr = isoDate(dayDate);
 
-  // Week view: 7-day grid starting on Sunday
+  // Week view: 7-day grid starting on Monday (matches month view)
   const weekStart = new Date(todayBase);
-  weekStart.setDate(todayBase.getDate() - todayBase.getDay() + offset * 7);
+  weekStart.setDate(todayBase.getDate() - ((todayBase.getDay() + 6) % 7) + offset * 7);
   const weekDays = Array.from({ length: 7 }, (_, i) => isoDate(addDays(weekStart, i)));
 
   // Month view: grid for the month at (todayBase + offset months)
@@ -79,7 +93,7 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getDayTechJobs = (tid: string, d: string) =>
-    visJobs.filter(j => j.techIds.includes(tid) && j.date === d);
+    visJobs.filter(j => jobAssignedTo(j, tid) && j.date === d);
 
   const getDayAllJobs = (d: string) =>
     visJobs.filter(j => j.date === d);
