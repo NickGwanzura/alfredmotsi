@@ -53,14 +53,14 @@ export default auth((req) => {
     }
   }
 
-  // Block non-admin access to admin API routes
-  if (pathMatchesPrefix(pathname, "/api/admin") && !isAdminRole) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // /api/admin/funds allows tech access (techs view their own allocations
+  // and record expenses); its handlers scope every operation to the
+  // assigned tech, so let it through to route-level checks
+  const isTechAccessibleAdminRoute = pathMatchesPrefix(pathname, "/api/admin/funds");
 
-  // Block non-admin access to admin-protected API routes
+  // Block non-admin access to admin API routes
   for (const prefix of ADMIN_API_PREFIXES) {
-    if (pathMatchesPrefix(pathname, prefix) && !isAdminRole) {
+    if (pathMatchesPrefix(pathname, prefix) && !isAdminRole && !isTechAccessibleAdminRoute) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
