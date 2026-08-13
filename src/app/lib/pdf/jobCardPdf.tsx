@@ -1,23 +1,29 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, renderToBuffer, Image } from '@react-pdf/renderer';
-import { COMPANY, COMPANY_PHONE_LINE, COMPANY_SERVICES_LINE, CompanyData, loadCompany } from './company';
+import { COMPANY, COMPANY_PHONE_LINE, COMPANY_SERVICES_LINE, CompanyData } from './company';
+import { PDF_BRAND_BLUE, PDF_BRAND_BLUE_DARK, PDF_BRAND_BLUE_LIGHT, PDF_FONT_FAMILY, pdfLogoSource } from './brand';
 
 const styles = StyleSheet.create({
-  page: { padding: 36, fontSize: 10, fontFamily: 'Helvetica', color: '#161616' },
-  header: { borderBottom: '2 solid #0f62fe', paddingBottom: 10, marginBottom: 16 },
-  coName: { fontSize: 16, fontWeight: 700, color: '#0f62fe' },
+  page: { padding: 38, paddingTop: 138, paddingBottom: 70, fontSize: 10, fontFamily: PDF_FONT_FAMILY, color: '#161616', lineHeight: 1.35 },
+  supplementPage: { padding: 38, paddingBottom: 70, fontSize: 10, fontFamily: PDF_FONT_FAMILY, color: '#161616', lineHeight: 1.35 },
+  topRule: { position: 'absolute', top: 32, left: 38, right: 38, height: 5, backgroundColor: PDF_BRAND_BLUE },
+  supplementTopRule: { height: 5, backgroundColor: PDF_BRAND_BLUE, marginBottom: 14 },
+  header: { position: 'absolute', top: 48, left: 38, right: 38, height: 76, borderBottom: `1 solid ${PDF_BRAND_BLUE_LIGHT}`, paddingBottom: 10 },
+  supplementHeader: { borderBottom: `1 solid ${PDF_BRAND_BLUE_LIGHT}`, paddingBottom: 10, marginBottom: 16 },
+  logo: { width: 118, height: 66, objectFit: 'contain' },
+  coName: { fontSize: 12, fontWeight: 600, color: PDF_BRAND_BLUE },
   coMeta: { fontSize: 9, color: '#525252', marginTop: 2 },
   coServices: { fontSize: 8, color: '#525252', marginTop: 2, fontStyle: 'italic' },
-  title: { fontSize: 14, fontWeight: 700, marginTop: 14, marginBottom: 4 },
-  ref: { fontSize: 9, color: '#6f6f6f' },
+  title: { fontSize: 22, lineHeight: 1.15, fontWeight: 700, color: PDF_BRAND_BLUE_DARK, marginTop: 10 },
+  ref: { fontSize: 9, color: '#6f6f6f', marginTop: 6 },
   section: { marginTop: 14, marginBottom: 6 },
-  secTitle: { fontSize: 11, fontWeight: 700, color: '#0f62fe', marginBottom: 6, borderBottom: '1 solid #e0e0e0', paddingBottom: 2 },
+  secTitle: { fontSize: 10, fontWeight: 700, color: PDF_BRAND_BLUE, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, borderBottom: `1 solid ${PDF_BRAND_BLUE_LIGHT}`, paddingBottom: 4 },
   row: { flexDirection: 'row', marginBottom: 3 },
-  label: { width: 110, color: '#525252', fontSize: 9 },
+  label: { width: 78, color: '#525252', fontSize: 9 },
   value: { flex: 1, fontSize: 9 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   col: { width: '50%', marginBottom: 3 },
-  tblHead: { flexDirection: 'row', backgroundColor: '#f4f4f4', padding: 4, marginTop: 4 },
+  tblHead: { flexDirection: 'row', backgroundColor: PDF_BRAND_BLUE, color: '#ffffff', padding: 5, marginTop: 4 },
   tblRow: { flexDirection: 'row', padding: 4, borderBottom: '0.5 solid #e0e0e0' },
   tblCell: { fontSize: 8 },
   desc: { fontSize: 9, lineHeight: 1.4, marginTop: 4 },
@@ -29,7 +35,7 @@ const styles = StyleSheet.create({
   },
   status: {
     fontSize: 9, fontWeight: 700, padding: '3 8', color: '#24a148',
-    backgroundColor: '#defbe6', alignSelf: 'flex-start',
+    backgroundColor: '#defbe6', alignSelf: 'flex-start', borderRadius: 10, letterSpacing: 0.5,
   },
 });
 
@@ -103,16 +109,17 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
   const leadTech = job.technicians?.[0]?.name || 'Not assigned';
   const coTechs = job.coTechnicians?.map(t => t.name).join(', ') || '';
   const co = c || { name: COMPANY.name, address: COMPANY.address, phone: COMPANY_PHONE_LINE, email: '', website: '', vatRate: 15.5, vatNumber: '', logoUrl: '', tagline: 'Air Conditioning & Refrigeration', services: COMPANY_SERVICES_LINE };
+  const hasSupplement = Boolean(job.gasUsageRecords?.length || job.consumables?.length);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <View style={styles.topRule} fixed />
         {/* ───── Company Header ───── */}
         <View style={styles.header} fixed>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {co.logoUrl ? (
-              <Image source={{ uri: co.logoUrl, method: 'GET', headers: { Accept: 'image/*' } }} style={{ width: 32, height: 32 }} />
-            ) : null}
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image does not expose an alt prop */}
+            <Image source={pdfLogoSource(co.logoUrl)} style={styles.logo} />
             <View>
               <Text style={styles.coName}>{co.name}</Text>
               <Text style={styles.coMeta}>Address: {co.address}</Text>
@@ -196,14 +203,14 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
         )}
 
         {/* ───── Gas Usage ───── */}
-        {job.gasUsageRecords && job.gasUsageRecords.length > 0 && (
-          <View style={styles.section}>
+        {!hasSupplement && job.gasUsageRecords && job.gasUsageRecords.length > 0 && (
+          <View style={styles.section} wrap={false}>
             <Text style={styles.secTitle}>Refrigerant Usage</Text>
             <View style={styles.tblHead}>
-              <Text style={[styles.tblCell, { flex: 1, fontWeight: 700 }]}>Gas type</Text>
-              <Text style={[styles.tblCell, { width: 80, fontWeight: 700 }]}>Quantity (kg)</Text>
-              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700 }]}>Purpose</Text>
-              <Text style={[styles.tblCell, { width: 80, fontWeight: 700 }]}>Date</Text>
+              <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Gas type</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Quantity (kg)</Text>
+              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Date</Text>
             </View>
             {job.gasUsageRecords.map((g, i) => (
               <View key={i} style={styles.tblRow}>
@@ -217,13 +224,13 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
         )}
 
         {/* ───── Consumables ───── */}
-        {job.consumables && job.consumables.length > 0 && (
-          <View style={styles.section}>
+        {!hasSupplement && job.consumables && job.consumables.length > 0 && (
+          <View style={styles.section} wrap={false}>
             <Text style={styles.secTitle}>Materials Used</Text>
             <View style={styles.tblHead}>
-              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700 }]}>Item</Text>
-              <Text style={[styles.tblCell, { width: 80, fontWeight: 700 }]}>Quantity</Text>
-              <Text style={[styles.tblCell, { width: 80, fontWeight: 700 }]}>Unit</Text>
+              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Item</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Quantity</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Unit</Text>
             </View>
             {job.consumables.map((c, i) => (
               <View key={i} style={styles.tblRow}>
@@ -236,6 +243,77 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
         )}
 
         {/* ───── Signature ───── */}
+        {!hasSupplement && <View style={styles.signBox}>
+          <Text style={[styles.label, { marginBottom: 20 }]}>Customer signature</Text>
+          <View style={{ borderBottom: '1 solid #161616', width: 200 }} />
+          <Text style={{ fontSize: 8, color: '#6f6f6f', marginTop: 4 }}>
+            Signed on: {new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </Text>
+        </View>}
+
+        {/* ───── Footer ───── */}
+        <View style={styles.footer} fixed>
+          <Text>{co.name} · {co.address} · {co.phone}</Text>
+          <Text>{co.services}</Text>
+        </View>
+      </Page>
+
+      {hasSupplement && <Page size="A4" style={styles.supplementPage}>
+        <View style={styles.supplementTopRule} />
+        <View style={styles.supplementHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image does not expose an alt prop */}
+            <Image source={pdfLogoSource(co.logoUrl)} style={styles.logo} />
+            <View>
+              <Text style={styles.coName}>{co.name}</Text>
+              <Text style={styles.coMeta}>Address: {co.address}</Text>
+              <Text style={styles.coMeta}>Phone: {co.phone}</Text>
+              <Text style={styles.coServices}>Our Services: {co.services}</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={[styles.title, { fontSize: 17 }]}>Service & Materials Record</Text>
+        <Text style={styles.ref}>Job card: {job.jobCardRef}</Text>
+
+        {job.gasUsageRecords && job.gasUsageRecords.length > 0 && (
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.secTitle}>Refrigerant Usage</Text>
+            <View style={styles.tblHead}>
+              <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Gas type</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Quantity (kg)</Text>
+              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Date</Text>
+            </View>
+            {job.gasUsageRecords.map((g, i) => (
+              <View key={i} style={styles.tblRow}>
+                <Text style={[styles.tblCell, { flex: 1 }]}>{g.gasType}</Text>
+                <Text style={[styles.tblCell, { width: 80 }]}>{g.quantityUsed}</Text>
+                <Text style={[styles.tblCell, { flex: 2 }]}>{g.purpose || '—'}</Text>
+                <Text style={[styles.tblCell, { width: 80 }]}>{g.date || '—'}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {job.consumables && job.consumables.length > 0 && (
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.secTitle}>Materials Used</Text>
+            <View style={styles.tblHead}>
+              <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Item</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Quantity</Text>
+              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Unit</Text>
+            </View>
+            {job.consumables.map((item, i) => (
+              <View key={i} style={styles.tblRow}>
+                <Text style={[styles.tblCell, { flex: 2 }]}>{item.name}</Text>
+                <Text style={[styles.tblCell, { width: 80 }]}>{item.quantity}</Text>
+                <Text style={[styles.tblCell, { width: 80 }]}>{item.unit || '—'}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={styles.signBox}>
           <Text style={[styles.label, { marginBottom: 20 }]}>Customer signature</Text>
           <View style={{ borderBottom: '1 solid #161616', width: 200 }} />
@@ -244,12 +322,11 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
           </Text>
         </View>
 
-        {/* ───── Footer ───── */}
-        <View style={styles.footer} fixed>
-          <Text>{COMPANY.name} · {COMPANY.address} · {COMPANY_PHONE_LINE}</Text>
-          <Text>{COMPANY_SERVICES_LINE}</Text>
+        <View style={styles.footer}>
+          <Text>{co.name} · {co.address} · {co.phone}</Text>
+          <Text>{co.services}</Text>
         </View>
-      </Page>
+      </Page>}
     </Document>
   );
 }

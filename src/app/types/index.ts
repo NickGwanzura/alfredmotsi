@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'tech' | 'client';
+export type UserRole = 'owner' | 'admin' | 'dispatcher' | 'accounts' | 'sales' | 'tech' | 'client';
 
 export interface User {
   id: string;
@@ -26,14 +26,14 @@ export interface Customer {
 }
 
 export type JobType = 'installation' | 'maintenance' | 'repair' | 'sales' | 'inspection' | 'callout';
-export type JobStatus = 'scheduled' | 'in-progress' | 'on-site' | 'completed' | 'cancelled' | 'pending-parts' | 'unallocated' | 'pending-booking';
-export type JobPriority = 'urgent' | 'high' | 'medium' | 'low';
+export type JobStatus = 'draft' | 'scheduled' | 'dispatched' | 'on-route' | 'in-progress' | 'on-site' | 'awaiting-parts' | 'completed' | 'cancelled' | 'pending-parts' | 'unallocated' | 'pending-booking';
+export type JobPriority = 'emergency' | 'urgent' | 'high' | 'normal' | 'medium' | 'low';
 export type IssueType = 'install' | 'repair' | 'service' | 'quote';
 export type UnitType = 'Split System' | 'Ducted' | 'Package Unit' | 'Multi-Head' | 'Cassette' | 'VRV/VRF' | 'Refrigeration System' | 'Chiller' | 'Heat Pump' | 'Precision Cooling';
 export type RefrigerantType = 'R-32' | 'R-410A' | 'R-22' | 'R-134a' | 'R-407C' | 'R-600A' | 'R-290';
 export type SystemStatus = 'optimal' | 'sub-optimal' | 'critical';
 export type AlertType = 'HIGH_CURRENT' | 'LOW_VOLTAGE' | 'HIGH_TEMP' | 'PRESSURE_LEAK';
-export type JobSource = 'admin' | 'portal';
+export type JobSource = 'admin' | 'portal' | 'phone' | 'whatsapp' | 'website' | 'referral' | 'facebook' | 'google' | 'walk-in' | 'repeat';
 
 export interface Diagnostics {
   voltage?: string;
@@ -81,6 +81,10 @@ export interface Job {
   priority: JobPriority;
   date: string;
   time: string;
+  durationMinutes?: number;
+  siteId?: string | null;
+  equipmentId?: string | null;
+  leadId?: string | null;
   techIds: string[];
   coTechIds: string[];
   status: JobStatus;
@@ -219,7 +223,7 @@ export interface FundExpense {
   recordedBy?: { id: string; name: string };
 }
 
-export type PageId = 'home' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices' | 'funds' | 'settings';
+export type PageId = 'home' | 'operations' | 'ops-visibility' | 'calendar' | 'jobs' | 'customers' | 'gas-stock' | 'gas-usage' | 'crm' | 'ods-report' | 'users' | 'audit-log' | 'inventory' | 'invoices' | 'funds' | 'settings';
 
 export type ConsumableType = 'gas' | 'compressor' | 'part' | 'other';
 

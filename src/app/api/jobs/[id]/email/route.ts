@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
 import { loadCompany } from '@/app/lib/pdf/company';
 import { sendEmailWithBestPractices } from '@/app/lib/email/send';
 import { generatePreviewText } from '@/app/lib/email/standards';
+import { escapeEmailHtml } from '@/app/lib/email/premium-shell';
+import { BRAND_EMAIL, BRAND_LOGO_URL, BRAND_FONT_URL, BRAND_PHONE } from '@/app/lib/brand';
 
 /**
  * POST /api/jobs/[id]/email
@@ -33,6 +35,10 @@ export async function POST(
   });
 
   if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+  const userRole = session.user.role;
+  const userId = session.user.id;
+  const assigned = [...job.technicians, ...job.coTechnicians].some((technician) => technician.id === userId);
+  if (!isAdmin(userRole) && !assigned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   if (!job.customer?.email) return NextResponse.json({ error: 'Customer has no email address' }, { status: 400 });
 
   // Generate PDF with company branding
@@ -45,7 +51,8 @@ export async function POST(
   const diag = job.diagnostics;
   const statusLabel = job.status.replace(/-/g, ' ').replace(/_/g, ' ');
   const dateStr = new Date(job.date).toLocaleDateString('en-ZA', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-  const logoUrl = 'https://splashaircrmzw.site/logos.svg';
+  const e = (value: unknown) => escapeEmailHtml(String(value ?? ''));
+  const logoUrl = BRAND_LOGO_URL;
 
   const html = `
     <!DOCTYPE html>
@@ -53,24 +60,25 @@ export async function POST(
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>@font-face{font-family:Grift;src:url('${BRAND_FONT_URL}') format('woff2');font-weight:400}</style>
     </head>
-    <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;">
+    <body style="margin:0;padding:0;font-family:Grift,'Helvetica Neue',Arial,sans-serif;background:#f4f6f8;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
         <tr>
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
               <!-- Header -->
               <tr>
-                <td style="background:linear-gradient(135deg,#093a68,#062d52);padding:32px 40px;text-align:center;">
+                <td style="background:#ffffff;border-top:6px solid #093a68;border-bottom:1px solid #e0e0e0;padding:28px 40px;text-align:center;">
                   <img src="${logoUrl}" alt="Splash Air" width="180" style="display:block;margin:0 auto;" />
-                  <p style="margin:8px 0 0;color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Air Conditioning Specialists</p>
+                  <p style="margin:8px 0 0;color:#093a68;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Air Conditioning &amp; Refrigeration</p>
                 </td>
               </tr>
               <!-- Body -->
               <tr>
                 <td style="padding:32px 40px;">
-                  <h1 style="margin:0 0 8px;color:#161616;font-size:22px;font-weight:600;">Job Card: ${job.jobCardRef}</h1>
-                  <p style="margin:0 0 24px;color:#525252;font-size:13px;">${job.title} · ${dateStr} · <strong>${statusLabel.toUpperCase()}</strong></p>
+                  <h1 style="margin:0 0 8px;color:#161616;font-size:22px;font-weight:600;">Job Card: ${e(job.jobCardRef)}</h1>
+                  <p style="margin:0 0 24px;color:#525252;font-size:13px;">${e(job.title)} · ${e(dateStr)} · <strong>${e(statusLabel.toUpperCase())}</strong></p>
 
                   <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                     <tr>
@@ -79,15 +87,15 @@ export async function POST(
                           <tr>
                             <td width="50%" style="vertical-align:top;padding:0 8px 8px 0;">
                               <p style="margin:0;font-size:10px;color:#6f6f6f;text-transform:uppercase;letter-spacing:0.08em;">Customer</p>
-                              <p style="margin:4px 0 0;font-size:14px;color:#161616;font-weight:600;">${job.customer.name}</p>
-                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${job.customer.phone || ''}</p>
-                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${address}</p>
+                              <p style="margin:4px 0 0;font-size:14px;color:#161616;font-weight:600;">${e(job.customer.name)}</p>
+                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${e(job.customer.phone)}</p>
+                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${e(address)}</p>
                             </td>
                             <td width="50%" style="vertical-align:top;padding:0 0 8px 8px;">
                               <p style="margin:0;font-size:10px;color:#6f6f6f;text-transform:uppercase;letter-spacing:0.08em;">Technician</p>
-                              <p style="margin:4px 0 0;font-size:14px;color:#161616;font-weight:600;">${leadTech}</p>
+                              <p style="margin:4px 0 0;font-size:14px;color:#161616;font-weight:600;">${e(leadTech)}</p>
                               <p style="margin:4px 0 0;font-size:10px;color:#6f6f6f;text-transform:uppercase;letter-spacing:0.08em;">Unit Type</p>
-                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${job.unitType}</p>
+                              <p style="margin:2px 0 0;font-size:12px;color:#525252;">${e(job.unitType)}</p>
                             </td>
                           </tr>
                         </table>
@@ -114,8 +122,8 @@ export async function POST(
                         ['Refrigerant', diag.refrigerantType, ''],
                       ].filter(r => r[1]).map(r => `
                         <tr style="border-bottom:1px solid #e0e0e0;">
-                          <td style="padding:8px 12px;font-size:12px;color:#525252;">${r[0]}</td>
-                          <td style="padding:8px 12px;font-size:12px;color:#161616;font-family:monospace;">${r[1]} ${r[2]}</td>
+                          <td style="padding:8px 12px;font-size:12px;color:#525252;">${e(r[0])}</td>
+                          <td style="padding:8px 12px;font-size:12px;color:#161616;font-family:monospace;">${e(r[1])} ${e(r[2])}</td>
                         </tr>
                       `).join('')}
                     </tbody>
@@ -124,7 +132,7 @@ export async function POST(
 
                   ${job.description ? `
                   <h2 style="margin:0 0 8px;color:#161616;font-size:15px;font-weight:600;">Scope of Work</h2>
-                  <p style="margin:0 0 24px;color:#525252;font-size:13px;line-height:1.6;white-space:pre-wrap;">${job.description}</p>
+                  <p style="margin:0 0 24px;color:#525252;font-size:13px;line-height:1.6;white-space:pre-wrap;">${e(job.description)}</p>
                   ` : ''}
 
                   <p style="margin:24px 0 0;color:#525252;font-size:13px;">
@@ -137,8 +145,8 @@ export async function POST(
               <tr>
                 <td style="padding:24px 40px;background:#fafafa;border-top:1px solid #e0e0e0;">
                   <p style="margin:0;color:#6f6f6f;font-size:11px;text-align:center;">
-                    Splash Air Conditioning &middot; For support: 011 000 0001<br/>
-                    <a href="mailto:info@splashaircrmzw.site" style="color:#093a68;text-decoration:none;">info@splashaircrmzw.site</a>
+                    Splash Air Conditioning &middot; ${BRAND_PHONE}<br/>
+                    <a href="mailto:${BRAND_EMAIL}" style="color:#093a68;text-decoration:none;">${BRAND_EMAIL}</a>
                   </p>
                 </td>
               </tr>

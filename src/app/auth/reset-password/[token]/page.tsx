@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import SplashLogo from '@/app/components/SplashLogo';
+import Link from 'next/link';
+import Image from 'next/image';
 import { KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPasswordPage() {
@@ -52,42 +53,51 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-brand-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <SplashLogo className="w-24 h-auto" />
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4 py-10 sm:px-6 font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+      <div className="w-full max-w-[520px]">
+        {/* Full Splash Air mark, positioned like the main sign-in screen. */}
+        <div className="relative z-20 flex justify-center -mb-5">
+          <div className="h-[112px] w-[280px] overflow-hidden sm:h-[124px] sm:w-[320px]" aria-label="Splash Air Conditioning">
+            <Image
+              src="/logos.svg"
+              alt="Splash Air Conditioning"
+              width={320}
+              height={180}
+              priority
+              className="block h-auto w-[280px] drop-shadow-[0_4px_16px_rgba(9,58,104,0.16)] sm:w-[320px]"
+            />
+          </div>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-brand-900/5 border border-brand-100 overflow-hidden">
+        <div className="relative z-10 overflow-hidden rounded-2xl bg-white px-6 pb-10 pt-14 shadow-[0_4px_24px_rgba(0,0,0,0.08)] sm:px-12 sm:pb-12">
           {success ? (
             /* Success State */
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="py-3 text-center sm:py-5">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2 font-grift">Password reset successful</h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">Password reset successful</h2>
+              <p className="mb-6 text-sm text-gray-500">
                 You can now sign in with your new password.
               </p>
-              <a
+              <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 active:bg-brand-800 transition-colors shadow-lg shadow-brand-600/20"
               >
                 Sign in
-              </a>
+              </Link>
             </div>
           ) : (
             /* Form */
-            <form onSubmit={handleSubmit} className="p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">
-                  <KeyRound className="w-5 h-5 text-brand-600" />
+            <form onSubmit={handleSubmit}>
+              <div className="mb-8 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50">
+                  <KeyRound className="h-5 w-5 text-brand-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 font-grift">Reset your password</h2>
-                  <p className="text-sm text-gray-500">Enter your new password below</p>
+                  <h2 className="text-[26px] font-semibold leading-tight text-gray-900">Reset your password</h2>
+                  <p className="mt-1 text-sm text-gray-500">Enter your new password below</p>
                 </div>
               </div>
 
@@ -117,9 +127,8 @@ export default function ResetPasswordPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -145,9 +154,8 @@ export default function ResetPasswordPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
                     onClick={() => setShowConfirm(!showConfirm)}
-                    tabIndex={-1}
                     aria-label={showConfirm ? 'Hide password' : 'Show password'}
                   >
                     {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -173,13 +181,13 @@ export default function ResetPasswordPage() {
 
               {/* Back link */}
               <div className="text-center">
-                <a
+                <Link
                   href="/"
                   className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 transition-colors"
                 >
                   <ArrowLeft size={14} />
                   Back to sign in
-                </a>
+                </Link>
               </div>
             </form>
           )}

@@ -28,12 +28,13 @@ import {
   Column,
   Link,
 } from '@react-email/components';
+import { BRAND_LOGO_URL } from '@/app/lib/brand';
 
 // ============================================
 // DESIGN SYSTEM
 // ============================================
 
-const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
+const LOGO_URL = BRAND_LOGO_URL;
 
 const logoImgStyle: React.CSSProperties = {
   width: '200px',
@@ -45,9 +46,9 @@ const logoImgStyle: React.CSSProperties = {
 const theme = {
   colors: {
     // Primary brand colors
-    primary: '#0ea5e9',        // Sky blue (HVAC/air feel)
-    primaryDark: '#0284c7',    // Darker sky
-    primaryLight: '#e0f2fe',   // Light sky background
+    primary: '#093a68',
+    primaryDark: '#062d52',
+    primaryLight: '#e8eef5',
     
     // Secondary accents
     accent: '#f59e0b',         // Amber/warmth
@@ -57,7 +58,7 @@ const theme = {
     success: '#10b981',        // Emerald
     warning: '#f59e0b',        // Amber
     error: '#ef4444',          // Red
-    info: '#0ea5e9',           // Sky
+    info: '#093a68',
     
     // Neutral grays
     gray: {
@@ -79,7 +80,7 @@ const theme = {
   },
   
   fonts: {
-    sans: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+    sans: 'Grift, Helvetica Neue, Arial, sans-serif',
     mono: 'JetBrains Mono, Consolas, monospace',
   },
   
@@ -127,7 +128,9 @@ const globalStyles = {
   },
   
   header: {
-    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primaryDark} 100%)`,
+    backgroundColor: theme.colors.surface,
+    borderTop: `6px solid ${theme.colors.primary}`,
+    borderBottom: `1px solid ${theme.colors.gray[200]}`,
     padding: `${theme.spacing['2xl']} ${theme.spacing.xl}`,
     textAlign: 'center' as const,
   },
@@ -147,7 +150,7 @@ const globalStyles = {
   },
   
   tagline: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: theme.colors.primary,
     fontSize: '14px',
     margin: `${theme.spacing.sm} 0 0`,
     fontWeight: '400',
@@ -568,12 +571,12 @@ export function ClientPortalInviteEmail({
 
               <Text style={globalStyles.paragraph}>
                 Need help? Contact our support team at{' '}
-                <Link href="mailto:support@splashaircrmzw.site" style={globalStyles.link}>
-                  support@splashaircrmzw.site
+                <Link href="mailto:info@splashaircrmzw.site" style={globalStyles.link}>
+                  info@splashaircrmzw.site
                 </Link>{' '}
                 or call us at{' '}
-                <Link href="tel:+27123456789" style={globalStyles.link}>
-                  +27 12 345 6789
+                <Link href="tel:+263715212141" style={globalStyles.link}>
+                  0715 212 141
                 </Link>.
               </Text>
             </Section>
@@ -590,7 +593,7 @@ export function ClientPortalInviteEmail({
                   Website
                 </Link>
                 {' • '}
-                <Link href="mailto:support@splashaircrmzw.site" style={globalStyles.footerLink}>
+                <Link href="mailto:info@splashaircrmzw.site" style={globalStyles.footerLink}>
                   Support
                 </Link>
                 {' • '}
@@ -692,7 +695,7 @@ export function ServiceConfirmationEmail({
 
               <InfoBox variant="warning" title="Before We Arrive">
                 Please ensure someone is available at the location to meet our technician 
-                and provide access to the HVAC equipment. We'll call 30 minutes before arrival.
+                and provide access to the HVAC equipment. We&apos;ll call 30 minutes before arrival.
               </InfoBox>
 
               {portalUrl && (
@@ -708,8 +711,8 @@ export function ServiceConfirmationEmail({
 
               <Text style={globalStyles.paragraph}>
                 Need to reschedule? Reply to this email or call us at{' '}
-                <Link href="tel:+27123456789" style={globalStyles.link}>
-                  +27 12 345 6789
+                <Link href="tel:+263715212141" style={globalStyles.link}>
+                  0715 212 141
                 </Link>{' '}
                 at least 24 hours in advance.
               </Text>
@@ -727,8 +730,8 @@ export function ServiceConfirmationEmail({
                   Website
                 </Link>
                 {' • '}
-                <Link href="tel:+27123456789" style={globalStyles.footerLink}>
-                  +27 12 345 6789
+                <Link href="tel:+263715212141" style={globalStyles.footerLink}>
+                  0715 212 141
                 </Link>
               </Text>
             </Section>
@@ -795,7 +798,7 @@ export function ServiceCompletionEmail({
               </Text>
 
               <Text style={globalStyles.paragraph}>
-                Our technician has completed your {serviceType}. Here's what was done:
+                Our technician has completed your {serviceType}. Here&apos;s what was done:
               </Text>
 
               <DetailCard
@@ -859,7 +862,7 @@ export function ServiceCompletionEmail({
                   Website
                 </Link>
                 {' • '}
-                <Link href="mailto:support@splashaircrmzw.site" style={globalStyles.footerLink}>
+                <Link href="mailto:info@splashaircrmzw.site" style={globalStyles.footerLink}>
                   Support
                 </Link>
               </Text>
@@ -942,7 +945,7 @@ export function StatusUpdateEmail({
               </Text>
 
               <Text style={globalStyles.paragraph}>
-                There's been an update to your {serviceType}:
+                There&apos;s been an update to your {serviceType}:
               </Text>
 
               <DetailCard
@@ -975,8 +978,8 @@ export function StatusUpdateEmail({
 
               <Text style={globalStyles.paragraph}>
                 Questions? Contact us at{' '}
-                <Link href="mailto:support@splashaircrmzw.site" style={globalStyles.link}>
-                  support@splashaircrmzw.site
+                <Link href="mailto:info@splashaircrmzw.site" style={globalStyles.link}>
+                  info@splashaircrmzw.site
                 </Link>
               </Text>
             </Section>
@@ -1048,7 +1051,7 @@ export function TechnicianAssignmentEmail({
               <StatusBadge status="info">New Assignment</StatusBadge>
 
               <Heading style={globalStyles.heading1}>
-                You're Assigned to a New Job
+                You&apos;re Assigned to a New Job
               </Heading>
 
               <Text style={globalStyles.paragraph}>
@@ -1176,7 +1179,7 @@ export function ReminderEmail({
 
               <InfoBox variant="info" title="What to Expect">
                 Our technician will arrive within the scheduled time window. 
-                You'll receive a call 30 minutes before arrival. Please ensure 
+                You&apos;ll receive a call 30 minutes before arrival. Please ensure
                 someone is available to provide access.
               </InfoBox>
 
@@ -1188,8 +1191,8 @@ export function ReminderEmail({
 
               <Text style={{ ...globalStyles.paragraph, fontSize: '14px', color: theme.colors.gray[500] }}>
                 Need to reschedule? Contact us ASAP at{' '}
-                <Link href="tel:+27123456789" style={globalStyles.link}>
-                  +27 12 345 6789
+                <Link href="tel:+263715212141" style={globalStyles.link}>
+                  0715 212 141
                 </Link>
               </Text>
             </Section>
@@ -1274,7 +1277,7 @@ export function FollowUpEmail({
                 <>
                   <Hr style={globalStyles.divider} />
                   <Text style={globalStyles.paragraph}>
-                    Happy with our service? We'd appreciate a review:
+                    Happy with our service? We&apos;d appreciate a review:
                   </Text>
                   <Button style={globalStyles.buttonSecondary} href={reviewUrl}>
                     Leave a Review
@@ -1358,7 +1361,7 @@ export function WelcomeEmail({
               </Heading>
 
               <Text style={globalStyles.paragraph}>
-                Thank you for choosing {companyName} for your HVAC needs. We're excited 
+                Thank you for choosing {companyName} for your HVAC needs. We&apos;re excited
                 to help you maintain a comfortable environment year-round.
               </Text>
 
@@ -1376,8 +1379,8 @@ export function WelcomeEmail({
 
               <Text style={globalStyles.paragraph}>
                 Have questions? Our team is here to help at{' '}
-                <Link href="mailto:support@splashaircrmzw.site" style={globalStyles.link}>
-                  support@splashaircrmzw.site
+                <Link href="mailto:info@splashaircrmzw.site" style={globalStyles.link}>
+                  info@splashaircrmzw.site
                 </Link>
               </Text>
             </Section>

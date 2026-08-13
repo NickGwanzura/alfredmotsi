@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { clearCompanyCache } from '@/app/lib/pdf/company';
 
 const DEFAULTS = {
   name: 'Splash Air Conditioning',
@@ -51,6 +52,7 @@ export async function PUT(req: NextRequest) {
     where: { id: 'default' },
     data: updateData,
   });
+  clearCompanyCache();
 
   return NextResponse.json(profile);
 }

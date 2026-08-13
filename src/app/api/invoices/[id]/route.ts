@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { FINANCE_ROLES } from '@/app/lib/serviceAuth';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 async function checkAuth(): Promise<boolean> {
   const session = await auth();
-  return !!session?.user && session.user.role === 'admin';
+  return !!session?.user && FINANCE_ROLES.includes(session.user.role as any);
 }
 
 export async function GET(req: NextRequest, ctx: RouteContext) {
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: { customer: true, lineItems: true, job: { select: { jobCardRef: true, title: true } } },
+    include: { customer: true, lineItems: true, payments: { orderBy: { receivedAt: 'desc' } }, job: { select: { jobCardRef: true, title: true } } },
   });
   if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(invoice);
@@ -31,7 +32,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext) {
   const invoice = await prisma.invoice.update({
     where: { id },
     data: body,
-    include: { customer: true, lineItems: true, job: { select: { id: true, jobCardRef: true, title: true } } },
+    include: { customer: true, lineItems: true, payments: { orderBy: { receivedAt: 'desc' } }, job: { select: { id: true, jobCardRef: true, title: true } } },
   });
   return NextResponse.json(invoice);
 }

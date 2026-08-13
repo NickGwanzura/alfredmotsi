@@ -168,9 +168,7 @@ export async function sendTechAssignmentEmail(payload: {
 export async function sendUserInviteEmail(payload: {
   to: string;
   userName: string;
-  tempPassword: string;
-  role: string;
-  loginUrl?: string;
+  resetUrl: string;
 }): Promise<EmailResult> {
   try {
     const response = await fetch('/api/email/user-invite', {

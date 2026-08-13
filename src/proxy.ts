@@ -7,8 +7,6 @@ const FINANCE_PATH_PREFIXES = [
   "/api/reports",
   "/api/financial",
   "/api/analytics",
-  "/api/contracts",
-  "/api/quotations",
 ];
 
 // Routes like /api/users, /api/crm, /api/gas-stock, /api/gas-usage,
@@ -39,12 +37,13 @@ export default auth((req) => {
   }
 
   const userRole = req.auth?.user?.role;
-  const isAdminRole = userRole === "admin";
+  const isAdminRole = userRole === "admin" || userRole === "owner";
+  const isFinanceRole = isAdminRole || userRole === "accounts";
 
   // Block non-admin access to finance routes
   for (const prefix of FINANCE_PATH_PREFIXES) {
     if (pathMatchesPrefix(pathname, prefix)) {
-      if (!isAdminRole) {
+      if (!isFinanceRole) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
@@ -76,5 +75,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf)$).*)"],
 };

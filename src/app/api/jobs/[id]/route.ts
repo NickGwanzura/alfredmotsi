@@ -3,18 +3,26 @@ import { prisma } from '@/app/lib/db';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
+import { auditServiceAction } from '@/app/lib/serviceAuth';
+import { emitServiceNotification } from '@/app/lib/notifications/provider';
 
 // Valid status transitions
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  'unallocated':    ['scheduled', 'cancelled'],
-  'scheduled':      ['in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled', 'unallocated'],
-  'in-progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'cancelled'],
-  'in_progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'cancelled'],
-  'on-site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'cancelled'],
-  'on_site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'cancelled'],
+  'draft':          ['unallocated', 'scheduled', 'cancelled'],
+  'unallocated':    ['scheduled', 'dispatched', 'cancelled'],
+  'scheduled':      ['dispatched', 'on-route', 'on_route', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled', 'unallocated'],
+  'dispatched':     ['on-route', 'on_route', 'on-site', 'on_site', 'in-progress', 'in_progress', 'cancelled'],
+  'on-route':       ['on-site', 'on_site', 'cancelled'],
+  'on_route':       ['on-site', 'on_site', 'cancelled'],
+  'in-progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'awaiting-parts', 'awaiting_parts', 'cancelled'],
+  'in_progress':    ['on-site', 'on_site', 'completed', 'pending-parts', 'pending_parts', 'awaiting-parts', 'awaiting_parts', 'cancelled'],
+  'on-site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'awaiting-parts', 'awaiting_parts', 'cancelled'],
+  'on_site':        ['completed', 'in-progress', 'in_progress', 'pending-parts', 'pending_parts', 'awaiting-parts', 'awaiting_parts', 'cancelled'],
   'completed':      ['invoiced', 'cancelled'],
   'pending-parts':  ['scheduled', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
   'pending_parts':  ['scheduled', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
+  'awaiting-parts': ['scheduled', 'dispatched', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
+  'awaiting_parts': ['scheduled', 'dispatched', 'in-progress', 'in_progress', 'on-site', 'on_site', 'cancelled'],
   'pending-booking':['scheduled', 'cancelled'],
   'pending_booking':['scheduled', 'cancelled'],
   'cancelled':      ['scheduled', 'unallocated'],
@@ -53,7 +61,7 @@ export async function GET(
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    if (userRole !== 'admin') {
+    if (!['owner', 'admin', 'dispatcher', 'accounts', 'sales'].includes(userRole)) {
       const isAssigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
       if (!isAssigned) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -95,7 +103,7 @@ export async function PUT(
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    if (userRole !== 'admin') {
+    if (!['owner', 'admin', 'dispatcher'].includes(userRole)) {
       const assigned = [...existingJob.technicians, ...existingJob.coTechnicians].some(t => t.id === userId);
       if (!assigned) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -192,6 +200,11 @@ export async function PUT(
       }
     }
 
+    const changedAssignment = Array.isArray(techIds) && techIds.some((tid: string) => !existingJob.technicians.some((tech) => tech.id === tid));
+    await auditServiceAction(session, changedAssignment ? 'assign_technician' : (newStatus === 'cancelled' ? 'cancel_job' : newStatus === 'dispatched' ? 'dispatch_job' : 'update_job'), `Updated job ${id}${newStatus ? ` to ${newStatus}` : ''}`, id);
+    if (newStatus === 'on_route') emitServiceNotification({ event: 'job.on_route', channel: 'whatsapp', jobId: id, payload: { jobId: id } }).catch(() => undefined);
+    if (newStatus === 'completed') emitServiceNotification({ event: 'job.completed', channel: 'email', jobId: id, payload: { jobId: id } }).catch(() => undefined);
+
     return NextResponse.json(jobToClient(result as Record<string, unknown>));
   } catch (error) {
     console.error('Error updating job:', error);
@@ -213,7 +226,7 @@ export async function DELETE(
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['admin']);
+    const forbidden = authorizeRole(session, ['owner', 'admin']);
     if (forbidden) return forbidden;
 
     const { id } = await params;

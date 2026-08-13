@@ -19,11 +19,14 @@ interface Invoice {
   subtotal: number;
   tax: number;
   total: number;
+  balance: number;
+  discount?: number;
   paidAt?: string | null;
   notes?: string | null;
   customer: { id: string; name: string; email: string; phone: string; address: string };
   job?: { id: string; jobCardRef: string; title: string } | null;
   lineItems: LineItem[];
+  payments?: { id: string; amount: number; method: string; reference?: string; receiptRef: string; receivedAt: string }[];
 }
 
 interface Customer {
@@ -44,6 +47,7 @@ interface Job {
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
   sent: 'bg-blue-50 text-blue-700',
+  partial: 'bg-amber-50 text-amber-800',
   paid: 'bg-green-50 text-green-700',
   overdue: 'bg-red-50 text-red-700',
   cancelled: 'bg-gray-100 text-gray-500',
@@ -61,6 +65,8 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
   const [statusFilter, setStatusFilter] = useState('');
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [payment, setPayment] = useState({ amount: '', method: 'bank-transfer', reference: '' });
+  const [paymentError, setPaymentError] = useState('');
 
   const blankLine = (): LineItem => ({ description: '', quantity: 1, unitPrice: 0, total: 0 });
   const [form, setForm] = useState({
@@ -123,16 +129,28 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
   };
 
   const markPaid = async (id: string) => {
-    const res = await fetch(`/api/invoices/${id}`, {
-      method: 'PUT',
+    const invoice = invoices.find((item) => item.id === id);
+    if (!invoice) return;
+    const res = await fetch(`/api/invoices/${id}/payments`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'paid' }),
+      body: JSON.stringify({ amount: invoice.balance || invoice.total, method: 'other', reference: 'Marked paid in CRM' }),
     });
     if (res.ok) {
-      const updated = await res.json();
+      const { invoice: updated } = await res.json();
       setInvoices((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
       if (selected?.id === id) setSelected(updated);
     }
+  };
+
+  const recordPayment = async () => {
+    if (!selected || !payment.amount) return;
+    setPaymentError('');
+    const res = await fetch(`/api/invoices/${selected.id}/payments`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payment, amount: Number(payment.amount) }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setPaymentError(data.error || 'Could not record payment');
+    setInvoices((current) => current.map((invoice) => invoice.id === selected.id ? data.invoice : invoice));
+    setSelected(data.invoice); setPayment({ amount: '', method: 'bank-transfer', reference: '' });
   };
 
   const handleDelete = async (id: string) => {
@@ -322,7 +340,12 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
                 <p className="text-gray-500">Subtotal: <span className="font-mono">${selected.subtotal.toFixed(2)}</span></p>
                 <p className="text-gray-500">VAT ({VBT}%): <span className="font-mono">${selected.tax.toFixed(2)}</span></p>
                 <p className="font-bold text-lg text-brand-600">TOTAL: ${selected.total.toFixed(2)}</p>
+                <p className="font-bold text-lg text-amber-700">BALANCE: ${(selected.balance ?? selected.total).toFixed(2)}</p>
               </div>
+
+              {selected.payments && selected.payments.length > 0 && <div className="rounded-lg border border-gray-200 p-3"><p className="text-xs font-semibold uppercase text-gray-500 mb-2">Payment history</p>{selected.payments.map((entry) => <div key={entry.id} className="flex justify-between gap-3 border-t border-gray-100 py-2 text-sm"><div><p className="font-semibold">{entry.receiptRef}</p><p className="text-xs text-gray-500">{entry.method.replace('-', ' ')} - {new Date(entry.receivedAt).toLocaleDateString()}</p></div><span className="font-bold text-green-700">${entry.amount.toFixed(2)}</span></div>)}</div>}
+
+              {selected.status !== 'paid' && selected.status !== 'cancelled' && <div className="rounded-lg border border-brand-100 bg-brand-50 p-4"><p className="text-sm font-bold text-gray-900 mb-3">Record partial or full payment</p><div className="grid grid-cols-1 sm:grid-cols-3 gap-2"><input className={inputCls} inputMode="decimal" placeholder={`Amount up to ${(selected.balance ?? selected.total).toFixed(2)}`} value={payment.amount} onChange={(e) => setPayment({ ...payment, amount: e.target.value })} /><select className={inputCls} value={payment.method} onChange={(e) => setPayment({ ...payment, method: e.target.value })}>{['cash','bank-transfer','ecocash','card','velocity','other'].map((method) => <option key={method} value={method}>{method.replace('-', ' ')}</option>)}</select><input className={inputCls} placeholder="Reference" value={payment.reference} onChange={(e) => setPayment({ ...payment, reference: e.target.value })} /></div>{paymentError && <p className="text-xs text-red-700 mt-2">{paymentError}</p>}<div className="flex justify-end gap-2 mt-3"><button className={btnSec} onClick={() => setPayment({ ...payment, amount: String(selected.balance ?? selected.total) })}>Use full balance</button><button className={btnPri} onClick={recordPayment}>Record payment</button></div></div>}
 
               {selected.notes && <p className="text-xs text-gray-400 italic">{selected.notes}</p>}
 

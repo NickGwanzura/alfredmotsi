@@ -27,15 +27,17 @@ if [ -x "./node_modules/.bin/prisma" ]; then
     echo "✅ Migrations applied successfully"
   else
     echo "⚠️ Migrate deploy failed — checking if tables exist..."
-    # Check if users table exists; if not, force push schema
+    # Check if users table exists; if not, push schema on a fresh database.
     if node -e "const {PrismaClient} = require('@prisma/client'); (async()=>{try{await new PrismaClient().\$queryRawUnsafe('SELECT 1 FROM \"users\" LIMIT 1'); console.log('TABLES_EXIST')}catch(e){console.log('NO_TABLES')}; await new PrismaClient().\$disconnect()})()" 2>&1 | grep -q "NO_TABLES"; then
-      echo "   Tables don't exist — forcing schema push (accept-data-loss)..."
+      echo "   Tables don't exist — pushing schema (fresh DB)..."
       # Reset migration tracking first
       ./node_modules/.bin/prisma migrate resolve --applied 20260528000000_init 2>/dev/null || true
-      ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+      ./node_modules/.bin/prisma db push 2>&1 || echo "⚠️ db push also failed, continuing..."
     else
-      echo "   Tables exist — attempting db push as fallback..."
-      ./node_modules/.bin/prisma db push --accept-data-loss 2>&1 || echo "⚠️ db push also failed, continuing..."
+      # Tables exist (production data). Never use --accept-data-loss here: a
+      # non-destructive push applies safe drift and refuses any destructive change.
+      echo "   Tables exist — attempting non-destructive schema sync..."
+      ./node_modules/.bin/prisma db push 2>&1 || echo "⚠️ db push also failed, continuing..."
     fi
   fi
 else

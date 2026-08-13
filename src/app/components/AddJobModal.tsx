@@ -16,7 +16,7 @@ interface AddJobModalProps {
 }
 
 const ISSUE_TYPES: IssueType[] = ['install', 'repair', 'service', 'quote'];
-const PRIORITIES: JobPriority[] = ['urgent', 'high', 'medium', 'low'];
+const PRIORITIES: JobPriority[] = ['emergency', 'urgent', 'high', 'normal', 'medium', 'low'];
 const RECURRING_OPTIONS: { value: number | null; label: string }[] = [
   { value: null, label: 'None' },
   { value: 3, label: 'Every 3 months' },
@@ -31,9 +31,10 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
     customerId: '',
     unitType: 'Split System' as UnitType,
     issue: 'service' as IssueType,
-    priority: 'medium' as JobPriority,
+    priority: 'normal' as JobPriority,
     date: '',
     time: '',
+    durationMinutes: 120,
     leadTechId: '',
     coTechId: '',
     description: '',
@@ -79,6 +80,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
       id: newId(), source: 'admin', customerId: formData.customerId, title: formData.title,
       type: formData.type, unitType: formData.unitType, issue: formData.issue, priority: formData.priority,
       date: formData.date, time: formData.time, techIds, coTechIds, status: 'scheduled',
+      durationMinutes: formData.durationMinutes,
       clockIn: null, clockOut: null, description: formData.description, diagnostics: null,
       photos: [], signature: null, jobCardRef: `JC-${Date.now().toString().slice(-6)}`,
       alerts: [], recurring, comments: [], history: [],
@@ -118,7 +120,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormItem label="Job Title" error={errors.title}>
                 <input type="text" className={inputClass} value={formData.title} onChange={e => handleChange('title', e.target.value)} placeholder="Enter job title" />
               </FormItem>
@@ -167,6 +169,9 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               </FormItem>
               <FormItem label="Time" error={errors.time}>
                 <input type="time" className={inputClass} value={formData.time} onChange={e => handleChange('time', e.target.value)} />
+              </FormItem>
+              <FormItem label="Duration (minutes)">
+                <input type="number" min="30" step="30" inputMode="numeric" className={inputClass} value={formData.durationMinutes} onChange={e => handleChange('durationMinutes', parseInt(e.target.value) || 120)} />
               </FormItem>
             </div>
 

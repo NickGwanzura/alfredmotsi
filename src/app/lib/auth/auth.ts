@@ -32,7 +32,11 @@ export function authenticate(session: unknown): { error: NextResponse | null; se
 }
 
 export function authorizeRole(session: any, allowedRoles: string[]): NextResponse | null {
-  if (!allowedRoles.includes((session.user as any).role)) {
+  const role = (session.user as any).role as string | undefined;
+  // Owner is the highest-privilege administrative role and must retain
+  // access to endpoints that historically listed only `admin`.
+  const allowed = !!role && (allowedRoles.includes(role) || (role === "owner" && allowedRoles.includes("admin")));
+  if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return null;
@@ -52,6 +56,6 @@ export function filterFinancialArray<T extends Record<string, unknown>>(session:
   return data;
 }
 
-export function isAdmin(role: string) { return role === "admin"; }
+export function isAdmin(role: string) { return role === "admin" || role === "owner"; }
 export function isTech(role: string)  { return role === "tech"; }
 export function isClient(role: string) { return role === "client"; }

@@ -10,6 +10,10 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Only admins and technicians may view gas usage.
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'accounts', 'tech']);
+    if (forbidden) return forbidden;
+
     const usage = await prisma.gasUsageRecord.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'tech']);
     if (forbidden) return forbidden;
 
     const body = await request.json();

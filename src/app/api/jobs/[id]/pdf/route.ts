@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
 import { loadCompany } from '@/app/lib/pdf/company';
@@ -30,7 +30,7 @@ export async function GET(
   const userRole = (session.user as any).role;
   const userId = (session.user as any).id;
 
-  if (userRole !== 'admin') {
+  if (!isAdmin(userRole)) {
     const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
     if (!assigned) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

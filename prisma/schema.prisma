@@ -12,7 +12,11 @@ datasource db {
 // ============================================
 
 enum UserRole {
+  owner
   admin
+  dispatcher
+  accounts
+  sales
   tech
   client
 }
@@ -33,9 +37,13 @@ enum JobType {
 }
 
 enum JobStatus {
+  draft
   scheduled
+  dispatched
+  on_route        @map("on-route")
   in_progress     @map("in-progress")
   on_site         @map("on-site")
+  awaiting_parts  @map("awaiting-parts")
   completed
   cancelled
   pending_parts   @map("pending-parts")
@@ -44,8 +52,10 @@ enum JobStatus {
 }
 
 enum JobPriority {
+  emergency
   urgent
   high
+  normal
   medium
   low
 }
@@ -96,6 +106,14 @@ enum AlertType {
 enum JobSource {
   admin
   portal
+  phone
+  whatsapp
+  website
+  referral
+  facebook
+  google
+  walk_in  @map("walk-in")
+  repeat
 }
 
 enum CRMType {
@@ -147,6 +165,28 @@ enum AuditAction {
   password_reset
   password_change
   failed_login
+  create_job
+  update_job
+  assign_technician
+  dispatch_job
+  cancel_job
+  create_lead
+  update_lead
+  convert_lead
+  create_quote
+  send_quote
+  view_quote
+  accept_quote
+  reject_quote
+  create_invoice
+  send_invoice
+  record_payment
+  create_contract
+  update_contract
+  create_site
+  create_equipment
+  update_checklist
+  use_job_part
 }
 
 enum EmailDeliveryStatus {
@@ -158,6 +198,7 @@ enum EmailDeliveryStatus {
 enum InvoiceStatus {
   draft
   sent
+  partial
   paid
   overdue
   cancelled
@@ -166,9 +207,79 @@ enum InvoiceStatus {
 enum QuoteStatus {
   draft
   sent
+  viewed
   accepted
+  rejected
   declined
   expired
+}
+
+enum LeadStatus {
+  new
+  contacted
+  quoted
+  booked
+  in_progress @map("in-progress")
+  won
+  lost
+}
+
+enum LeadSource {
+  phone
+  whatsapp
+  website
+  referral
+  facebook
+  google
+  walk_in  @map("walk-in")
+  repeat
+  other
+}
+
+enum QuoteTier {
+  basic
+  standard
+  premium
+  custom
+}
+
+enum ChecklistResult {
+  pending
+  pass
+  fail
+  not_applicable @map("not-applicable")
+}
+
+enum PaymentMethod {
+  cash
+  bank_transfer @map("bank-transfer")
+  ecocash
+  card
+  velocity
+  other
+}
+
+enum ContractStatus {
+  active
+  expiring_soon @map("expiring-soon")
+  expired
+  cancelled
+}
+
+enum BillingCycle {
+  monthly
+  quarterly
+  biannual
+  annual
+  once_off  @map("once-off")
+}
+
+enum ReminderType {
+  quote_follow_up   @map("quote-follow-up")
+  invoice_follow_up @map("invoice-follow-up")
+  inactive_lead     @map("inactive-lead")
+  maintenance_due   @map("maintenance-due")
+  custom
 }
 
 // ============================================
@@ -238,13 +349,14 @@ model User {
   sessions Session[]
 
   // App relations
-  assignedJobs        Job[]            @relation("AssignedJobs")
-  coAssignedJobs      Job[]            @relation("CoAssignedJobs")
-  gasUsageRecords     GasUsageRecord[] @relation("GasUsageByUser")
+  assignedJobs        Job[]                    @relation("AssignedJobs")
+  coAssignedJobs      Job[]                    @relation("CoAssignedJobs")
+  gasUsageRecords     GasUsageRecord[]         @relation("GasUsageByUser")
   crmRecords          CRMRecord[]
-  consumables         Consumable[]     @relation("ConsumableRecordedBy")
-  auditLogs           AuditLog[]       @relation("AuditLogByUser")
-  uploadedAttachments JobAttachment[]  @relation("JobAttachmentUploadedBy")
+  consumables         Consumable[]             @relation("ConsumableRecordedBy")
+  auditLogs           AuditLog[]               @relation("AuditLogByUser")
+  uploadedAttachments JobAttachment[]          @relation("JobAttachmentUploadedBy")
+  availability        TechnicianAvailability[]
 
   // Fund management
   fundAllocationsReceived FundAllocation[] @relation("FundsAllocatedTo")
@@ -266,6 +378,7 @@ model Customer {
   phone         String
   whatsapp      String?
   email         String   @unique
+  notes         String?  @db.Text
   portalCode    String?  @unique @map("portal_code")
   portalEnabled Boolean  @default(false) @map("portal_enabled")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -275,50 +388,162 @@ model Customer {
   crmRecords CRMRecord[]
   invoices   Invoice[]
   quotes     Quote[]
+  sites      ServiceSite[]
+  equipment  Equipment[]
+  leads      Lead[]
+  payments   Payment[]
+  contracts  MaintenanceContract[]
+  reminders  Reminder[]
 
   @@map("customers")
 }
 
 model Job {
-  id          String      @id @default(cuid())
-  source      JobSource
-  customerId  String      @map("customer_id")
-  title       String
-  type        JobType
-  unitType    UnitType    @map("unit_type")
-  issue       IssueType
-  priority    JobPriority
-  date        String
-  time        String
-  status      JobStatus
-  clockIn     String?     @map("clock_in")
-  clockOut    String?     @map("clock_out")
-  description String
-  photos      String[]
-  signature   String?
-  jobCardRef  String      @unique @map("job_card_ref")
-  alerts      AlertType[]
-  version     Int         @default(0)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id              String      @id @default(cuid())
+  source          JobSource
+  customerId      String      @map("customer_id")
+  siteId          String?     @map("site_id")
+  equipmentId     String?     @map("equipment_id")
+  leadId          String?     @unique @map("lead_id")
+  title           String
+  type            JobType
+  unitType        UnitType    @map("unit_type")
+  issue           IssueType
+  priority        JobPriority
+  date            String
+  time            String
+  durationMinutes Int         @default(120) @map("duration_minutes")
+  status          JobStatus
+  clockIn         String?     @map("clock_in")
+  clockOut        String?     @map("clock_out")
+  description     String
+  photos          String[]
+  signature       String?
+  jobCardRef      String      @unique @map("job_card_ref")
+  alerts          AlertType[]
+  version         Int         @default(0)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer  Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  site      ServiceSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  equipment Equipment?   @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  lead      Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   technicians   User[] @relation("AssignedJobs")
   coTechnicians User[] @relation("CoAssignedJobs")
 
-  diagnostics     Diagnostics?
-  comments        Comment[]
-  history         HistoryEntry[]
-  recurring       RecurringSchedule?
-  gasUsageRecords GasUsageRecord[]   @relation("GasUsageOfJob")
-  consumables     Consumable[]       @relation("ConsumableOfJob")
-  auditLogs       AuditLog[]         @relation("AuditLogOfJob")
-  attachments     JobAttachment[]    @relation("JobAttachmentOfJob")
-  invoices        Invoice[]
-  fundExpenses    FundExpense[]
+  diagnostics        Diagnostics?
+  comments           Comment[]
+  history            HistoryEntry[]
+  recurring          RecurringSchedule?
+  gasUsageRecords    GasUsageRecord[]    @relation("GasUsageOfJob")
+  consumables        Consumable[]        @relation("ConsumableOfJob")
+  auditLogs          AuditLog[]          @relation("AuditLogOfJob")
+  attachments        JobAttachment[]     @relation("JobAttachmentOfJob")
+  invoices           Invoice[]
+  fundExpenses       FundExpense[]
+  quotes             Quote[]
+  checklists         JobChecklist[]
+  partUsages         JobPartUsage[]
+  inventoryMovements InventoryMovement[]
+  notificationEvents NotificationEvent[]
 
   @@map("jobs")
+}
+
+model ServiceSite {
+  id          String   @id @default(cuid())
+  customerId  String   @map("customer_id")
+  name        String
+  address     String
+  contactName String?  @map("contact_name")
+  phone       String?
+  accessNotes String?  @map("access_notes") @db.Text
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  customer  Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  equipment Equipment[]
+  jobs      Job[]
+  contracts MaintenanceContract[]
+
+  @@index([customerId])
+  @@map("service_sites")
+}
+
+model Equipment {
+  id             String   @id @default(cuid())
+  customerId     String   @map("customer_id")
+  siteId         String   @map("site_id")
+  unitType       UnitType @map("unit_type")
+  name           String?
+  brand          String?
+  model          String?
+  serialNumber   String?  @map("serial_number")
+  installDate    String?  @map("install_date")
+  warrantyExpiry String?  @map("warranty_expiry")
+  photos         String[] @default([])
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  customer  Customer                       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  site      ServiceSite                    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  jobs      Job[]
+  contracts MaintenanceContractEquipment[]
+
+  @@index([customerId])
+  @@index([siteId])
+  @@map("equipment")
+}
+
+model Lead {
+  id           String      @id @default(cuid())
+  customerId   String?     @map("customer_id")
+  name         String
+  phone        String
+  whatsapp     String?
+  email        String?
+  address      String?
+  source       LeadSource
+  status       LeadStatus  @default(new)
+  serviceType  String?     @map("service_type")
+  description  String      @db.Text
+  priority     JobPriority @default(normal)
+  nextFollowUp String?     @map("next_follow_up")
+  lostReason   String?     @map("lost_reason")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  customer  Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  job       Job?
+  quotes    Quote[]
+  reminders Reminder[]
+
+  @@index([status])
+  @@index([customerId])
+  @@map("leads")
+}
+
+model Reminder {
+  id            String       @id @default(cuid())
+  type          ReminderType
+  customerId    String?      @map("customer_id")
+  leadId        String?      @map("lead_id")
+  title         String
+  dueAt         DateTime     @map("due_at")
+  completed     Boolean      @default(false)
+  referenceType String?      @map("reference_type")
+  referenceId   String?      @map("reference_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lead     Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([dueAt, completed])
+  @@map("reminders")
 }
 
 model Diagnostics {
@@ -571,9 +796,11 @@ model InventoryItem {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  movements    InventoryMovement[]
-  invoiceLines InvoiceLine[]
-  quoteLines   QuoteLine[]
+  movements     InventoryMovement[]
+  invoiceLines  InvoiceLine[]
+  quoteLines    QuoteLine[]
+  pricebookItem PricebookItem?
+  jobUsages     JobPartUsage[]
 
   @@index([category])
   @@map("inventory_items")
@@ -582,17 +809,62 @@ model InventoryItem {
 model InventoryMovement {
   id         String   @id @default(cuid())
   itemId     String   @map("item_id")
-  type       String   // in | out | adjustment
+  type       String // in | out | adjustment
   quantity   Float
   reference  String?
   notes      String?
   recordedBy String?  @map("recorded_by")
+  jobId      String?  @map("job_id")
   recordedAt DateTime @default(now()) @map("recorded_at")
 
   item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  job  Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
 
   @@index([itemId])
+  @@index([jobId])
   @@map("inventory_movements")
+}
+
+model PricebookItem {
+  id              String   @id @default(cuid())
+  name            String
+  code            String   @unique
+  category        String
+  description     String?
+  unit            String   @default("each")
+  costPrice       Float?   @map("cost_price")
+  sellPrice       Float    @map("sell_price")
+  taxable         Boolean  @default(true)
+  isActive        Boolean  @default(true) @map("is_active")
+  inventoryItemId String?  @unique @map("inventory_item_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  invoiceLines  InvoiceLine[]
+  quoteLines    QuoteLine[]
+
+  @@index([category])
+  @@map("pricebook_items")
+}
+
+model JobPartUsage {
+  id         String   @id @default(cuid())
+  jobId      String   @map("job_id")
+  itemId     String   @map("item_id")
+  quantity   Float
+  unitCost   Float?   @map("unit_cost")
+  unitPrice  Float?   @map("unit_price")
+  notes      String?
+  recordedBy String?  @map("recorded_by")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  job  Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([jobId])
+  @@index([itemId])
+  @@map("job_part_usages")
 }
 
 // ============================================
@@ -604,13 +876,16 @@ model Invoice {
   invoiceRef String        @unique @map("invoice_ref")
   customerId String        @map("customer_id")
   jobId      String?       @map("job_id")
+  quoteId    String?       @unique @map("quote_id")
   status     InvoiceStatus @default(draft)
   issueDate  String        @map("issue_date")
   dueDate    String        @map("due_date")
   subtotal   Float         @default(0)
+  discount   Float         @default(0)
   taxRate    Float         @default(15) @map("tax_rate")
   tax        Float         @default(0)
   total      Float         @default(0)
+  balance    Float         @default(0)
   notes      String?
   paidAt     DateTime?     @map("paid_at")
   paidRef    String?       @map("paid_ref")
@@ -619,7 +894,9 @@ model Invoice {
 
   customer  Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   job       Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  quote     Quote?        @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   lineItems InvoiceLine[]
+  payments  Payment[]
 
   @@index([customerId])
   @@index([status])
@@ -627,16 +904,19 @@ model Invoice {
 }
 
 model InvoiceLine {
-  id          String  @id @default(cuid())
-  invoiceId   String  @map("invoice_id")
-  description String
-  quantity    Float   @default(1)
-  unitPrice   Float   @map("unit_price")
-  total       Float
-  itemId      String? @map("item_id")
+  id              String  @id @default(cuid())
+  invoiceId       String  @map("invoice_id")
+  description     String
+  quantity        Float   @default(1)
+  unitPrice       Float   @map("unit_price")
+  total           Float
+  itemId          String? @map("item_id")
+  pricebookItemId String? @map("pricebook_item_id")
+  category        String? @default("service")
 
-  invoice Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  item    InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item          InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  pricebookItem PricebookItem? @relation(fields: [pricebookItemId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId])
   @@map("invoice_lines")
@@ -646,38 +926,133 @@ model Quote {
   id         String      @id @default(cuid())
   quoteRef   String      @unique @map("quote_ref")
   customerId String      @map("customer_id")
+  jobId      String?     @map("job_id")
+  leadId     String?     @map("lead_id")
+  tier       QuoteTier   @default(custom)
   status     QuoteStatus @default(draft)
   issueDate  String      @map("issue_date")
   validUntil String      @map("valid_until")
   subtotal   Float       @default(0)
+  discount   Float       @default(0)
   taxRate    Float       @default(15) @map("tax_rate")
   tax        Float       @default(0)
   total      Float       @default(0)
   notes      String?
+  terms      String?     @db.Text
+  viewedAt   DateTime?   @map("viewed_at")
+  acceptedAt DateTime?   @map("accepted_at")
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
   customer  Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  job       Job?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  lead      Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
   lineItems QuoteLine[]
+  invoice   Invoice?
 
   @@index([customerId])
   @@map("quotes")
 }
 
 model QuoteLine {
-  id          String  @id @default(cuid())
-  quoteId     String  @map("quote_id")
-  description String
-  quantity    Float   @default(1)
-  unitPrice   Float   @map("unit_price")
-  total       Float
-  itemId      String? @map("item_id")
+  id              String  @id @default(cuid())
+  quoteId         String  @map("quote_id")
+  description     String
+  quantity        Float   @default(1)
+  unitPrice       Float   @map("unit_price")
+  total           Float
+  itemId          String? @map("item_id")
+  pricebookItemId String? @map("pricebook_item_id")
+  category        String? @default("service")
 
-  quote Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  item  InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  quote         Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  item          InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  pricebookItem PricebookItem? @relation(fields: [pricebookItemId], references: [id], onDelete: SetNull)
 
   @@index([quoteId])
   @@map("quote_lines")
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  invoiceId  String        @map("invoice_id")
+  customerId String        @map("customer_id")
+  amount     Float
+  method     PaymentMethod
+  reference  String?
+  notes      String?
+  receivedAt DateTime      @default(now()) @map("received_at")
+  recordedBy String?       @map("recorded_by")
+  receiptRef String        @unique @map("receipt_ref")
+
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@map("payments")
+}
+
+model ChecklistTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  jobType     JobType? @map("job_type")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items         ChecklistTemplateItem[]
+  jobChecklists JobChecklist[]
+
+  @@map("checklist_templates")
+}
+
+model ChecklistTemplateItem {
+  id            String  @id @default(cuid())
+  templateId    String  @map("template_id")
+  label         String
+  description   String?
+  sortOrder     Int     @default(0) @map("sort_order")
+  requiresPhoto Boolean @default(false) @map("requires_photo")
+
+  template  ChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  responses ChecklistResponse[]
+
+  @@index([templateId, sortOrder])
+  @@map("checklist_template_items")
+}
+
+model JobChecklist {
+  id          String    @id @default(cuid())
+  jobId       String    @map("job_id")
+  templateId  String    @map("template_id")
+  completedAt DateTime? @map("completed_at")
+  completedBy String?   @map("completed_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  job       Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  template  ChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  responses ChecklistResponse[]
+
+  @@unique([jobId, templateId])
+  @@map("job_checklists")
+}
+
+model ChecklistResponse {
+  id             String          @id @default(cuid())
+  jobChecklistId String          @map("job_checklist_id")
+  templateItemId String          @map("template_item_id")
+  result         ChecklistResult @default(pending)
+  notes          String?         @db.Text
+  photos         String[]        @default([])
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  jobChecklist JobChecklist          @relation(fields: [jobChecklistId], references: [id], onDelete: Cascade)
+  templateItem ChecklistTemplateItem @relation(fields: [templateItemId], references: [id], onDelete: Restrict)
+
+  @@unique([jobChecklistId, templateItemId])
+  @@map("checklist_responses")
 }
 
 // ============================================
@@ -694,6 +1069,45 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model NotificationEvent {
+  id          String    @id @default(cuid())
+  event       String
+  channel     String
+  recipient   String?
+  customerId  String?   @map("customer_id")
+  jobId       String?   @map("job_id")
+  referenceId String?   @map("reference_id")
+  provider    String?
+  status      String    @default("pending")
+  payload     Json?
+  error       String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  sentAt      DateTime? @map("sent_at")
+
+  job Job? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([event, createdAt])
+  @@index([jobId])
+  @@map("notification_events")
+}
+
+model TechnicianAvailability {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  date      String
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  available Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, startTime, endTime])
+  @@index([date, available])
+  @@map("technician_availability")
 }
 
 // ============================================
@@ -716,7 +1130,7 @@ model CompanyProfile {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-	@@map("company_profile")
+  @@map("company_profile")
 }
 
 // ============================================
@@ -730,16 +1144,16 @@ enum FundStatus {
 }
 
 model FundAllocation {
-  id          String        @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String?
   amount      Float
-  spent       Float         @default(0)
-  status      FundStatus    @default(active)
+  spent       Float      @default(0)
+  status      FundStatus @default(active)
   notes       String?
-  techId      String        @map("tech_id")
-  createdById String        @map("created_by_id")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  techId      String     @map("tech_id")
+  createdById String     @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   tech      User          @relation("FundsAllocatedTo", fields: [techId], references: [id])
   createdBy User          @relation("FundsCreatedBy", fields: [createdById], references: [id])
@@ -767,4 +1181,41 @@ model FundExpense {
   @@index([fundId])
   @@index([jobId])
   @@map("fund_expenses")
+}
+
+model MaintenanceContract {
+  id                   String         @id @default(cuid())
+  contractRef          String         @unique @map("contract_ref")
+  customerId           String         @map("customer_id")
+  siteId               String         @map("site_id")
+  status               ContractStatus @default(active)
+  startDate            String         @map("start_date")
+  endDate              String         @map("end_date")
+  billingCycle         BillingCycle   @map("billing_cycle")
+  visitFrequencyMonths Int            @map("visit_frequency_months")
+  agreedAmount         Float          @map("agreed_amount")
+  nextServiceDate      String         @map("next_service_date")
+  notes                String?        @db.Text
+  autoCreateJobs       Boolean        @default(false) @map("auto_create_jobs")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  customer  Customer                       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  site      ServiceSite                    @relation(fields: [siteId], references: [id], onDelete: Restrict)
+  equipment MaintenanceContractEquipment[]
+
+  @@index([status, endDate])
+  @@index([nextServiceDate])
+  @@map("maintenance_contracts")
+}
+
+model MaintenanceContractEquipment {
+  contractId  String @map("contract_id")
+  equipmentId String @map("equipment_id")
+
+  contract  MaintenanceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  equipment Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@id([contractId, equipmentId])
+  @@map("maintenance_contract_equipment")
 }

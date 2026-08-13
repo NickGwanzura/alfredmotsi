@@ -9,7 +9,7 @@ interface ManagedUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'tech' | 'client';
+  role: 'owner' | 'admin' | 'dispatcher' | 'accounts' | 'sales' | 'tech' | 'client';
   phone?: string | null;
   specialty?: string | null;
   status?: string | null;
@@ -17,27 +17,24 @@ interface ManagedUser {
 }
 
 const ROLE_TAG: Record<string, { bg: string; txt: string; label: string }> = {
+  owner:  { bg: '#7c3aed22', txt: '#5b21b6', label: 'Owner' },
   admin:  { bg: '#491d8b22', txt: '#491d8b', label: 'Administrator' },
+  dispatcher: { bg: '#0284c722', txt: '#075985', label: 'Dispatcher' },
+  accounts: { bg: '#05966922', txt: '#047857', label: 'Accounts' },
+  sales: { bg: '#d9770622', txt: '#b45309', label: 'Sales / CSR' },
   tech:   { bg: '#0043ce22', txt: '#0043ce', label: 'Technician'    },
   client: { bg: '#005d5d22', txt: '#005d5d', label: 'Client'        },
 };
 
 const ROLE_AVATAR_COLORS: Record<string, string> = {
+  owner: '#5b21b6',
   admin: '#6929c4',
+  dispatcher: '#0369a1',
+  accounts: '#047857',
+  sales: '#b45309',
   tech: '#0f62fe',
   client: '#005d5d',
 };
-
-function generateTempPassword(): string {
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const lower = 'abcdefghjkmnpqrstuvwxyz';
-  const digits = '23456789';
-  const special = '@#$!';
-  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
-  const base = [pick(upper), pick(upper), pick(lower), pick(lower), pick(digits), pick(digits), pick(special)];
-  for (let i = 0; i < 3; i++) base.push(pick(upper + lower + digits));
-  return base.sort(() => Math.random() - 0.5).join('');
-}
 
 type ModalState = 'none' | 'invite' | 'edit' | 'delete' | 'resend';
 
@@ -49,8 +46,6 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
   const [modal, setModal] = useState<ModalState>('none');
   const [target, setTarget] = useState<ManagedUser | null>(null);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'tech', phone: '', specialty: '' });
-  const [tempPw, setTempPw] = useState('');
-  const [copied, setCopied] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [inviteErr, setInviteErr] = useState('');
   const [editForm, setEditForm] = useState({ name: '', email: '', role: 'tech', phone: '', specialty: '' });
@@ -81,7 +76,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
   function openInvite() {
     setInviteForm({ name: '', email: '', role: 'tech', phone: '', specialty: '' });
-    setTempPw(generateTempPassword()); setInviteErr(''); setCopied(false); setModal('invite');
+    setInviteErr(''); setModal('invite');
   }
 
   async function handleInvite() {
@@ -91,15 +86,13 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...inviteForm, tempPassword: tempPw }),
+        body: JSON.stringify(inviteForm),
       });
       const data = await res.json();
       if (!res.ok) { setInviteErr(data.error || 'Failed to create user.'); return; }
-      await fetch('/api/email/user-invite', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: inviteForm.email, userName: inviteForm.name, tempPassword: tempPw, role: inviteForm.role, loginUrl: `${window.location.origin}/` }),
-      });
-      setModal('none'); showToast('User invited', `${inviteForm.name} — credentials sent to ${inviteForm.email}`);
+      setModal('none'); showToast(data.setupEmailSent ? 'User invited' : 'User created', data.setupEmailSent
+        ? `${inviteForm.name} — secure setup link sent to ${inviteForm.email}`
+        : `${inviteForm.name} created, but email delivery failed. Use Resend setup link.`);
       await loadUsers();
     } catch { setInviteErr('An error occurred. Please try again.'); }
     finally { setInviting(false); }
@@ -137,7 +130,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       });
       const data = await res.json();
       if (!res.ok) { setResendErr(data.error || 'Failed to resend.'); return; }
-      setModal('none'); showToast('Credentials sent', `New login details sent to ${target.email}.`);
+      setModal('none'); showToast('Setup link sent', `A secure password setup link was sent to ${target.email}.`);
     } catch { setResendErr('An error occurred. Please try again.'); }
     finally { setResending(false); }
   }
@@ -162,8 +155,6 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       else { alert(data.error || 'Failed to clean duplicates'); }
     } finally { setDeduping(false); }
   }
-
-  function copyPassword() { navigator.clipboard.writeText(tempPw).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }
 
   const admins = users.filter(u => u.role === 'admin').length;
   const techsCount = users.filter(u => u.role === 'tech').length;
@@ -321,7 +312,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
               </div>
               <FormItem label="Role *" helper="Administrators have full access. Technicians can only view their assigned jobs.">
                 <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
-                  <option value="tech">Technician</option><option value="admin">Administrator</option>
+                  <option value="tech">Technician</option><option value="dispatcher">Dispatcher</option><option value="accounts">Accounts</option><option value="sales">Sales / CSR</option><option value="admin">Administrator</option><option value="owner">Owner</option>
                 </select>
               </FormItem>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -332,27 +323,11 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                   <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, Ducted" value={inviteForm.specialty} onChange={e => setInviteForm(f => ({ ...f, specialty: e.target.value }))} />
                 </FormItem>
               </div>
-              <hr className="border-gray-100" />
-              <FormItem label="Temporary password" helper="Generated automatically. Will be emailed to the user.">
-                <div className="flex gap-2">
-                  <input className="flex-1 h-9 px-3 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none font-mono tracking-wider" value={tempPw} readOnly />
-                  <button onClick={copyPassword}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer border ${
-                      copied ? 'text-white bg-emerald-600 border-emerald-600' : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                    }`}>
-                    {copied ? '✓ Copied' : 'Copy'}
-                  </button>
-                  <button onClick={() => { setTempPw(generateTempPassword()); setCopied(false); }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">
-                    New
-                  </button>
-                </div>
-              </FormItem>
               <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
                 <div className="p-1 rounded-full bg-blue-100 text-blue-600 shrink-0"><Mail size={14} /></div>
                 <div>
-                  <p className="font-semibold text-sm text-blue-800">Login credentials will be emailed</p>
-                  <p className="text-sm text-blue-600 mt-0.5">{inviteForm.email || 'The user'} will receive their username and temporary password by email.</p>
+                  <p className="font-semibold text-sm text-blue-800">Secure setup link will be emailed</p>
+                  <p className="text-sm text-blue-600 mt-0.5">{inviteForm.email || 'The user'} will receive a one-time link to create their password. No password is sent by email.</p>
                 </div>
               </div>
             </div>
@@ -391,7 +366,7 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
               </div>
               <FormItem label="Role" helper={target.id === currentUserId ? 'You cannot change your own role.' : 'Changing role takes effect immediately.'}>
                 <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.role} disabled={target.id === currentUserId} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
-                  <option value="tech">Technician</option><option value="admin">Administrator</option><option value="client">Client</option>
+                  <option value="tech">Technician</option><option value="dispatcher">Dispatcher</option><option value="accounts">Accounts</option><option value="sales">Sales / CSR</option><option value="admin">Administrator</option><option value="owner">Owner</option><option value="client">Client</option>
                 </select>
               </FormItem>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

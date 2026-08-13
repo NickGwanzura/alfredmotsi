@@ -1,12 +1,16 @@
 import { StatusConfig, TypeConfig, TechStatusConfig, AlertConfig, PriorityTagConfig, JobStatus, JobType, TechStatus, AlertType, JobPriority } from '@/app/types';
 
 export const STATUS_CFG: Record<JobStatus, StatusConfig> = {
+  draft: { label: "Draft", bg: "#f3f4f6", txt: "#4b5563" },
   scheduled: { label: "Scheduled", bg: "#cfe2ff", txt: "#084298" },
+  dispatched: { label: "Dispatched", bg: "#dbeafe", txt: "#1d4ed8" },
+  "on-route": { label: "On Route", bg: "#e0e7ff", txt: "#4338ca" },
   "in-progress": { label: "In Progress", bg: "#d1ecf1", txt: "#0c5460" },
   "on-site": { label: "On Site", bg: "#fff3cd", txt: "#664d03" },
   completed: { label: "Completed", bg: "#d4edda", txt: "#155724" },
   cancelled: { label: "Cancelled", bg: "#e2e3e5", txt: "#383d41" },
   "pending-parts": { label: "Pending Parts", bg: "#e8d5f5", txt: "#4b1d8b" },
+  "awaiting-parts": { label: "Awaiting Parts", bg: "#f3e8ff", txt: "#6b21a8" },
   unallocated: { label: "Unallocated", bg: "#fff3cd", txt: "#664d03" },
   "pending-booking": { label: "Pending Booking", bg: "#fde8e0", txt: "#7d2c12" },
 };
@@ -34,8 +38,10 @@ export const ALERT_CFG: Record<AlertType, AlertConfig> = {
 };
 
 export const PRIO_TAG: Record<JobPriority, PriorityTagConfig> = {
+  emergency: { bg: "#7f1d1d", txt: "#ffffff" },
   urgent: { bg: "#f8d7da", txt: "#842029" },
   high: { bg: "#fde8e0", txt: "#7d2c12" },
+  normal: { bg: "#e8eef5", txt: "#093a68" },
   medium: { bg: "#fff3cd", txt: "#664d03" },
   low: { bg: "#d4edda", txt: "#155724" },
 };

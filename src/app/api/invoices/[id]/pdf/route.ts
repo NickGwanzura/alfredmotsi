@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { serviceSession, FINANCE_ROLES } from '@/app/lib/serviceAuth';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { InvoicePDF } from '@/app/lib/pdf/invoicePdf';
 import { loadCompany } from '@/app/lib/pdf/company';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { session, error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
 
   const { id } = await params;
   const invoice = await prisma.invoice.findUnique({

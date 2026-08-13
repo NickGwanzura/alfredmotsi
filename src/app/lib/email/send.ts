@@ -1,4 +1,5 @@
 import { getResend, FROM_EMAIL, isEmailEnabled } from './resend';
+import { BRAND_ORIGIN } from '@/app/lib/brand';
 import { render } from '@react-email/components';
 import { prisma } from '@/app/lib/db';
 import {
@@ -6,7 +7,6 @@ import {
   JobCompletedEmail,
   PortalInviteEmail,
   TechAssignmentEmail,
-  UserInviteEmail,
   StatusUpdateEmail,
   PasswordResetEmail,
 } from './templates-new';
@@ -125,18 +125,6 @@ export async function sendEmailWithBestPractices({
 }: SendEmailOptions): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   const recipients = Array.isArray(to) ? to : [to];
   const primaryRecipient = recipients[0];
-  
-  const rateCheck = checkRateLimit(primaryRecipient);
-  if (!rateCheck.allowed) {
-    await recordEmailDeliveryLog({
-      recipients,
-      subject,
-      category,
-      status: 'skipped',
-      errorMessage: `Rate limited (retry after ${rateCheck.retryAfter}s)`,
-    });
-    return { success: false, error: 'Rate limited' };
-  }
   
   if (!isEmailEnabled()) {
     await recordEmailDeliveryLog({
@@ -466,7 +454,7 @@ export async function sendPortalInviteEmail({
   to,
   customerName,
   portalCode,
-  loginUrl = 'https://splashaircrmzw.site/login',
+  loginUrl = `${BRAND_ORIGIN}/login`,
 }: SendPortalInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
   
   // Validate required fields
@@ -571,61 +559,20 @@ export async function sendTechAssignmentEmail({
 interface SendUserInviteEmailParams {
   to: string;
   userName: string;
-  tempPassword: string;
-  role: string;
-  loginUrl?: string;
+  resetUrl: string;
 }
 
-/**
- * ⚠️ SECURITY NOTICE: This function sends passwords via email
- * 
- * RECOMMENDATION: Replace with secure token-based invitation:
- * 1. Generate secure token (expires in 24h)
- * 2. Store token hash in database
- * 3. Send email with secure link
- * 4. User clicks link to set password
- * 5. Token is invalidated after use
- * 
- * See: standards.ts generateSecureToken() for token generation
- */
 export async function sendUserInviteEmail({
   to,
   userName,
-  tempPassword,
-  role,
-  loginUrl = 'https://splashaircrmzw.site/login',
+  resetUrl,
 }: SendUserInviteEmailParams): Promise<{ success: boolean; data?: unknown; error?: unknown }> {
-  console.warn('⚠️ [SECURITY] Sending password via email is not recommended. Consider implementing secure token-based invitations.');
-  
-  // Validate required fields
-  if (!to || !userName || !tempPassword || !role) {
+  if (!to || !userName || !resetUrl) {
     console.error('[sendUserInviteEmail] Missing required fields');
     return { success: false, error: 'Missing required fields' };
   }
 
-  try {
-    const emailProps = {
-      userName: userName.trim(),
-      userEmail: to.trim(),
-      tempPassword: tempPassword.trim(),
-      role: role.trim(),
-      loginUrl: loginUrl.trim(),
-    };
-
-
-    const html = await render(UserInviteEmail(emailProps));
-
-    return await sendEmailWithBestPractices({
-      to,
-      subject: `Your Splash Air ${role.charAt(0).toUpperCase() + role.slice(1)} Account`,
-      html,
-      category: 'user-invite',
-      isTransactional: true,
-    });
-  } catch (error: unknown) {
-    console.error('❌ Error sending user invite email:', error);
-    return { success: false, error: String(error) };
-  }
+  return sendPasswordResetEmail({ to, userName, resetUrl });
 }
 
 // ============================================

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
-import { sendUserInviteEmail } from '@/app/lib/email/send';
+import { sendPasswordResetEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
 
 interface UserInviteRequest {
   to: string;
   userName: string;
-  tempPassword: string;
-  role: string;
-  loginUrl?: string;
+  resetUrl: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -38,14 +36,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
 
-    const { to, userName, tempPassword, role, loginUrl } = body;
+    const { to, userName, resetUrl } = body;
 
     // Validate required fields
     const missingFields: string[] = [];
     if (!to) missingFields.push('to');
     if (!userName) missingFields.push('userName');
-    if (!tempPassword) missingFields.push('tempPassword');
-    if (!role) missingFields.push('role');
+    if (!resetUrl) missingFields.push('resetUrl');
 
     if (missingFields.length > 0) {
       console.error('[API /email/user-invite] Missing required fields:', missingFields);
@@ -56,12 +53,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
 
-    const result = await sendUserInviteEmail({
+    const result = await sendPasswordResetEmail({
       to: to.trim(),
       userName: userName.trim(),
-      tempPassword: tempPassword.trim(),
-      role: role.trim(),
-      loginUrl: loginUrl?.trim(),
+      resetUrl: resetUrl.trim(),
     });
 
     if (!result.success) {

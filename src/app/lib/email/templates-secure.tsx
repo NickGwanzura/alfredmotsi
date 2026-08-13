@@ -18,15 +18,14 @@ import {
   Heading,
   Button,
   Hr,
-  Row,
-  Column,
   Img,
 } from '@react-email/components';
+import { BRAND_LOGO_URL } from '@/app/lib/brand';
 
 // Reuse brand styles from templates-new.tsx
 const colors = {
-  primary: '#0f62fe',
-  primaryDark: '#0043ce',
+  primary: '#093a68',
+  primaryDark: '#062d52',
   success: '#198038',
   warning: '#f1c21b',
   danger: '#da1e28',
@@ -45,7 +44,7 @@ const colors = {
 
 const main = {
   backgroundColor: colors.gray[100],
-  fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+  fontFamily: 'Grift, Helvetica Neue, Arial, sans-serif',
 };
 
 const container = {
@@ -55,12 +54,14 @@ const container = {
 };
 
 const header = {
-  backgroundColor: colors.primary,
+  backgroundColor: '#ffffff',
+  borderTop: `6px solid ${colors.primary}`,
+  borderBottom: `1px solid ${colors.gray[200]}`,
   padding: '32px 24px',
   textAlign: 'center' as const,
 };
 
-const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
+const LOGO_URL = BRAND_LOGO_URL;
 const logoImg = {
   width: '180px',
   height: 'auto',
@@ -69,7 +70,7 @@ const logoImg = {
 };
 
 const tagline = {
-  color: 'rgba(255,255,255,0.8)',
+  color: colors.primary,
   fontSize: '12px',
   margin: '8px 0 0',
   textTransform: 'uppercase' as const,
@@ -209,7 +210,7 @@ export function SecureUserInvitationEmail({
   return (
     <Html>
       <Head />
-      <Preview>You're invited to join Splash Air as {roleDisplay}</Preview>
+      <Preview>You&apos;re invited to join Splash Air as {roleDisplay}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
@@ -404,7 +405,6 @@ interface InvitationExpiredEmailProps {
  */
 export function InvitationExpiredEmail({
   userName,
-  userEmail,
   role,
   requestNewUrl,
 }: InvitationExpiredEmailProps) {

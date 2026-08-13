@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Job,
   User,
@@ -41,7 +41,7 @@ interface JobCardModalProps {
   onPrint?: (job: Job) => void;
 }
 
-const TABS = ["details", "diagnostics", "media", "sign-off", "ods", "consumables", "funds"] as const;
+const TABS = ["details", "diagnostics", "checklist", "parts", "media", "sign-off", "ods", "consumables", "funds"] as const;
 type Tab = typeof TABS[number];
 
 const CONSUMABLE_TYPES: ConsumableType[] = ['gas', 'compressor', 'part', 'other'];
@@ -57,8 +57,8 @@ const REFRIGERANT_OPTIONS: (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onDelete, onPrint }: JobCardModalProps) {
   const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
   const userRole = currentUser.role;
-  const isAssigned = job.techIds.includes(currentUser.id);
-  const canEdit = userRole === 'admin' || isAssigned;
+  const isAssigned = job.techIds.includes(currentUser.id) || (job.coTechIds || []).includes(currentUser.id);
+  const canEdit = ['owner', 'admin', 'dispatcher'].includes(userRole) || isAssigned;
 
   const [tab, setTab] = useState<Tab>("details");
   const [status, setStatus] = useState<JobStatus>(job.status);
@@ -412,11 +412,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50">
+        <div className="flex overflow-x-auto border-b border-gray-100 bg-gray-50">
           {TABS.map(tName => (
             <div 
               key={tName} 
-              className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${
+              className={`min-h-[44px] shrink-0 px-4 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors ${
                 tab === tName 
                   ? 'text-gray-900 border-b-2 border-brand-600 bg-white' 
                   : 'text-gray-500 hover:text-gray-700 bg-gray-50'
@@ -426,6 +426,8 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               {tName === "sign-off" ? "Sign-Off" :
                tName === "ods" ? "ODS" :
                tName === "consumables" ? "Consumables" :
+               tName === "checklist" ? "Checklist" :
+               tName === "parts" ? "Parts" :
                tName === "funds" ? "Fund Expenses" :
                tName.charAt(0).toUpperCase() + tName.slice(1)}
             </div>
@@ -1037,6 +1039,9 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
             </div>
           )}
 
+          {tab === "checklist" && <FieldWorkflowTab jobId={job.id} mode="checklist" canEdit={canEdit} />}
+          {tab === "parts" && <FieldWorkflowTab jobId={job.id} mode="parts" canEdit={canEdit} />}
+
           {tab === "funds" && (
             <FundExpensesTab jobId={job.id} />
           )}
@@ -1104,6 +1109,71 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
       )}
     </div>
   );
+}
+
+type ChecklistTemplateData = { id: string; name: string; items: { id: string; label: string; requiresPhoto: boolean }[] };
+type JobChecklistData = { id: string; template: ChecklistTemplateData; responses: { id: string; templateItemId: string; result: string; notes?: string; photos: string[] }[] };
+type InventoryPart = { id: string; name: string; sku?: string; unit: string; stockLevel: number; sellPrice?: number };
+type PartUsage = { id: string; quantity: number; recordedAt: string; item: InventoryPart };
+
+function FieldWorkflowTab({ jobId, mode, canEdit }: { jobId: string; mode: 'checklist' | 'parts'; canEdit: boolean }) {
+  const [templates, setTemplates] = useState<ChecklistTemplateData[]>([]);
+  const [checklists, setChecklists] = useState<JobChecklistData[]>([]);
+  const [inventory, setInventory] = useState<InventoryPart[]>([]);
+  const [parts, setParts] = useState<PartUsage[]>([]);
+  const [templateId, setTemplateId] = useState('');
+  const [partForm, setPartForm] = useState({ itemId: '', quantity: '1', notes: '' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    const urls = mode === 'checklist' ? ['/api/checklists', `/api/jobs/${jobId}/checklists`] : ['/api/inventory', `/api/jobs/${jobId}/parts`];
+    try {
+      const responses = await Promise.all(urls.map((url) => fetch(url)));
+      if (responses.some((response) => !response.ok)) throw new Error('Could not load field workflow data.');
+      const [first, second] = await Promise.all(responses.map((response) => response.json()));
+      if (mode === 'checklist') { setTemplates(first); setChecklists(second); }
+      else { setInventory(first); setParts(second); }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not load data.'); }
+    finally { setLoading(false); }
+  }, [jobId, mode]);
+  useEffect(() => { load(); }, [load]);
+
+  const addChecklist = async () => {
+    if (!templateId) return;
+    const response = await fetch(`/api/jobs/${jobId}/checklists`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ templateId }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return setError(data.error || 'Could not assign checklist.');
+    setTemplateId(''); await load();
+  };
+  const updateResponse = async (responseId: string, result: string, notes?: string) => {
+    const response = await fetch(`/api/jobs/${jobId}/checklists`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ responseId, result, notes }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return setError(data.error || 'Could not update checklist.');
+    setChecklists((current) => current.map((checklist) => ({ ...checklist, responses: checklist.responses.map((item) => item.id === responseId ? { ...item, ...data } : item) })));
+  };
+  const usePart = async () => {
+    const response = await fetch(`/api/jobs/${jobId}/parts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...partForm, quantity: Number(partForm.quantity) }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return setError(data.error || 'Could not record part usage.');
+    setPartForm({ itemId: '', quantity: '1', notes: '' }); await load();
+  };
+  const field = 'min-h-[44px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-brand-500';
+  const button = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border-none bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 cursor-pointer';
+  const cardBase = 'bg-white rounded-xl border border-gray-100 p-5 shadow-sm';
+
+  if (loading) return <div className="flex h-36 items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-brand-100 border-t-brand-600" /></div>;
+  return <div className="animate-fade-in space-y-4">
+    {error && <Notification kind="e" title="Field workflow issue" body={error} />}
+    {mode === 'checklist' ? <>
+      {canEdit && <div className={cardBase}><SectionTitle>Assign HVAC checklist</SectionTitle><div className="flex flex-col sm:flex-row gap-2"><select className={field} value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Choose reusable checklist</option>{templates.filter((template) => !checklists.some((checklist) => checklist.template.id === template.id)).map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select><button className={button} disabled={!templateId} onClick={addChecklist}><Plus size={15} /> Assign</button></div></div>}
+      {checklists.length === 0 ? <div className={cardBase}><p className="text-sm text-gray-500">No checklist assigned yet.</p></div> : checklists.map((checklist) => <section key={checklist.id} className={cardBase}><SectionTitle>{checklist.template.name}</SectionTitle><div className="space-y-3 mt-3">{checklist.template.items.map((item) => { const response = checklist.responses.find((entry) => entry.templateItemId === item.id); if (!response) return null; return <div key={item.id} className="rounded-lg border border-gray-200 p-3"><div className="flex flex-col sm:flex-row sm:items-center gap-3"><p className="flex-1 text-sm font-medium text-gray-900">{item.label}{item.requiresPhoto && <span className="ml-2 text-xs text-brand-600">Photo required</span>}</p><div className="grid grid-cols-3 gap-2">{[['pass','Pass'],['fail','Fail'],['not_applicable','N/A']].map(([value, label]) => <button key={value} disabled={!canEdit} onClick={() => updateResponse(response.id, value, response.notes)} className={`min-h-[44px] rounded-lg border px-3 text-xs font-semibold cursor-pointer disabled:cursor-default ${response.result === value ? value === 'fail' ? 'border-red-600 bg-red-600 text-white' : 'border-brand-600 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-600'}`}>{label}</button>)}</div></div>{canEdit && <textarea className={`${field} mt-3 py-2`} rows={2} placeholder="Technician notes" defaultValue={response.notes || ''} onBlur={(event) => updateResponse(response.id, response.result, event.target.value)} />}</div>; })}</div></section>)}
+    </> : <>
+      {canEdit && <div className={cardBase}><SectionTitle>Use inventory part</SectionTitle><div className="grid grid-cols-1 sm:grid-cols-[1fr_100px_1fr_auto] gap-2"><select className={field} value={partForm.itemId} onChange={(event) => setPartForm({ ...partForm, itemId: event.target.value })}><option value="">Choose stock item</option>{inventory.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.stockLevel} {item.unit})</option>)}</select><input className={field} type="number" min="0.01" step="0.01" inputMode="decimal" value={partForm.quantity} onChange={(event) => setPartForm({ ...partForm, quantity: event.target.value })} /><input className={field} placeholder="Notes" value={partForm.notes} onChange={(event) => setPartForm({ ...partForm, notes: event.target.value })} /><button className={button} disabled={!partForm.itemId} onClick={usePart}><Plus size={15} /> Use</button></div></div>}
+      <div className={cardBase}><SectionTitle>Parts used on this job</SectionTitle>{parts.length === 0 ? <p className="text-sm text-gray-500 mt-2">No inventory parts recorded.</p> : <div className="space-y-2 mt-3">{parts.map((usage) => <div key={usage.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 p-3"><div><p className="text-sm font-semibold">{usage.item.name}</p><p className="text-xs text-gray-500">{usage.item.sku || 'No SKU'} - {new Date(usage.recordedAt).toLocaleString()}</p></div><span className="text-sm font-bold text-brand-600">{usage.quantity} {usage.item.unit}</span></div>)}</div>}</div>
+    </>}
+  </div>;
 }
 
 /* ─── Fund Expenses Tab ─────────────────────────────── */

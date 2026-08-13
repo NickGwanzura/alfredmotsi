@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { serviceSession, FIELD_ROLES } from '@/app/lib/serviceAuth';
 import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
-import { loadCompany } from '@/app/lib/pdf/company';
+import { FALLBACK, loadCompany } from '@/app/lib/pdf/company';
+import type { CompanyData } from '@/app/lib/pdf/company';
+import { PDF_BRAND_BLUE, PDF_BRAND_BLUE_DARK, PDF_BRAND_BLUE_LIGHT, PDF_FONT_FAMILY, pdfLogoSource } from '@/app/lib/pdf/brand';
 
 interface GasUsageRecord {
   id: string;
@@ -18,32 +20,34 @@ interface GasUsageRecord {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica', color: '#161616' },
-  header: { borderBottom: '2 solid #093a68', paddingBottom: 10, marginBottom: 16 },
-  coName: { fontSize: 18, fontWeight: 700, color: '#093a68' },
+  page: { padding: 38, paddingTop: 32, fontSize: 9, fontFamily: PDF_FONT_FAMILY, color: '#161616', lineHeight: 1.35 },
+  topRule: { height: 5, backgroundColor: PDF_BRAND_BLUE, marginBottom: 14 },
+  header: { borderBottom: `1 solid ${PDF_BRAND_BLUE_LIGHT}`, paddingBottom: 12, marginBottom: 16 },
+  logo: { width: 118, height: 66, objectFit: 'contain' },
+  coName: { fontSize: 12, fontWeight: 600, color: PDF_BRAND_BLUE },
   coMeta: { fontSize: 9, color: '#525252', marginTop: 2 },
-  title: { fontSize: 14, fontWeight: 700, marginTop: 14, marginBottom: 4 },
-  subtitle: { fontSize: 10, color: '#6f6f6f', marginBottom: 12 },
+  title: { fontSize: 22, lineHeight: 1.15, fontWeight: 700, color: PDF_BRAND_BLUE_DARK, marginTop: 10 },
+  subtitle: { fontSize: 10, color: '#6f6f6f', marginTop: 7, marginBottom: 14 },
   summaryRow: { flexDirection: 'row', marginBottom: 4 },
   summaryLabel: { width: 100, color: '#525252', fontSize: 9 },
   summaryValue: { fontSize: 9, fontWeight: 700 },
-  tblHead: { flexDirection: 'row', backgroundColor: '#f4f4f4', padding: '6 8', marginTop: 8, borderBottom: '1 solid #d1d1d1' },
+  tblHead: { flexDirection: 'row', backgroundColor: PDF_BRAND_BLUE, color: '#fff', padding: '7 8', marginTop: 8 },
   tblRow: { flexDirection: 'row', padding: '6 8', borderBottom: '0.5 solid #e0e0e0' },
   tblCell: { fontSize: 8 },
   footer: { position: 'absolute', bottom: 18, left: 36, right: 36, borderTop: '1 solid #e0e0e0', paddingTop: 6, fontSize: 7, color: '#6f6f6f', textAlign: 'center' },
 });
 
-function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: any }) {
+export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: CompanyData }) {
   const totalKg = usage.reduce((s, r) => s + r.quantityUsed, 0);
-  const co = c || { name: 'Splash Air', address: '', phone: '', tagline: 'Air Conditioning & Refrigeration', website: '' };
+  const co = c || FALLBACK;
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <View style={styles.topRule} fixed />
         <View style={styles.header} fixed>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {co.logoUrl ? (
-              <Image source={{ uri: co.logoUrl, method: 'GET', headers: { Accept: 'image/*' } }} style={{ width: 28, height: 28 }} />
-            ) : null}
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image does not expose an alt prop */}
+            <Image source={pdfLogoSource(co.logoUrl)} style={styles.logo} />
             <View>
               <Text style={styles.coName}>{co.name}</Text>
               <Text style={styles.coMeta}>Gas Usage Report — Generated {dateStr}</Text>
@@ -57,15 +61,15 @@ function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[
 
         {/* Summary stats */}
         <View style={{ flexDirection: 'row', marginBottom: 12, gap: 24 }}>
-          <View style={{ flex: 1, backgroundColor: '#f9fafb', padding: 8 }}>
+          <View style={{ flex: 1, backgroundColor: PDF_BRAND_BLUE_LIGHT, padding: 9 }}>
             <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Total Records</Text>
             <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{usage.length}</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#f9fafb', padding: 8 }}>
+          <View style={{ flex: 1, backgroundColor: PDF_BRAND_BLUE_LIGHT, padding: 9 }}>
             <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Total Quantity</Text>
             <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{totalKg.toFixed(2)} kg</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: '#f9fafb', padding: 8 }}>
+          <View style={{ flex: 1, backgroundColor: PDF_BRAND_BLUE_LIGHT, padding: 9 }}>
             <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Unique Customers</Text>
             <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{new Set(usage.map(r => r.customer)).size}</Text>
           </View>
@@ -73,11 +77,11 @@ function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[
 
         {/* Table */}
         <View style={styles.tblHead}>
-          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700 }]}>Date</Text>
-          <Text style={[styles.tblCell, { flex: 1, fontWeight: 700 }]}>Gas Type</Text>
-          <Text style={[styles.tblCell, { width: 60, fontWeight: 700 }]}>Qty (kg)</Text>
-          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700 }]}>Customer</Text>
-          <Text style={[styles.tblCell, { flex: 1.5, fontWeight: 700 }]}>Purpose</Text>
+          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700, color: '#fff' }]}>Date</Text>
+          <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Gas Type</Text>
+          <Text style={[styles.tblCell, { width: 60, fontWeight: 700, color: '#fff' }]}>Qty (kg)</Text>
+          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700, color: '#fff' }]}>Customer</Text>
+          <Text style={[styles.tblCell, { flex: 1.5, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
         </View>
         {usage.map(r => (
           <View key={r.id} style={styles.tblRow} wrap={false}>
@@ -98,8 +102,8 @@ function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { session, error } = await serviceSession(FIELD_ROLES);
+  if (error) return error;
 
   const { usage } = await req.json();
   if (!Array.isArray(usage) || usage.length === 0) {

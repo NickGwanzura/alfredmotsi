@@ -1,6 +1,11 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+# NEXT_PUBLIC_* vars are inlined by Next.js at build time. Pass the public
+# app URL so the baked value matches the real domain instead of an empty default.
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app

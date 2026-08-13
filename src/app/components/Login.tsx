@@ -263,7 +263,7 @@ export default function Login({ onLogin }: LoginProps) {
                       autoComplete="current-password" disabled={loading}
                       style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 bg-transparent border-none cursor-pointer text-[var(--color-text-secondary)] p-1 flex items-center" aria-label={showPassword ? "Hide password" : "Show password"} tabIndex={-1}>
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 w-12 h-12 bg-transparent border-none cursor-pointer text-[var(--color-text-secondary)] flex items-center justify-center" aria-label={showPassword ? "Hide password" : "Show password"}>
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>

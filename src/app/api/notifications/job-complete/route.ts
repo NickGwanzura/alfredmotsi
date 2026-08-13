@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, authorizeRole } from '@/app/lib/auth/auth';
+import { auth, authorizeRole, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { sendJobCompletedEmail } from '@/app/lib/email/send';
 import { generateJobCardPdf } from '@/app/lib/pdf/jobCardPdf';
+import { loadCompany } from '@/app/lib/pdf/company';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
-    if (userRole !== 'admin') {
+    if (!isAdmin(userRole)) {
       const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
       if (!assigned) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     let pdfBuffer: Buffer | null = null;
     try {
-      pdfBuffer = await generateJobCardPdf(job);
+      pdfBuffer = await generateJobCardPdf(job, await loadCompany());
     } catch (pdfErr) {
       console.error('[job-complete notify] PDF generation failed:', pdfErr);
     }
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     const admins = await prisma.user.findMany({
-      where: { role: 'admin' },
+      where: { role: { in: ['owner', 'admin'] } },
       select: { email: true, name: true },
     });
 

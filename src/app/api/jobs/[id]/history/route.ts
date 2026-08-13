@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, authorizeRole } from '@/app/lib/auth/auth';
+import { auth, authorizeRole, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
 async function verifyJobAccess(jobId: string, userId: string, userRole: string): Promise<NextResponse | null> {
@@ -8,7 +8,7 @@ async function verifyJobAccess(jobId: string, userId: string, userRole: string):
     include: { technicians: { select: { id: true } }, coTechnicians: { select: { id: true } } },
   });
   if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-  if (userRole !== 'admin') {
+  if (!isAdmin(userRole)) {
     const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === userId);
     if (!assigned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

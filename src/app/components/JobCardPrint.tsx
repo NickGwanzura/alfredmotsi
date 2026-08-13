@@ -28,12 +28,15 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
       <head>
         <title>Job Card - ${job.id}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+          @font-face { font-family: 'Grift'; src: url('/fonts/Grift-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; }
+          @font-face { font-family: 'Grift'; src: url('/fonts/Grift-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; }
+          @font-face { font-family: 'Grift'; src: url('/fonts/Grift-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; }
+          @font-face { font-family: 'Grift'; src: url('/fonts/Grift-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; }
           
           * { box-sizing: border-box; margin: 0; padding: 0; }
           
           body {
-            font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Grift', 'Helvetica Neue', Arial, sans-serif;
             font-size: 12px;
             line-height: 1.5;
             color: #161616;
@@ -62,16 +65,10 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             gap: 12px;
           }
           
-          .print-logo-icon {
-            width: 48px;
-            height: 48px;
-            background: #0f62fe;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            font-weight: 300;
+          .print-logo-image {
+            width: 150px;
+            height: 84px;
+            object-fit: contain;
           }
           
           .print-logo-text {
@@ -93,7 +90,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           }
           
           .print-job-number {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Grift', sans-serif;
             font-size: 18px;
             font-weight: 500;
             color: #0f62fe;
@@ -199,7 +196,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             padding: 10px 12px;
             font-size: 12px;
             border-bottom: 1px solid #e0e0e0;
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Grift', sans-serif;
           }
           
           .print-table tr:last-child td {
@@ -255,7 +252,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           }
           
           .print-ods-value {
-            font-family: 'IBM Plex Mono', monospace;
+            font-family: 'Grift', sans-serif;
             font-size: 18px;
             font-weight: 500;
             color: #00695c;
@@ -372,7 +369,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           <!-- Header -->
           <div class="print-header">
             <div class="print-logo">
-              <img src="https://splashaircrmzw.site/logos.svg" alt="Splash Air" style="width: 48px; height: 48px; object-fit: contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><div style="display:none"><!-- fallback: logo from component --></div>
+              <img src="/logo.png" alt="Splash Air Conditioning" class="print-logo-image" />
               <div>
                 <div class="print-logo-text">Splash Air</div>
                 <div class="print-logo-tagline">Air Conditioning Specialists</div>
@@ -516,7 +513,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
                 ${diag.serial ? `
                 <div class="print-info-item">
                   <span class="print-info-label">Serial Number</span>
-                  <span class="print-info-value" style="font-family: 'IBM Plex Mono', monospace;">${diag.serial}</span>
+                  <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${diag.serial}</span>
                 </div>
                 ` : ''}
                 ${diag.status ? `
@@ -580,15 +577,15 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             <div class="print-info-grid" style="grid-template-columns: repeat(3, 1fr);">
               <div class="print-info-item">
                 <span class="print-info-label">Clock In</span>
-                <span class="print-info-value" style="font-family: 'IBM Plex Mono', monospace;">${job.clockIn || '--:--'}</span>
+                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${job.clockIn || '--:--'}</span>
               </div>
               <div class="print-info-item">
                 <span class="print-info-label">Clock Out</span>
-                <span class="print-info-value" style="font-family: 'IBM Plex Mono', monospace;">${job.clockOut || '--:--'}</span>
+                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${job.clockOut || '--:--'}</span>
               </div>
               <div class="print-info-item">
                 <span class="print-info-label">Duration</span>
-                <span class="print-info-value" style="font-family: 'IBM Plex Mono', monospace;">
+                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">
                   ${job.clockIn && job.clockOut ? (() => {
                     const [ih, im] = job.clockIn!.split(':').map(Number);
                     const [oh, om] = job.clockOut!.split(':').map(Number);
@@ -626,7 +623,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           <div class="print-footer">
             <div>Thank you for choosing Splash Air Conditioning</div>
             <div class="print-footer-contact">For support call: 011 000 0001 | Email: info@splashaircrmzw.site</div>
-            <div style="margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #a8a8a8;">
+            <div style="margin-top: 8px; font-family: 'Grift', sans-serif; font-size: 9px; color: #a8a8a8;">
               Job ID: ${job.id} | Generated: ${new Date().toLocaleDateString('en-ZA')}
             </div>
           </div>

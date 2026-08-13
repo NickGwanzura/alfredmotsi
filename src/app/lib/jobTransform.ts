@@ -13,6 +13,8 @@ const STATUS_MAP: Record<string, string> = {
   'on-site': 'on_site',
   'pending-parts': 'pending_parts',
   'pending-booking': 'pending_booking',
+  'on-route': 'on_route',
+  'awaiting-parts': 'awaiting_parts',
 };
 
 const UNIT_RMAP = Object.fromEntries(Object.entries(UNIT_MAP).map(([k, v]) => [v, k]));

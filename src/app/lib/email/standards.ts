@@ -8,7 +8,7 @@
  * - Brand consistency
  */
 
-import { getResend, FROM_EMAIL } from './resend';
+import { FROM_EMAIL } from './resend';
 
 // ============================================
 // COMPLIANCE CONFIGURATION
@@ -24,10 +24,10 @@ export const EMAIL_CONFIG = {
   // Company information (CAN-SPAM compliance)
   company: {
     name: 'Splash Air Conditioning',
-    address: 'South Africa', // Update with actual physical address
-    email: 'alfred@splashaircrmzw.site',
+    address: '661 Lorraine Drive, Bluffhill, Harare, Zimbabwe',
+    email: 'info@splashaircrmzw.site',
     website: 'https://splashaircrmzw.site',
-    phone: '+27 (0) XX XXX XXXX', // Update with actual phone
+    phone: '0715 212 141 / 0773 034 528',
   },
   
   // Unsubscribe settings
@@ -331,16 +331,17 @@ const RATE_LIMIT_MAX = 50; // Max emails per hour per recipient
  */
 export function checkRateLimit(to: string): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
-  const entry = rateLimitMap.get(to);
+  const key = to.trim().toLowerCase();
+  const entry = rateLimitMap.get(key);
   
   if (!entry) {
-    rateLimitMap.set(to, { count: 1, firstAttempt: now });
+    rateLimitMap.set(key, { count: 1, firstAttempt: now });
     return { allowed: true };
   }
   
   // Reset if window has passed
   if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(to, { count: 1, firstAttempt: now });
+    rateLimitMap.set(key, { count: 1, firstAttempt: now });
     return { allowed: true };
   }
   

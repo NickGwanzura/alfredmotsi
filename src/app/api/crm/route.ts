@@ -9,7 +9,7 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
     const records = await prisma.cRMRecord.findMany({
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
     const body = await request.json();

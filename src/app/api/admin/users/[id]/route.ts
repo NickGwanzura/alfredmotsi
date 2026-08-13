@@ -15,12 +15,12 @@ export async function PATCH(
   const body = await request.json();
   const { name, email, role, phone, specialty, newPassword } = body;
 
-  if (role && !['admin', 'tech', 'client'].includes(role)) {
+  if (role && !['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech', 'client'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   }
 
   // Prevent admin from removing their own admin role
-  if (id === session.user.id && role && role !== 'admin') {
+  if (id === session.user.id && role && role !== session.user.role) {
     return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 });
   }
 

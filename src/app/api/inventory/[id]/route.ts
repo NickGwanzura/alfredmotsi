@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { isAdmin } from '@/app/lib/auth/auth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -16,7 +17,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || !isAdmin(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = await params;
@@ -27,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || !isAdmin(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = await params;

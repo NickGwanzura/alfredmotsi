@@ -9,6 +9,10 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Only admins and technicians may view the full customer list.
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech']);
+    if (forbidden) return forbidden;
+
     const customers = await prisma.customer.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -25,11 +29,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
     const body = await request.json();
-    const { name, address, siteAddress, phone, whatsapp, email } = body;
+    const { name, address, siteAddress, phone, whatsapp, email, notes } = body;
 
     if (!name || !address || !phone || !email) {
       return NextResponse.json(
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
        phone,
        whatsapp: whatsapp || null,
        email,
+       notes: typeof notes === 'string' ? notes.trim().slice(0, 5000) || null : null,
        portalCode,
        portalEnabled: false,
      },

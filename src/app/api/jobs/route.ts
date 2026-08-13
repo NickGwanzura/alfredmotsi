@@ -3,6 +3,13 @@ import { prisma } from '@/app/lib/db';
 import { auth, filterFinancialArray, authorizeRole } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
+import { auditServiceAction } from '@/app/lib/serviceAuth';
+import { emitServiceNotification } from '@/app/lib/notifications/provider';
+
+function minutes(value: string): number {
+  const [hours, mins] = value.split(':').map(Number);
+  return hours * 60 + mins;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    if (userRole !== 'admin') {
+    if (!['owner', 'admin', 'dispatcher', 'accounts', 'sales'].includes(userRole)) {
       where.OR = [
         { technicians: { some: { id: userId } } },
         { coTechnicians: { some: { id: userId } } },
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     if (techId) {
       // Only admins can filter by another tech's ID
-      if (userRole === 'admin') {
+      if (['owner', 'admin', 'dispatcher'].includes(userRole)) {
         where.OR = [
           { technicians: { some: { id: techId } } },
           { coTechnicians: { some: { id: techId } } },
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['admin', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
     const body = await request.json();
@@ -94,6 +101,24 @@ export async function POST(request: NextRequest) {
       photos: (jobData.photos as string[]) || [],
       alerts: (jobData.alerts as string[]) || [],
     });
+
+    if (techIds?.length && prismaData.date && prismaData.time) {
+      const start = minutes(prismaData.time as string);
+      const end = start + Math.max(30, Number(prismaData.durationMinutes || 120));
+      const sameDay = await prisma.job.findMany({
+        where: {
+          date: prismaData.date as string,
+          status: { notIn: ['cancelled', 'completed'] },
+          OR: [{ technicians: { some: { id: { in: techIds } } } }, { coTechnicians: { some: { id: { in: techIds } } } }],
+        },
+        select: { id: true, jobCardRef: true, time: true, durationMinutes: true },
+      });
+      const conflict = sameDay.find((job) => {
+        const otherStart = minutes(job.time);
+        return start < otherStart + job.durationMinutes && end > otherStart;
+      });
+      if (conflict) return NextResponse.json({ error: `Technician is already booked during this time (${conflict.jobCardRef})`, conflict }, { status: 409 });
+    }
 
     const job = await prisma.job.create({
       data: {
@@ -115,7 +140,10 @@ export async function POST(request: NextRequest) {
         body: `${job.title} — ${job.customer?.name || ''}`,
         url: '/',
       });
+      emitServiceNotification({ event: 'job.technician_assigned', channel: 'email', jobId: job.id, customerId: job.customerId, payload: { jobRef: job.jobCardRef, techIds } }).catch(() => undefined);
     }
+
+    await auditServiceAction(session, 'create_job', `Created job ${job.jobCardRef}`, job.id);
 
     return NextResponse.json(jobToClient(job as Record<string, unknown>), { status: 201 });
   } catch (error) {

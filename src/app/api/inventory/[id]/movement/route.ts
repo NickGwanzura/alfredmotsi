@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Only admins and technicians may adjust inventory stock levels.
+  const forbidden = authorizeRole(session, ['admin', 'tech']);
+  if (forbidden) return forbidden;
 
   const { id } = await params;
   const { type, quantity, reference, notes } = await req.json();

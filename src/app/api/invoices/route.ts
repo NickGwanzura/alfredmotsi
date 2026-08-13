@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { FINANCE_ROLES, serviceSession, auditServiceAction } from '@/app/lib/serviceAuth';
 
 function genRef(prefix: string) {
   const d = new Date();
@@ -11,24 +11,20 @@ function genRef(prefix: string) {
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const { error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
   const invoices = await prisma.invoice.findMany({
-    include: { customer: { select: { name: true, email: true, phone: true, address: true } }, lineItems: true, job: { select: { id: true, jobCardRef: true, title: true } } },
+    include: { customer: { select: { name: true, email: true, phone: true, address: true } }, lineItems: true, payments: { orderBy: { receivedAt: 'desc' } }, job: { select: { id: true, jobCardRef: true, title: true } } },
     orderBy: { createdAt: 'desc' },
   });
   return NextResponse.json(invoices);
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const { session, error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
 
-  const { customerId, jobId, dueDate, taxRate = 15.5, notes, lineItems } = await req.json();
+  const { customerId, jobId, quoteId, dueDate, taxRate = 15.5, discount = 0, notes, lineItems } = await req.json();
 
   if (!customerId || !dueDate || !lineItems?.length) {
     return NextResponse.json({ error: 'Customer, due date, and line items are required' }, { status: 400 });
@@ -42,8 +38,9 @@ export async function POST(req: NextRequest) {
 
   const subtotal = lineItems.reduce((s: number, l: { total: number }) => s + (l.total || 0), 0);
   const rate = parseFloat(String(taxRate)) || 15.5;
-  const tax = subtotal * (rate / 100);
-  const total = subtotal + tax;
+  const safeDiscount = Math.max(0, Math.min(Number(discount) || 0, subtotal));
+  const tax = (subtotal - safeDiscount) * (rate / 100);
+  const total = subtotal - safeDiscount + tax;
   const today = new Date().toISOString().split('T')[0];
 
   const invoice = await prisma.invoice.create({
@@ -51,12 +48,15 @@ export async function POST(req: NextRequest) {
       invoiceRef: genRef('INV'),
       customerId,
       jobId: jobId || null,
+      quoteId: quoteId || null,
       issueDate: today,
       dueDate,
       subtotal,
+      discount: safeDiscount,
       taxRate: rate,
       tax,
       total,
+      balance: total,
       notes,
       lineItems: {
         create: lineItems.map((l: { description: string; quantity: number; unitPrice: number; total: number; itemId?: string }) => ({
@@ -65,11 +65,15 @@ export async function POST(req: NextRequest) {
           unitPrice: l.unitPrice,
           total: l.total,
           itemId: l.itemId || null,
+          pricebookItemId: (l as any).pricebookItemId || null,
+          category: (l as any).category || 'service',
         })),
       },
     },
-    include: { lineItems: true, customer: { select: { name: true, email: true, phone: true, address: true } }, job: { select: { id: true, jobCardRef: true, title: true } } },
+    include: { lineItems: true, payments: true, customer: { select: { name: true, email: true, phone: true, address: true } }, job: { select: { id: true, jobCardRef: true, title: true } } },
   });
+
+  await auditServiceAction(session!, 'create_invoice', `Created invoice ${invoice.invoiceRef}`, jobId || null);
 
   return NextResponse.json(invoice, { status: 201 });
 }

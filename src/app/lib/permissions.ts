@@ -1,8 +1,10 @@
-export type UserRole = 'admin' | 'tech' | 'client';
+export type UserRole = 'owner' | 'admin' | 'dispatcher' | 'accounts' | 'sales' | 'tech' | 'client';
 
-const FINANCIAL_ROLES: Set<UserRole> = new Set(['admin']);
-const ADMIN_ROLES: Set<UserRole> = new Set(['admin']);
-const TECH_MANAGE_ROLES: Set<UserRole> = new Set(['admin', 'tech']);
+const FINANCIAL_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'accounts']);
+const ADMIN_ROLES: Set<UserRole> = new Set(['owner', 'admin']);
+const OPERATIONS_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher']);
+const CUSTOMER_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher', 'sales', 'tech']);
+const TECH_MANAGE_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher', 'tech']);
 
 export function canViewFinancials(role: string): boolean {
   return FINANCIAL_ROLES.has(role as UserRole);
@@ -17,7 +19,7 @@ export function canManageUsers(role: string): boolean {
 }
 
 export function canManageCustomers(role: string): boolean {
-  return TECH_MANAGE_ROLES.has(role as UserRole);
+  return CUSTOMER_ROLES.has(role as UserRole);
 }
 
 export function canManageGasStock(role: string): boolean {
@@ -29,7 +31,7 @@ export function canManageGasUsage(role: string): boolean {
 }
 
 export function canManageCRM(role: string): boolean {
-  return TECH_MANAGE_ROLES.has(role as UserRole);
+  return CUSTOMER_ROLES.has(role as UserRole);
 }
 
 export function canManageJobs(role: string): boolean {
@@ -49,7 +51,7 @@ export function canViewODSReport(role: string): boolean {
 }
 
 export function canViewAllJobs(role: string): boolean {
-  return ADMIN_ROLES.has(role as UserRole);
+  return OPERATIONS_ROLES.has(role as UserRole) || FINANCIAL_ROLES.has(role as UserRole) || role === 'sales';
 }
 
 export function canExportData(role: string): boolean {
@@ -73,7 +75,7 @@ export function canViewFunds(role: string): boolean {
 }
 
 export function isAdmin(role: string): boolean {
-  return role === 'admin';
+  return ADMIN_ROLES.has(role as UserRole);
 }
 
 export function isTech(role: string): boolean {

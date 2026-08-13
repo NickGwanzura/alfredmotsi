@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { isAdmin } from '@/app/lib/auth/auth';
 
 const expenseInclude = {
   job: { select: { id: true, jobCardRef: true, title: true } },
@@ -8,7 +9,7 @@ const expenseInclude = {
 };
 
 function canAccessFund(role: string, techId: string, userId: string): boolean {
-  return role === 'admin' || techId === userId;
+  return isAdmin(role) || techId === userId;
 }
 
 export async function GET(

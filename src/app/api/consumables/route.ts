@@ -6,6 +6,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Only admins and technicians may view consumables.
+  const forbidden = authorizeRole(session, ['admin', 'tech']);
+  if (forbidden) return forbidden;
+
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get('jobId');
   const userId = searchParams.get('userId');
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const user = session.user as { id: string; name?: string; role: string };
-  if (user.role !== 'admin') {
+  if (user.role !== 'admin' && user.role !== 'owner') {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: { technicians: { select: { id: true } }, coTechnicians: { select: { id: true } } },

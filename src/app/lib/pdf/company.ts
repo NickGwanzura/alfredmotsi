@@ -26,7 +26,7 @@ export const FALLBACK: CompanyData = {
   website: 'https://splashaircrmzw.site',
   vatRate: 15.5,
   vatNumber: '',
-  logoUrl: '',
+  logoUrl: '/logo.png',
   tagline: 'Air Conditioning & Refrigeration Specialists',
   services: 'Installation, Maintenance, Repairs, Sales',
 };

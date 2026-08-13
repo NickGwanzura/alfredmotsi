@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { isAdmin } from '@/app/lib/auth/auth';
 
 const fundInclude = {
   tech: { select: { id: true, name: true, email: true } },
@@ -37,7 +38,7 @@ export async function GET(
   // Techs can only view their own funds
   const role = (session.user as any).role;
   const userId = session.user.id!;
-  if (role !== 'admin' && allocation.techId !== userId) {
+  if (!isAdmin(role) && allocation.techId !== userId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -49,7 +50,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== 'admin') {
+  if (!session?.user || !isAdmin((session.user as any).role || '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -121,7 +122,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== 'admin') {
+  if (!session?.user || !isAdmin((session.user as any).role || '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

@@ -14,14 +14,15 @@ import {
   Row,
   Column,
 } from '@react-email/components';
+import { BRAND_LOGO_URL } from '@/app/lib/brand';
 
 // ============================================
 // BRAND STYLES
 // ============================================
 
 const colors = {
-  primary: '#0f62fe',
-  primaryDark: '#0043ce',
+  primary: '#093a68',
+  primaryDark: '#062d52',
   success: '#198038',
   warning: '#f1c21b',
   danger: '#da1e28',
@@ -40,7 +41,7 @@ const colors = {
 
 const main = {
   backgroundColor: colors.gray[100],
-  fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+  fontFamily: 'Grift, Helvetica Neue, Arial, sans-serif',
 };
 
 const container = {
@@ -50,21 +51,14 @@ const container = {
 };
 
 const header = {
-  backgroundColor: colors.primary,
+  backgroundColor: '#ffffff',
+  borderTop: `6px solid ${colors.primary}`,
+  borderBottom: `1px solid ${colors.gray[200]}`,
   padding: '32px 24px',
   textAlign: 'center' as const,
 };
 
-const LOGO_URL = 'https://splashaircrmzw.site/logos.svg';
-
-const logoSpan = {
-  display: 'inline-block',
-  color: '#ffffff',
-  fontSize: '22px',
-  fontWeight: '600',
-  margin: '0',
-  letterSpacing: '1px',
-};
+const LOGO_URL = BRAND_LOGO_URL;
 
 const logoImg = {
   width: '180px',
@@ -74,7 +68,7 @@ const logoImg = {
 };
 
 const tagline = {
-  color: 'rgba(255,255,255,0.8)',
+  color: colors.primary,
   fontSize: '12px',
   margin: '8px 0 0',
   textTransform: 'uppercase' as const,
@@ -142,13 +136,6 @@ const button = {
   textAlign: 'center' as const,
 };
 
-const buttonSecondary = {
-  ...button,
-  backgroundColor: 'transparent',
-  color: colors.primary,
-  border: `2px solid ${colors.primary}`,
-};
-
 const link = {
   color: colors.primary,
   textDecoration: 'none',
@@ -165,10 +152,6 @@ const footer = {
   textAlign: 'center' as const,
   margin: '0',
   lineHeight: '1.6',
-};
-
-const footerLinks = {
-  margin: '16px 0',
 };
 
 const footerLink = {
@@ -713,17 +696,15 @@ export function PasswordResetEmail({ userName, resetUrl }: PasswordResetEmailPro
 interface UserInviteEmailProps {
   userName: string;
   userEmail: string;
-  tempPassword: string;
   role: string;
-  loginUrl: string;
+  resetUrl: string;
 }
 
 export function UserInviteEmail({
   userName,
   userEmail,
-  tempPassword,
   role,
-  loginUrl,
+  resetUrl,
 }: UserInviteEmailProps) {
   const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
   
@@ -748,7 +729,7 @@ export function UserInviteEmail({
             </Text>
             
             <Section style={details}>
-              <Text style={detailLabel}>Your Login Credentials</Text>
+              <Text style={detailLabel}>Your account</Text>
               
               <Row>
                 <Column style={{ width: '50%' }}>
@@ -756,10 +737,8 @@ export function UserInviteEmail({
                   <Text style={detailItem}>{userEmail}</Text>
                 </Column>
                 <Column style={{ width: '50%' }}>
-                  <Text style={detailLabel}>Temporary Password</Text>
-                  <Text style={{ ...detailItem, fontFamily: 'monospace', fontSize: '14px' }}>
-                    {tempPassword}
-                  </Text>
+                  <Text style={detailLabel}>Password</Text>
+                  <Text style={detailItem}>Create your password securely using the button below.</Text>
                 </Column>
               </Row>
               
@@ -769,12 +748,12 @@ export function UserInviteEmail({
             
             <Section style={alertBox}>
               <Text style={{ ...paragraph, margin: 0 }}>
-                <strong>Security Notice:</strong> Please change your password after your first login. Do not share your credentials with anyone.
+                <strong>Security Notice:</strong> This one-time setup link expires after one hour. Your password is never sent by email.
               </Text>
             </Section>
             
-            <Button style={button} href={loginUrl}>
-              Access System
+            <Button style={button} href={resetUrl}>
+              Set Your Password
             </Button>
             
             <Text style={paragraph}>
@@ -817,7 +796,7 @@ export function StatusUpdateEmail({
   notes,
 }: StatusUpdateEmailProps) {
   const statusColors: Record<string, string> = {
-    scheduled: '#0f62fe',
+    scheduled: '#093a68',
     'in-progress': '#f1c21b',
     'on-site': '#ff832b',
     completed: '#198038',

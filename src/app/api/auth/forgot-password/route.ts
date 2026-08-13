@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { prisma } from '@/app/lib/db';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
+import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
 
 // Simple in-memory rate limit: max 3 requests per email per 10 minutes
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
-}
 
 function checkRateLimit(email: string): { allowed: boolean; retryAfter?: number } {
   const key = email.toLowerCase().trim();
@@ -56,18 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Generate token and hash it before storing
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    await prisma.passwordResetToken.create({
-      data: {
-        email: user.email,
-        token: hashedToken, // Store HASHED token
-        expiresAt,
-      },
-    });
+    const rawToken = await createPasswordResetToken(user.email);
 
     // Build reset URL — send the RAW token (not the hash)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
@@ -84,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       // Email failed — clean up the hashed token
-      await prisma.passwordResetToken.delete({ where: { token: hashedToken } });
+      await revokePasswordResetToken(rawToken);
       console.error('Failed to send password reset email:', result.error);
       // Don't reveal to user that the email exists — return generic success
       return NextResponse.json({ ok: true });

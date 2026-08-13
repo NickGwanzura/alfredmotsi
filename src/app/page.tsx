@@ -30,6 +30,7 @@ import Inventory from '@/app/components/Inventory';
 import Invoices from '@/app/components/Invoices';
 import FundsManagement from '@/app/components/FundsManagement';
 import CustomerPortal from '@/app/components/CustomerPortal';
+import ServiceOperations from '@/app/components/ServiceOperations';
 
 import { captureAudit } from '@/app/lib/audit/capture';
 import { useToast } from '@/app/components/Toast';
@@ -60,6 +61,7 @@ import {
   X,
   FileText,
   DollarSign,
+  ClipboardList,
 } from 'lucide-react';
 
 interface NavItem {
@@ -186,12 +188,13 @@ export default function Home() {
 
   const user = session.user;
   const currentUser = user as User;
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === 'admin' || user.role === 'owner';
+  const isFieldTech = user.role === 'tech';
   const handleLogout = () => signOut({ callbackUrl: '/' });
 
   if (user.role === 'client') {
     return (
-      <div className="min-h-screen bg-surface" style={{ fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+      <div className="min-h-screen bg-surface" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
         <header className="header no-print">
           <div style={{ overflow: 'hidden', height: '34px', flexShrink: 0 }}>
             <img src="/logos.svg" alt="Splash Air" style={{ width: '88px', height: 'auto', display: 'block' }} />
@@ -386,6 +389,7 @@ export default function Home() {
 
   const adminNav: NavItem[] = [
     { id: 'home', label: 'Dashboard', Icon: LayoutDashboard },
+    { id: 'operations', label: 'Service Operations', Icon: ClipboardList },
     { id: 'calendar', label: 'Calendar', Icon: Calendar },
     { id: 'jobs', label: 'Jobs', Icon: Table2 },
     { id: 'customers', label: 'Customers', Icon: UserIcon },
@@ -413,10 +417,16 @@ export default function Home() {
     { id: 'ods-report', label: 'ODS Report', Icon: Flag },
   ];
 
-  const nav = isAdmin ? adminNav : techNav;
+  const officeNav = adminNav.filter((item) => {
+    if (user.role === 'accounts') return ['home', 'invoices', 'inventory', 'customers'].includes(item.id);
+    if (user.role === 'sales') return ['home', 'operations', 'customers', 'crm', 'jobs', 'calendar'].includes(item.id);
+    if (user.role === 'dispatcher') return !['invoices', 'funds', 'users', 'audit-log', 'settings'].includes(item.id);
+    return true;
+  });
+  const nav = isFieldTech ? techNav : officeNav;
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+    <div className="min-h-screen" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
       {/* Header */}
       <header className="header no-print">
         <button
@@ -453,7 +463,7 @@ export default function Home() {
           <div className="hidden sm:block">
             <p className="text-[11px] text-text-secondary font-medium">{user.name}</p>
             <p className="text-[11px] text-brand-600">
-              {isAdmin ? 'Administrator' : 'Technician'}
+              {{ owner: 'Owner', admin: 'Administrator', dispatcher: 'Dispatcher', accounts: 'Accounts', sales: 'Sales / CSR', tech: 'Technician' }[user.role as string] || 'Staff'}
             </p>
           </div>
         </div>
@@ -613,7 +623,7 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'home' && isAdmin && (
+              {!showAddJob && page === 'home' && !isFieldTech && (
                 <AdminDashboard
                   jobs={jobs}
                   techs={techs}
@@ -624,8 +634,12 @@ export default function Home() {
                 />
               )}
 
-              {!showAddJob && page === 'home' && !perm.canManageJobs && (
+              {!showAddJob && page === 'home' && isFieldTech && (
                 <TechDashboard jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
+              )}
+
+              {!showAddJob && page === 'operations' && !isFieldTech && (
+                <ServiceOperations customers={customers} onDataChanged={fetchData} />
               )}
 
               {!showAddJob && page === 'calendar' && (
@@ -707,11 +721,11 @@ export default function Home() {
                 <AuditLogView techs={techs} />
               )}
 
-              {!showAddJob && page === 'inventory' && isAdmin && (
+              {!showAddJob && page === 'inventory' && (isAdmin || user.role === 'accounts' || user.role === 'dispatcher') && (
                 <Inventory />
               )}
 
-              {!showAddJob && page === 'invoices' && isAdmin && (
+              {!showAddJob && page === 'invoices' && perm.canViewFinancials && (
                 <Invoices customers={customers} jobs={jobs} />
               )}
 

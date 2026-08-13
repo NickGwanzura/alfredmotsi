@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || !['owner', 'admin', 'accounts'].includes(session.user.role as string)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

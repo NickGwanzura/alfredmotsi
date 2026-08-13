@@ -23,6 +23,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://splashaircrmzw.site}
     container_name: splash-air-app
     ports:
       - "3000:3000"
@@ -33,6 +35,10 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - AUTH_SECRET=${AUTH_SECRET:-}
+      - AUTH_TRUST_HOST=${AUTH_TRUST_HOST:-false}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://splashaircrmzw.site}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - FROM_EMAIL=${FROM_EMAIL:-Splash Air <noreply@splashaircrmzw.site>}
     restart: unless-stopped

@@ -21,6 +21,10 @@ interface CustomerDBProps {
 type Compose = 'wa' | 'email' | null;
 type EmailTemplate = 'custom' | 'portal-invite' | 'service-reminder';
 type WATemplate = 'greeting' | 'portal-invite' | 'service-reminder' | 'custom';
+type CustomerHistory = {
+  sites: { id: string; name: string; address: string; isPrimary: boolean; equipment: { id: string; name?: string; brand?: string; model?: string; serialNumber?: string; warrantyExpiry?: string; unitType: string }[]; _count: { jobs: number; contracts: number } }[];
+  quotes: { id: string }[]; invoices: { id: string }[]; payments: { id: string; amount: number }[]; contracts: { id: string }[]; crmRecords: { id: string }[];
+};
 
 const AVATAR_COLORS = ['#0f62fe', '#198038', '#9f1853', '#6929c4', '#005d5d', '#8a3800', '#003a6d'];
 function avatarColor(name: string) {
@@ -38,6 +42,8 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   const [selected, setSelected] = useState<Customer | null>(null);
   const [compose, setCompose] = useState<Compose>(null);
   const [toast, setToast] = useState<{ kind: 'e' | 's'; msg: string } | null>(null);
+  const [history, setHistory] = useState<CustomerHistory | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // WhatsApp compose state
   const [waTemplate, setWATemplate] = useState<WATemplate>('greeting');
@@ -73,6 +79,14 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   // When customer changes, reset compose panels
   useEffect(() => {
     setCompose(null);
+    setHistory(null);
+    if (!active?.id) return;
+    setHistoryLoading(true);
+    fetch(`/api/customers/${active.id}/history`)
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('History unavailable')))
+      .then(setHistory)
+      .catch(() => setHistory(null))
+      .finally(() => setHistoryLoading(false));
   }, [active?.id]);
 
   // Auto-dismiss toast
@@ -519,6 +533,13 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Full customer and site history */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between gap-3 mb-4"><p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Sites & Equipment</p>{historyLoading && <span className="text-xs text-gray-400">Loading history...</span>}</div>
+              {history?.sites?.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{history.sites.map((site) => <div key={site.id} className="rounded-lg border border-gray-200 p-4"><div className="flex justify-between gap-2"><div><p className="font-semibold text-gray-900">{site.name}</p><p className="text-xs text-gray-500 mt-1">{site.address}</p></div>{site.isPrimary && <span className="text-xs font-semibold text-brand-600">Primary</span>}</div><div className="mt-3 space-y-2">{site.equipment.length ? site.equipment.map((unit) => <div key={unit.id} className="rounded-lg bg-gray-50 p-3"><p className="text-sm font-semibold">{unit.name || unit.unitType}</p><p className="text-xs text-gray-500 mt-1">{[unit.brand, unit.model, unit.serialNumber].filter(Boolean).join(' - ') || 'Equipment details pending'}</p>{unit.warrantyExpiry && <p className="text-xs text-gray-500 mt-1">Warranty expires {unit.warrantyExpiry}</p>}</div>) : <p className="text-xs text-gray-500">No equipment registered.</p>}</div><p className="text-xs text-gray-500 mt-3">{site._count.jobs} jobs - {site._count.contracts} contracts</p></div>)}</div> : !historyLoading && <p className="text-sm text-gray-500">No service locations registered yet. Add one from Service Operations.</p>}
+              {history && <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">{[['Jobs', customerJobs.length], ['Quotes', history.quotes.length], ['Invoices', history.invoices.length], ['Payments', history.payments.length], ['Contracts', history.contracts.length], ['Notes', history.crmRecords.length]].map(([label, value]) => <div key={label} className="rounded-lg bg-gray-50 p-3 text-center"><p className="text-lg font-bold text-gray-900">{value}</p><p className="text-[11px] text-gray-500">{label}</p></div>)}</div>}
             </div>
 
             {/* Service history */}

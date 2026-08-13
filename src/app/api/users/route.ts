@@ -13,7 +13,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const where: Record<string, unknown> = {};
 
-    if (userRole !== 'admin') {
+    if (!['owner', 'admin'].includes(userRole)) {
       where.role = 'tech';
     } else if (role) {
       where.role = role;
