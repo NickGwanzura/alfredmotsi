@@ -27,6 +27,7 @@ import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } from './ui';
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
+import { getCurrentPositionSafe } from '@/app/lib/geolocation';
 import { canDeleteJobs, canManageJobs } from '@/app/lib/permissions';
 import { X, Play, Square, Printer, Camera, Download, Plus, Trash2, Mail } from 'lucide-react';
 
@@ -234,14 +235,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     const time = nowTime();
     setCIn(time);
     setStatus("on-site");
-    const gps = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => resolve(null),
-        { timeout: 6000 }
-      );
-    });
+    const gps = await getCurrentPositionSafe();
     fetch(`/api/jobs/${job.id}/clock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -252,14 +246,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const handleClockOut = async () => {
     const time = nowTime();
     setCOut(time);
-    const gps = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-      if (!navigator.geolocation) { resolve(null); return; }
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => resolve(null),
-        { timeout: 6000 }
-      );
-    });
+    const gps = await getCurrentPositionSafe();
     fetch(`/api/jobs/${job.id}/clock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

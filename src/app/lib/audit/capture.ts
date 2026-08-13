@@ -2,6 +2,8 @@
  * Silent, fire-and-forget audit capture with retry and fallback queue.
  * Never throws, never blocks UI.
  */
+import { getCurrentPositionSafe } from '@/app/lib/geolocation';
+
 const AUDIT_QUEUE_KEY = 'audit_queue';
 
 // Try to send a single audit event; returns true on success
@@ -59,20 +61,10 @@ export async function captureAudit(
   action: 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user',
   jobId?: string
 ): Promise<void> {
-  let lat: number | undefined, lng: number | undefined, acc: number | undefined;
-
-  if (typeof navigator !== 'undefined' && navigator.geolocation) {
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve) => {
-        navigator.geolocation.getCurrentPosition(resolve, () => ({} as any), { timeout: 5000, enableHighAccuracy: false, maximumAge: 300_000 });
-      });
-      lat = pos.coords.latitude;
-      lng = pos.coords.longitude;
-      acc = pos.coords.accuracy;
-    } catch {
-      // ignore geolocation errors
-    }
-  }
+  const position = await getCurrentPositionSafe();
+  const lat = position?.lat;
+  const lng = position?.lng;
+  const acc = position?.accuracy;
 
   const payload = {
     action,
