@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Download, CheckCircle, RefreshCw, X, Trash2, FileText, Mail, Search } from 'lucide-react';
+import { Plus, Download, CheckCircle, RefreshCw, X, Trash2, FileText, Mail, Search, ChevronDown, Check } from 'lucide-react';
 
 interface LineItem {
   description: string;
@@ -42,6 +42,117 @@ interface Job {
   jobCardRef: string;
   title: string;
   customerId: string;
+}
+
+function CustomerSelect({
+  customers,
+  value,
+  onChange,
+}: {
+  customers: Customer[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selected = customers.find((customer) => customer.id === value);
+  const filtered = customers.filter((customer) => {
+    const needle = query.trim().toLowerCase();
+    return !needle || `${customer.name} ${customer.email}`.toLowerCase().includes(needle);
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    const focusTimer = window.setTimeout(() => searchRef.current?.focus(), 0);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      window.clearTimeout(focusTimer);
+    };
+  }, [open]);
+
+  const choose = (customerId: string) => {
+    onChange(customerId);
+    setQuery('');
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative w-full">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setOpen(true);
+          }
+          if (event.key === 'Escape') setOpen(false);
+        }}
+        className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full flex items-center justify-between gap-2 text-left"
+      >
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
+          {selected?.name || 'Select customer…'}
+        </span>
+        <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-[70] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5">
+          <div className="border-b border-gray-100 bg-gray-50 p-2">
+            <label htmlFor="invoice-customer-search" className="sr-only">Search customers</label>
+            <input
+              ref={searchRef}
+              id="invoice-customer-search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setOpen(false);
+              }}
+              placeholder="Search customers..."
+              className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div role="listbox" aria-label="Customers" className="max-h-60 overflow-y-auto p-1">
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              onClick={() => choose('')}
+              className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-500 hover:bg-brand-50 hover:text-brand-700"
+            >
+              {!value ? <Check size={15} className="text-brand-600" /> : <span className="w-[15px]" />}
+              Select customer…
+            </button>
+            {filtered.map((customer) => (
+              <button
+                key={customer.id}
+                type="button"
+                role="option"
+                aria-selected={customer.id === value}
+                onClick={() => choose(customer.id)}
+                className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-brand-50"
+              >
+                {customer.id === value ? <Check size={15} className="shrink-0 text-brand-600" /> : <span className="w-[15px] shrink-0" />}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-gray-900">{customer.name}</span>
+                  {customer.email && <span className="block truncate text-xs text-gray-500">{customer.email}</span>}
+                </span>
+              </button>
+            ))}
+            {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-gray-500">No matching customers</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -386,11 +497,11 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Customer *</label>
-                  <select value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value, jobId: '' }))}
-                    className={inputCls}>
-                    <option value="">Select customer…</option>
-                    {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <CustomerSelect
+                    customers={customers}
+                    value={form.customerId}
+                    onChange={(customerId) => setForm((f) => ({ ...f, customerId, jobId: '' }))}
+                  />
                 </div>
                 {form.customerId && (
                   <div>
