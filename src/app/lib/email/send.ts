@@ -40,6 +40,34 @@ interface SendEmailOptions {
   attachments?: EmailAttachment[];
 }
 
+const PERSISTENT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const PERSISTENT_RATE_LIMIT_MAX = 50;
+
+async function enforceEmailRateLimit(recipient: string): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const local = checkRateLimit(recipient);
+  if (!local.allowed) return local;
+
+  // Keep the guard effective across restarts and multiple app instances. If
+  // the database is temporarily unavailable, the in-process limiter remains
+  // as a safe fallback.
+  try {
+    const since = new Date(Date.now() - PERSISTENT_RATE_LIMIT_WINDOW_MS);
+    const count = await prisma.emailDeliveryLog.count({
+      where: {
+        recipient: recipient.trim().toLowerCase(),
+        createdAt: { gte: since },
+      },
+    });
+    if (count >= PERSISTENT_RATE_LIMIT_MAX) {
+      return { allowed: false, retryAfter: 60 };
+    }
+  } catch {
+    // Fall back to the in-memory check above when the DB is unavailable.
+  }
+
+  return local;
+}
+
 type EmailDeliveryStatus = 'sent' | 'failed' | 'skipped';
 
 function getResendMessageId(data: unknown): string | undefined {
@@ -152,7 +180,7 @@ export async function sendEmailWithBestPractices({
   }
 
   // Check rate limit
-  const rateLimit = checkRateLimit(primaryRecipient);
+  const rateLimit = await enforceEmailRateLimit(primaryRecipient);
   if (!rateLimit.allowed) {
     console.error('[sendEmailWithBestPractices] Rate limit exceeded for:', primaryRecipient);
     await recordEmailDeliveryLog({
