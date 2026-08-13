@@ -3,34 +3,6 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/db";
 
-// Dokploy accepts dotenv-style values, but values copied from a dashboard can
-// sometimes retain their surrounding quotes. Normalize the auth URL and host
-// allow-list before comparing them so a valid production domain is trusted.
-function normalizeEnvValue(value: string | undefined): string {
-  const trimmed = value?.trim() ?? "";
-  return trimmed.length >= 2 &&
-    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith("'") && trimmed.endsWith("'")))
-    ? trimmed.slice(1, -1).trim()
-    : trimmed;
-}
-
-function normalizeHost(value: string): string {
-  const normalized = normalizeEnvValue(value);
-  try {
-    return new URL(normalized.includes("://") ? normalized : `https://${normalized}`).host;
-  } catch {
-    return normalized.replace(/\/$/, "").toLowerCase();
-  }
-}
-
-const configuredAuthUrl = normalizeEnvValue(process.env.NEXTAUTH_URL);
-const configuredAuthHost = configuredAuthUrl ? normalizeHost(configuredAuthUrl) : "";
-const configuredTrustedHosts = normalizeEnvValue(process.env.TRUSTED_HOSTS)
-  .split(",")
-  .map(normalizeHost)
-  .filter(Boolean);
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     // Staff login
@@ -188,10 +160,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/",
   },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  // Auth.js requires this when deployed behind a reverse proxy. The value is
-  // enabled only for development or when the configured production URL is in
-  // the explicit trusted-host allow-list.
-  trustHost: process.env.NODE_ENV === 'development' ||
-    process.env.AUTH_TRUST_HOST === 'true' ||
-    (!!configuredAuthHost && configuredTrustedHosts.includes(configuredAuthHost)),
+  // Auth.js runs behind Dokploy's reverse proxy in production. The domain is
+  // controlled by this deployment, so trust the forwarded host explicitly.
+  trustHost: true,
 });
