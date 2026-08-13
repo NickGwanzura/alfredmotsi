@@ -36,7 +36,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           * { box-sizing: border-box; margin: 0; padding: 0; }
           
           body {
-            font-family: 'Grift', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Grift';
             font-size: 12px;
             line-height: 1.5;
             color: #161616;
@@ -90,7 +90,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           }
           
           .print-job-number {
-            font-family: 'Grift', sans-serif;
+            font-family: 'Grift';
             font-size: 18px;
             font-weight: 500;
             color: #0f62fe;
@@ -196,7 +196,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             padding: 10px 12px;
             font-size: 12px;
             border-bottom: 1px solid #e0e0e0;
-            font-family: 'Grift', sans-serif;
+            font-family: 'Grift';
           }
           
           .print-table tr:last-child td {
@@ -252,7 +252,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           }
           
           .print-ods-value {
-            font-family: 'Grift', sans-serif;
+            font-family: 'Grift';
             font-size: 18px;
             font-weight: 500;
             color: #00695c;
@@ -513,7 +513,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
                 ${diag.serial ? `
                 <div class="print-info-item">
                   <span class="print-info-label">Serial Number</span>
-                  <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${diag.serial}</span>
+                  <span class="print-info-value" style="font-family: 'Grift';">${diag.serial}</span>
                 </div>
                 ` : ''}
                 ${diag.status ? `
@@ -577,15 +577,15 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
             <div class="print-info-grid" style="grid-template-columns: repeat(3, 1fr);">
               <div class="print-info-item">
                 <span class="print-info-label">Clock In</span>
-                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${job.clockIn || '--:--'}</span>
+                <span class="print-info-value" style="font-family: 'Grift';">${job.clockIn || '--:--'}</span>
               </div>
               <div class="print-info-item">
                 <span class="print-info-label">Clock Out</span>
-                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">${job.clockOut || '--:--'}</span>
+                <span class="print-info-value" style="font-family: 'Grift';">${job.clockOut || '--:--'}</span>
               </div>
               <div class="print-info-item">
                 <span class="print-info-label">Duration</span>
-                <span class="print-info-value" style="font-family: 'Grift', sans-serif;">
+                <span class="print-info-value" style="font-family: 'Grift';">
                   ${job.clockIn && job.clockOut ? (() => {
                     const [ih, im] = job.clockIn!.split(':').map(Number);
                     const [oh, om] = job.clockOut!.split(':').map(Number);
@@ -623,7 +623,7 @@ export default function JobCardPrint({ job, customer, technician, onClose }: Job
           <div class="print-footer">
             <div>Thank you for choosing Splash Air Conditioning</div>
             <div class="print-footer-contact">For support call: 011 000 0001 | Email: info@splashaircrmzw.site</div>
-            <div style="margin-top: 8px; font-family: 'Grift', sans-serif; font-size: 9px; color: #a8a8a8;">
+            <div style="margin-top: 8px; font-family: 'Grift'; font-size: 9px; color: #a8a8a8;">
               Job ID: ${job.id} | Generated: ${new Date().toLocaleDateString('en-ZA')}
             </div>
           </div>

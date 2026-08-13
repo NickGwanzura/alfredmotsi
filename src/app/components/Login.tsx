@@ -81,7 +81,7 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif" }}>
+    <div className="min-h-screen flex bg-surface font-grift" style={{ fontFamily: "'Grift'" }}>
       {/* Left Side - Brand Panel */}
       <div className="hidden lg:flex w-1/2 flex-col justify-end px-14 py-12 relative overflow-hidden text-white">
         {/* Background Image - fully visible */}
@@ -188,7 +188,7 @@ export default function Login({ onLogin }: LoginProps) {
                     onFocus={() => setFocusedField('resetEmail')}
                     onBlur={() => setFocusedField(null)}
                     disabled={resetSending}
-                    style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
+                    style={{ fontFamily: "'Grift'" }}
                   />
                 </div>
                 <button
@@ -231,7 +231,7 @@ export default function Login({ onLogin }: LoginProps) {
                   placeholder={mode === 'staff' ? "you@splashaircrmzw.site" : "your@email.com"}
                   className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)]"
                   autoComplete="email" disabled={loading}
-                  style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
+                    style={{ fontFamily: "'Grift'" }}
                 />
               </div>
 
@@ -246,7 +246,7 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="XXXX-XXXX" maxLength={9}
                     className="w-full h-12 px-4 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)] tracking-[2px] uppercase"
                     disabled={loading}
-                    style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+                      style={{ fontFamily: "'Grift'" }}
                   />
                   <span className="text-xs text-[var(--color-text-helper)] mt-1">Found on your service invoice or email</span>
                 </div>
@@ -261,7 +261,7 @@ export default function Login({ onLogin }: LoginProps) {
                       placeholder="Enter your password"
                       className="w-full h-12 px-4 pr-12 text-sm text-[var(--color-text-primary)] bg-[#f9fafb] border-[1.5px] border-[var(--color-border-subtle)] rounded-xl outline-none transition-all focus:border-[var(--color-brand-600)] focus:bg-white focus:shadow-[0_0_0_3px_rgba(9,58,104,0.12)]"
                       autoComplete="current-password" disabled={loading}
-                      style={{ fontFamily: "'Grift', 'IBM Plex Sans', sans-serif" }}
+                      style={{ fontFamily: "'Grift'" }}
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 w-12 h-12 bg-transparent border-none cursor-pointer text-[var(--color-text-secondary)] flex items-center justify-center" aria-label={showPassword ? "Hide password" : "Show password"}>
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}

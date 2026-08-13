@@ -10,8 +10,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Production Admin Credentials
 
-- **Email:** alfred@splashaircrmzw.site
-- **Password:** #631168609K86zw
+Credentials are managed only in the deployment secret store. Never commit or document production passwords here.
 
 ## Email Configuration (Resend)
 

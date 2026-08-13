@@ -153,20 +153,29 @@ export async function PUT(
       });
 
       if (diagnostics) {
+        const diagnosticData = Object.fromEntries(
+          ['voltage', 'current', 'avgTemp', 'maxTemp', 'suction', 'discharge', 'refrigerantType', 'refrigerantRecovered', 'refrigerantUsed', 'refrigerantReused', 'status', 'notes', 'deltaT', 'brand', 'serial']
+            .filter((key) => diagnostics[key] !== undefined)
+            .map((key) => [key, diagnostics[key]])
+        );
         await tx.diagnostics.upsert({
           where: { jobId: id },
-          update: diagnostics as any,
-          create: { jobId: id, ...(diagnostics as any) },
+          update: diagnosticData,
+          create: { jobId: id, ...diagnosticData },
         });
       }
 
       // Only touch recurring if it was explicitly sent in the request body
       if ('recurring' in body) {
         if (recurring) {
+          const recurringData = {
+            interval: Math.max(1, Math.min(120, Number(recurring.interval) || 1)),
+            unit: typeof recurring.unit === 'string' && ['days', 'weeks', 'months', 'years'].includes(recurring.unit) ? recurring.unit : 'months',
+          };
           await tx.recurringSchedule.upsert({
             where: { jobId: id },
-            update: recurring as any,
-            create: { jobId: id, ...(recurring as any) },
+            update: recurringData,
+            create: { jobId: id, ...recurringData },
           });
         } else {
           await tx.recurringSchedule.deleteMany({ where: { jobId: id } });

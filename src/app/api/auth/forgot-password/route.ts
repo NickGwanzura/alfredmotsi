@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
-import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
+import { createPasswordResetToken, revokePasswordResetToken, revokePasswordResetTokensForEmail } from '@/app/lib/auth/password-reset';
+import { getAppOrigin } from '@/app/lib/brand';
 
 // Simple in-memory rate limit: max 3 requests per email per 10 minutes
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -52,13 +53,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    await revokePasswordResetTokensForEmail(user.email);
     const rawToken = await createPasswordResetToken(user.email);
 
     // Build reset URL — send the RAW token (not the hash)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
-    if (!appUrl) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
+    const appUrl = getAppOrigin();
     const resetUrl = `${appUrl}/auth/reset-password/${rawToken}`;
 
     const result = await sendPasswordResetEmail({

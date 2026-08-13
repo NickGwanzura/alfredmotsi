@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
-import { FINANCE_ROLES } from '@/app/lib/serviceAuth';
+import { FINANCE_ROLES, serviceSession, cleanText } from '@/app/lib/serviceAuth';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-async function checkAuth(): Promise<boolean> {
-  const session = await auth();
-  return !!session?.user && FINANCE_ROLES.includes(session.user.role as any);
-}
-
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
   const { id } = await ctx.params;
   const invoice = await prisma.invoice.findUnique({
     where: { id },
@@ -23,22 +17,33 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 }
 
 export async function PUT(req: NextRequest, ctx: RouteContext) {
-  if (!await checkAuth()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const { error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
   const { id } = await ctx.params;
   const body = await req.json();
-  if (body.status === 'paid' && !body.paidAt) {
-    body.paidAt = new Date().toISOString();
+  const validStatuses = new Set(['draft', 'sent', 'partial', 'paid', 'overdue', 'cancelled']);
+  if (body.status !== undefined && !validStatuses.has(body.status)) {
+    return NextResponse.json({ error: 'Invalid invoice status' }, { status: 400 });
   }
+  const data: Record<string, unknown> = {};
+  if (body.status !== undefined) {
+    data.status = body.status;
+    data.paidAt = body.status === 'paid' ? new Date() : null;
+  }
+  if (body.dueDate !== undefined) data.dueDate = cleanText(body.dueDate, 10);
+  if (body.notes !== undefined) data.notes = cleanText(body.notes, 5000) || null;
+  if (!Object.keys(data).length) return NextResponse.json({ error: 'No editable invoice fields supplied' }, { status: 400 });
   const invoice = await prisma.invoice.update({
     where: { id },
-    data: body,
+    data,
     include: { customer: true, lineItems: true, payments: { orderBy: { receivedAt: 'desc' } }, job: { select: { id: true, jobCardRef: true, title: true } } },
   });
   return NextResponse.json(invoice);
 }
 
 export async function DELETE(req: NextRequest, ctx: RouteContext) {
-  if (!await checkAuth()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const { error } = await serviceSession(FINANCE_ROLES);
+  if (error) return error;
   const { id } = await ctx.params;
   await prisma.invoice.delete({ where: { id } });
   return NextResponse.json({ ok: true });

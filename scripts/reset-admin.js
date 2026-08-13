@@ -14,10 +14,13 @@ async function hashPassword(password) {
 async function main() {
   console.log('🔧 Resetting admin passwords...');
 
-  const adminEmail = "alfred@splashaircrmzw.site";
-  const adminPassword = "#631168609K86zw";
-  const superadminEmail = "nicholas.gwanzura@outlook.com";
-  const superadminPassword = "Zubi_2026$";
+  const adminEmail = process.env.RESET_ADMIN_EMAIL;
+  const adminPassword = process.env.RESET_ADMIN_PASSWORD;
+  const superadminEmail = process.env.RESET_SUPERADMIN_EMAIL;
+  const superadminPassword = process.env.RESET_SUPERADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword || !superadminEmail || !superadminPassword) {
+    throw new Error('Set RESET_ADMIN_EMAIL, RESET_ADMIN_PASSWORD, RESET_SUPERADMIN_EMAIL, and RESET_SUPERADMIN_PASSWORD');
+  }
 
   const hashedPassword = await hashPassword(adminPassword);
   const hashedSuperadminPassword = await hashPassword(superadminPassword);

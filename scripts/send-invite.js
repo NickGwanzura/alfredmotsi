@@ -4,6 +4,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const https = require('https');
+const crypto = require('crypto');
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 12;
@@ -45,7 +46,7 @@ async function sendEmailViaResend(to, subject, html) {
 
 async function main() {
   const email = 'splashaircon@gmail.com';
-  const tempPassword = 'Admin2026!';
+  const tempPassword = crypto.randomBytes(24).toString('base64url');
 
   // 1. Create or update the user
   const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
@@ -68,8 +69,8 @@ async function main() {
   const inviteHtml = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;">
+<head><meta charset="utf-8"><style>@font-face{font-family:Grift;src:url('https://splashaircrmzw.site/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('https://splashaircrmzw.site/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}</style></head>
+<body style="margin:0;padding:0;font-family:Grift;background:#f4f4f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
@@ -106,8 +107,8 @@ async function main() {
   const featuresHtml = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f4f5;">
+<head><meta charset="utf-8"><style>@font-face{font-family:Grift;src:url('https://splashaircrmzw.site/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('https://splashaircrmzw.site/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}</style></head>
+<body style="margin:0;padding:0;font-family:Grift;background:#f4f4f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">

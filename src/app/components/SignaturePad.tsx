@@ -71,10 +71,10 @@ export default function SignaturePad({ onSave }: SignaturePadProps) {
         onTouchEnd={end} 
       />
       <div style={{ display: "flex", gap: 0, marginTop: "8px" }}>
-        <button className="btn btn-s btn-sm" onClick={clear}>Clear</button>
+        <button className="inline-flex min-h-[44px] items-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer" onClick={clear}>Clear</button>
         {signed && (
           <button 
-            className="btn btn-p btn-sm" 
+            className="inline-flex min-h-[44px] items-center rounded-lg border-none bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 cursor-pointer"
             onClick={() => ref.current && onSave(ref.current.toDataURL())}
           >
             Confirm Customer Signature

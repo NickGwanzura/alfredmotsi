@@ -23,3 +23,10 @@ export async function createPasswordResetToken(email: string): Promise<string> {
 export async function revokePasswordResetToken(rawToken: string): Promise<void> {
   await prisma.passwordResetToken.deleteMany({ where: { token: hashPasswordResetToken(rawToken) } });
 }
+
+/** Invalidate older links before issuing a fresh invite or reset email. */
+export async function revokePasswordResetTokensForEmail(email: string): Promise<void> {
+  await prisma.passwordResetToken.deleteMany({
+    where: { email: email.toLowerCase().trim(), used: false },
+  });
+}

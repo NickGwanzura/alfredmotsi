@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
+import { createPasswordResetToken, revokePasswordResetToken, revokePasswordResetTokensForEmail } from '@/app/lib/auth/password-reset';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
+import { getAppOrigin } from '@/app/lib/brand';
 
 /**
  * POST /api/admin/users/resend-credentials
@@ -24,8 +25,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   if (!user.email) return NextResponse.json({ error: 'User has no email address' }, { status: 400 });
 
+  await revokePasswordResetTokensForEmail(user.email);
   const rawToken = await createPasswordResetToken(user.email);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://splashaircrmzw.site';
+  const appUrl = getAppOrigin();
   const result = await sendPasswordResetEmail({
     to: user.email,
     userName: user.name,

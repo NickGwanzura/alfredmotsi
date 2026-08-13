@@ -50,7 +50,7 @@ export function renderPremiumEmail({
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>@font-face{font-family:Grift;src:url('${BRAND.website}/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('${BRAND.website}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}</style></head>
-<body style="margin:0;padding:0;background:${BRAND.surface};font-family:Grift,'Helvetica Neue',Arial,sans-serif;color:${BRAND.text};">
+<body style="margin:0;padding:0;background:${BRAND.surface};font-family:Grift;color:${BRAND.text};">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeEmailHtml(preview)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.surface};"><tr><td align="center" style="padding:28px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#fff;border:1px solid ${BRAND.border};border-radius:14px;overflow:hidden;box-shadow:0 12px 34px rgba(9,58,104,.08);">

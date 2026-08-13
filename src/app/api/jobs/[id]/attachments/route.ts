@@ -20,7 +20,7 @@ async function getAccessibleJob(jobId: string, user: SessionUser) {
   });
 
   if (!job) return { job: null, allowed: false };
-  if (user.role === 'admin') return { job, allowed: true };
+  if (user.role === 'admin' || user.role === 'owner' || user.role === 'dispatcher') return { job, allowed: true };
 
   const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === user.id);
   return { job, allowed: user.role === 'tech' && assigned };
@@ -100,11 +100,11 @@ export async function POST(
     if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
-    const contentType = typeof body.contentType === 'string' ? body.contentType.trim() : '';
+    const fileName = typeof body.fileName === 'string' ? body.fileName.trim().slice(0, 255) : '';
+    const contentType = typeof body.contentType === 'string' ? body.contentType.trim().toLowerCase().slice(0, 120) : '';
     const dataUrl = typeof body.dataUrl === 'string' && body.dataUrl.trim() ? body.dataUrl.trim() : null;
     const url = typeof body.url === 'string' && body.url.trim() ? body.url.trim() : null;
-    const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim() : null;
+    const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 2000) : null;
     const parsedSize = Number(body.size);
     const size = Number.isFinite(parsedSize) && parsedSize > 0 ? Math.round(parsedSize) : null;
 
@@ -114,6 +114,15 @@ export async function POST(
 
     if (!dataUrl && !url) {
       return NextResponse.json({ error: 'Provide either dataUrl or url' }, { status: 400 });
+    }
+
+    if (url) {
+      try {
+        const parsedUrl = new URL(url);
+        if (!['https:', 'http:'].includes(parsedUrl.protocol)) throw new Error('invalid protocol');
+      } catch {
+        return NextResponse.json({ error: 'url must be a valid HTTP(S) URL' }, { status: 400 });
+      }
     }
 
     if (dataUrl && !dataUrl.startsWith('data:')) {

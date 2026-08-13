@@ -20,7 +20,7 @@ import {
   Hr,
   Img,
 } from '@react-email/components';
-import { BRAND_LOGO_URL } from '@/app/lib/brand';
+import { BRAND_LOGO_URL, BRAND_ORIGIN } from '@/app/lib/brand';
 
 // Reuse brand styles from templates-new.tsx
 const colors = {
@@ -44,7 +44,7 @@ const colors = {
 
 const main = {
   backgroundColor: colors.gray[100],
-  fontFamily: 'Grift, Helvetica Neue, Arial, sans-serif',
+  fontFamily: 'Grift',
 };
 
 const container = {
@@ -62,6 +62,7 @@ const header = {
 };
 
 const LOGO_URL = BRAND_LOGO_URL;
+const fontHead = <Head><style>{`@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Bold.woff2') format('woff2');font-weight:700}`}</style></Head>;
 const logoImg = {
   width: '180px',
   height: 'auto',
@@ -211,7 +212,7 @@ export function SecureUserInvitationEmail({
     <Html>
       <Head />
       <Preview>You&apos;re invited to join Splash Air as {roleDisplay}</Preview>
-      <Body style={main}>
+      {fontHead}<Body style={main}>
         <Container style={container}>
           <Section style={header}>
             <Img src={LOGO_URL} alt="Splash Air" width="180" height="auto" style={logoImg} />
@@ -248,7 +249,7 @@ export function SecureUserInvitationEmail({
             </Text>
             
             <Section style={urlBox}>
-              <Text style={{ margin: 0, fontFamily: 'monospace' }}>
+              <Text style={{ margin: 0, fontFamily: 'Grift' }}>
                 {inviteUrl}
               </Text>
             </Section>
@@ -353,7 +354,7 @@ export function PasswordResetEmail({
             </Text>
             
             <Section style={urlBox}>
-              <Text style={{ margin: 0, fontFamily: 'monospace' }}>
+              <Text style={{ margin: 0, fontFamily: 'Grift' }}>
                 {resetUrl}
               </Text>
             </Section>

@@ -58,7 +58,11 @@ export function stripJobFinancialFields<T extends Record<string, unknown>>(data:
 }
 
 export function jobFromClient(data: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...data };
+  const allowed = ['source', 'customerId', 'siteId', 'equipmentId', 'leadId', 'title', 'type', 'unitType', 'issue', 'priority', 'date', 'time', 'durationMinutes', 'status', 'clockIn', 'clockOut', 'description', 'photos', 'signature', 'alerts'];
+  const out: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (data[key] !== undefined) out[key] = data[key];
+  }
   if (typeof out.unitType === 'string') out.unitType = UNIT_MAP[out.unitType] ?? out.unitType;
   if (typeof out.status === 'string') out.status = STATUS_MAP[out.status] ?? out.status;
   return out;

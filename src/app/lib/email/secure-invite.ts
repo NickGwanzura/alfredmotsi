@@ -20,6 +20,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
+import { getAppOrigin } from '@/app/lib/brand';
 
 // ============================================
 // CONFIGURATION
@@ -34,7 +35,7 @@ const INVITE_CONFIG = {
   
   // Base URL for invitation links
   get BASE_URL() {
-    return process.env.NEXT_PUBLIC_APP_URL || 'https://splashaircrmzw.site';
+    return getAppOrigin();
   },
   
   // Invitation path

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import type { PaymentMethod } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { auditServiceAction, FINANCE_ROLES, makeReference, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
       const updatedInvoice = await tx.invoice.update({ where: { id }, data: { balance, status: balance <= 0.001 ? 'paid' : 'partial', paidAt: balance <= 0.001 ? new Date() : null, paidRef: balance <= 0.001 ? payment.receiptRef : null }, include: { payments: true, customer: true, lineItems: true } });
       return { payment, invoice: updatedInvoice };
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     await auditServiceAction(session!, 'record_payment', `Recorded ${amount} against invoice ${id}`);
     await emitServiceNotification({ event: 'payment.received', channel: 'email', recipient: result.invoice.customer.email, customerId: result.invoice.customerId, referenceId: result.payment.id, payload: { invoiceRef: result.invoice.invoiceRef, receiptRef: result.payment.receiptRef, amount, balance: result.invoice.balance } });
     return NextResponse.json(result, { status: 201 });

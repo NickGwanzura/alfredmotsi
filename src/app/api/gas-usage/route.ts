@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { Prisma } from '@prisma/client';
+import { canAccessJob, cleanText } from '@/app/lib/serviceAuth';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -50,6 +51,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       );
     }
+    if (!await canAccessJob(session.user.id!, (session.user as any).role, jobId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     let usageRecord: any;
     try {
@@ -77,14 +81,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const created = await tx.gasUsageRecord.create({
           data: {
             stockId,
-            gasType,
+            gasType: cleanText(gasType, 60),
             quantityUsed: qty,
             usedBy: session.user.id!,
             jobId,
-            customer,
+            customer: cleanText(customer, 180),
             date: new Date().toISOString().split('T')[0],
             time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-            purpose: purpose || '',
+            purpose: cleanText(purpose, 500),
           },
         });
 

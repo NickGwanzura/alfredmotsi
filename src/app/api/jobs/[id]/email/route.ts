@@ -6,7 +6,7 @@ import { loadCompany } from '@/app/lib/pdf/company';
 import { sendEmailWithBestPractices } from '@/app/lib/email/send';
 import { generatePreviewText } from '@/app/lib/email/standards';
 import { escapeEmailHtml } from '@/app/lib/email/premium-shell';
-import { BRAND_EMAIL, BRAND_LOGO_URL, BRAND_FONT_URL, BRAND_PHONE } from '@/app/lib/brand';
+import { BRAND_EMAIL, BRAND_LOGO_URL, BRAND_FONT_URL, BRAND_ORIGIN, BRAND_PHONE } from '@/app/lib/brand';
 
 /**
  * POST /api/jobs/[id]/email
@@ -60,9 +60,9 @@ export async function POST(
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>@font-face{font-family:Grift;src:url('${BRAND_FONT_URL}') format('woff2');font-weight:400}</style>
+      <style>@font-face{font-family:Grift;src:url('${BRAND_FONT_URL}') format('woff2');font-weight:400;font-style:normal}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal}</style>
     </head>
-    <body style="margin:0;padding:0;font-family:Grift,'Helvetica Neue',Arial,sans-serif;background:#f4f6f8;">
+      <body style="margin:0;padding:0;font-family:Grift;background:#f4f6f8;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
         <tr>
           <td align="center">
@@ -123,7 +123,7 @@ export async function POST(
                       ].filter(r => r[1]).map(r => `
                         <tr style="border-bottom:1px solid #e0e0e0;">
                           <td style="padding:8px 12px;font-size:12px;color:#525252;">${e(r[0])}</td>
-                          <td style="padding:8px 12px;font-size:12px;color:#161616;font-family:monospace;">${e(r[1])} ${e(r[2])}</td>
+                          <td style="padding:8px 12px;font-size:12px;color:#161616;font-family:Grift;">${e(r[1])} ${e(r[2])}</td>
                         </tr>
                       `).join('')}
                     </tbody>

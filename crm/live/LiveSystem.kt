@@ -4,8 +4,10 @@ package com.splashair.crm.live
 data class UserSession(val uid:String, val role:String)
 
 object AuthService {
-  fun loginEmail(email:String,password:String): Boolean = true
-  fun loginPhone(phone:String,otp:String): Boolean = true
+  // Legacy mobile prototype: authentication is implemented by the CRM's
+  // server-side Auth.js flow. Never treat these placeholder calls as success.
+  fun loginEmail(email:String,password:String): Boolean = false
+  fun loginPhone(phone:String,otp:String): Boolean = false
 }
 
 object SyncService {

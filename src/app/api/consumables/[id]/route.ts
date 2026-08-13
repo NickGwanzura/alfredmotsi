@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
+import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 
 export async function DELETE(
@@ -15,7 +15,7 @@ export async function DELETE(
   const consumable = await prisma.consumable.findUnique({ where: { id } });
   if (!consumable) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  if (user.role !== 'admin' && consumable.recordedBy !== user.id) {
+  if (!isAdmin(user.role) && consumable.recordedBy !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

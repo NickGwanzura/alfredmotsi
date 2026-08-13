@@ -90,7 +90,7 @@
 
 @theme {
   /* Fonts */
-  --font-grift: "Grift", "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-grift: "Grift";
 
   /* Brand Colors */
   --color-brand-50: #e8eef5;
@@ -196,7 +196,7 @@ html {
 }
 
 body {
-  font-family: 'Grift', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Grift';
   font-size: 14px;
   font-weight: 400;
   line-height: 1.28572;
@@ -308,7 +308,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
    ============================================ */
 
 .mono {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Grift';
   font-size: 12px;
 }
 

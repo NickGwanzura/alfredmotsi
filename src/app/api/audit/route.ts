@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, authorizeRole } from '@/app/lib/auth/auth';
+import { auth, authorizeRole, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { canAccessJob, boundedNumber } from '@/app/lib/serviceAuth';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Only admin and tech roles can write audit logs
     const userRole = (session.user as any).role;
-    if (userRole !== 'admin' && userRole !== 'tech') {
+    if (!isAdmin(userRole) && userRole !== 'tech') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -28,6 +29,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
+    if (jobId && !(await canAccessJob((session.user as any).id, userRole, String(jobId)))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const safeLatitude = latitude == null ? null : boundedNumber(latitude, -90, 90);
+    const safeLongitude = longitude == null ? null : boundedNumber(longitude, -180, 180);
+    const safeAccuracy = accuracy == null ? null : boundedNumber(accuracy, 0, 100000);
+    if ((latitude != null && safeLatitude === null) || (longitude != null && safeLongitude === null) || (accuracy != null && safeAccuracy === null)) {
+      return NextResponse.json({ error: 'Invalid geolocation values' }, { status: 400 });
+    }
+
     const user = session.user as { id: string; name?: string | null };
     const ipAddress =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -41,9 +52,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         userName: user.name || 'Unknown',
         action,
         jobId: jobId || null,
-        latitude: latitude != null ? parseFloat(latitude) : null,
-        longitude: longitude != null ? parseFloat(longitude) : null,
-        accuracy: accuracy != null ? parseFloat(accuracy) : null,
+        latitude: safeLatitude,
+        longitude: safeLongitude,
+        accuracy: safeAccuracy,
         ipAddress,
         userAgent,
       },

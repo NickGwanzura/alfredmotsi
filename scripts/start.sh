@@ -19,26 +19,14 @@ echo ""
 # Run database migrations (safe, versioned)
 echo "📦 Running database migrations..."
 if [ -x "./node_modules/.bin/prisma" ]; then
-  # Clean up stale migration tracking for fresh databases
-  echo "   Checking if schema needs to be pushed..."
-  
-  # Try migrate deploy first
-  if ./node_modules/.bin/prisma migrate deploy 2>&1; then
+  # Production must start only when the reviewed migration chain is applied.
+  # Never fall back to `prisma db push`: it bypasses migration history and can
+  # silently introduce schema drift or data-loss decisions.
+  if ./node_modules/.bin/prisma migrate deploy; then
     echo "✅ Migrations applied successfully"
   else
-    echo "⚠️ Migrate deploy failed — checking if tables exist..."
-    # Check if users table exists; if not, push schema on a fresh database.
-    if node -e "const {PrismaClient} = require('@prisma/client'); (async()=>{try{await new PrismaClient().\$queryRawUnsafe('SELECT 1 FROM \"users\" LIMIT 1'); console.log('TABLES_EXIST')}catch(e){console.log('NO_TABLES')}; await new PrismaClient().\$disconnect()})()" 2>&1 | grep -q "NO_TABLES"; then
-      echo "   Tables don't exist — pushing schema (fresh DB)..."
-      # Reset migration tracking first
-      ./node_modules/.bin/prisma migrate resolve --applied 20260528000000_init 2>/dev/null || true
-      ./node_modules/.bin/prisma db push 2>&1 || echo "⚠️ db push also failed, continuing..."
-    else
-      # Tables exist (production data). Never use --accept-data-loss here: a
-      # non-destructive push applies safe drift and refuses any destructive change.
-      echo "   Tables exist — attempting non-destructive schema sync..."
-      ./node_modules/.bin/prisma db push 2>&1 || echo "⚠️ db push also failed, continuing..."
-    fi
+    echo "❌ Migration deployment failed; refusing to start with an unverified schema"
+    exit 1
   fi
 else
   echo "⚠️ Prisma CLI not found in image, skipping migrations"

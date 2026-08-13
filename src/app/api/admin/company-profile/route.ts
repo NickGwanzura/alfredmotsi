@@ -50,7 +50,24 @@ export async function PUT(req: NextRequest) {
   const updateData: Record<string, unknown> = {};
 
   for (const key of allowed) {
-    if (body[key] !== undefined) updateData[key] = body[key];
+    if (body[key] === undefined) continue;
+    if (['name', 'address', 'phone', 'email', 'website', 'vatNumber', 'tagline', 'services'].includes(key)) {
+      if (typeof body[key] !== 'string') return NextResponse.json({ error: `${key} must be text` }, { status: 400 });
+      updateData[key] = body[key].trim().slice(0, key === 'services' ? 1000 : 300) || null;
+    } else if (key === 'vatRate') {
+      const rate = Number(body[key]);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) return NextResponse.json({ error: 'VAT rate must be between 0 and 100' }, { status: 400 });
+      updateData[key] = rate;
+    } else if (key === 'onboarded') {
+      if (typeof body[key] !== 'boolean') return NextResponse.json({ error: 'onboarded must be boolean' }, { status: 400 });
+      updateData[key] = body[key];
+    } else if (key === 'logoUrl') {
+      if (typeof body[key] !== 'string') return NextResponse.json({ error: 'logoUrl must be text' }, { status: 400 });
+      const value = body[key].trim().slice(0, 500);
+      const isDataImage = /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(value) && value.length <= 2_500_000;
+      if (value && !value.startsWith('/') && !/^https:\/\//i.test(value) && !isDataImage) return NextResponse.json({ error: 'logoUrl must be a local path, HTTPS URL, or small base64 image' }, { status: 400 });
+      updateData[key] = value || null;
+    }
   }
 
   const existing = await getOrCreate(); // ensure it exists

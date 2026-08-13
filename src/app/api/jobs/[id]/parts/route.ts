@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { auditServiceAction, FIELD_ROLES, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
+import { auditServiceAction, canAccessJob, FIELD_ROLES, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await serviceSession(FIELD_ROLES);
+  const { session, error } = await serviceSession(FIELD_ROLES);
   if (error) return error;
   const { id } = await params;
+  if (!session || !await canAccessJob(session.user.id!, session.user.role as string, id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   return NextResponse.json(await prisma.jobPartUsage.findMany({ where: { jobId: id }, include: { item: true }, orderBy: { recordedAt: 'desc' } }));
 }
 
@@ -13,6 +14,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { session, error } = await serviceSession(FIELD_ROLES);
   if (error) return error;
   const { id } = await params;
+  if (!await canAccessJob(session!.user.id!, session!.user.role as string, id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json();
   const quantity = positiveNumber(body.quantity);
   if (!body.itemId || quantity === null) return NextResponse.json({ error: 'Inventory item and positive quantity required' }, { status: 400 });

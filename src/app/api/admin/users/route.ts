@@ -5,6 +5,7 @@ import { prisma } from '@/app/lib/db';
 import { hashPassword } from '@/app/lib/password';
 import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
+import { getAppOrigin } from '@/app/lib/brand';
 
 export async function GET(): Promise<NextResponse> {
   const session = await auth();
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
    });
 
    const rawToken = await createPasswordResetToken(user.email);
-   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://splashaircrmzw.site';
+   const appUrl = getAppOrigin();
    const resetUrl = `${appUrl.replace(/\/$/, '')}/auth/reset-password/${rawToken}`;
    const emailResult = await sendPasswordResetEmail({
      to: user.email,

@@ -27,6 +27,32 @@ export function positiveNumber(value: unknown): number | null {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+export function nonNegativeNumber(value: unknown): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+export function boundedNumber(value: unknown, min: number, max: number): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : null;
+}
+
+/** Verify that a field user may only operate on an assigned job. */
+export async function canAccessJob(userId: string, role: string, jobId: string): Promise<boolean> {
+  if (['owner', 'admin', 'dispatcher'].includes(role)) return true;
+  if (role !== 'tech') return false;
+  return Boolean(await prisma.job.findFirst({
+    where: {
+      id: jobId,
+      OR: [
+        { technicians: { some: { id: userId } } },
+        { coTechnicians: { some: { id: userId } } },
+      ],
+    },
+    select: { id: true },
+  }));
+}
+
 export function makeReference(prefix: string): string {
   const date = new Date();
   const stamp = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;

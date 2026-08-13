@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const email = (credentials.email as string).toLowerCase().trim();
           const user = await prisma.user.findUnique({
             where: { email },
-            select: { id: true, email: true, name: true, password: true, role: true, image: true, passwordChanged: true },
+            select: { id: true, email: true, name: true, password: true, role: true, image: true, passwordChanged: true, updatedAt: true },
           });
 
           if (!user || !user.password) return null;
@@ -48,6 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
             image: user.image,
             passwordChanged: user.passwordChanged,
+            userUpdatedAt: user.updatedAt.toISOString(),
           };
         } catch {
           return null;
@@ -120,6 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as any).role;
         token.passwordChanged = (user as any).passwordChanged;
+        token.userUpdatedAt = (user as any).userUpdatedAt;
       }
 
       // On every token access, verify passwordChanged hasn't changed since token was issued.
@@ -129,15 +131,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { passwordChanged: true, role: true },
+            select: { passwordChanged: true, role: true, updatedAt: true },
           });
           if (dbUser) {
             // Always refresh role to handle DB enum migrations
             token.role = dbUser.role;
-            // If passwordChanged differs, invalidate (password was changed)
-            if (dbUser.passwordChanged !== token.passwordChanged) {
-              token.passwordChanged = dbUser.passwordChanged;
+            // Any account update, including a password reset, invalidates the
+            // old JWT. The previous implementation merely copied a boolean,
+            // so old sessions stayed valid indefinitely.
+            if (token.userUpdatedAt && dbUser.updatedAt.toISOString() !== token.userUpdatedAt) {
+              token.invalidated = true;
             }
+            token.passwordChanged = dbUser.passwordChanged;
           }
         } catch {
           // Silently fail — next request will retry
@@ -147,6 +152,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     session({ session, token }) {
+      if ((token as any)?.invalidated) return null as any;
       if (token && session.user) {
         session.user.id = token.id as string;
         (session.user as any).role = token.role as string;

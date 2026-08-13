@@ -22,6 +22,13 @@ Font.register({
 /** Use the configured brand mark when available, with the bundled logo as a guaranteed fallback. */
 export function pdfLogoSource(logoUrl?: string | null): string {
   const configured = logoUrl?.trim();
-  if (configured && !configured.startsWith('/')) return configured;
-  return publicPath(configured?.replace(/^\/+/, '') || 'logo.png');
+  // PDFs are rendered server-side. Do not fetch arbitrary remote URLs from a
+  // profile field (which would create an SSRF path); use bundled assets only.
+  if (configured?.startsWith('/') && !configured.includes('..')) {
+    return publicPath(configured.replace(/^\/+/, ''));
+  }
+  if (/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(configured || '') && configured!.length <= 2_500_000) {
+    return configured!;
+  }
+  return publicPath('logo.png');
 }

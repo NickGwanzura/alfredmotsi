@@ -1,24 +1,14 @@
 # Splash Air CRM — Handover Notes
-_Last updated: 2026-06-24_
+_Last updated: 2026-08-13_
 
 ---
 
-## 1. Remove Carbon UI From All Modals
+## 1. Modal UI status
 
-**Priority: High — visually broken, sharp/flat Carbon DS styling still present**
-
-The following modal components still use legacy Carbon Design System class names (`overlay`, `modal`, `modal-hdr`, `modal-lbl`, `modal-title`, `modal-body`, `modal-foot`, `x-btn`, `btn`, `btn-g`, `btn-p`, `inp`, `sel`, `form-label`, `g2`, `notif`, `notif-e`, `notif-w`). These classes are **not defined in globals.css** — they were inherited from an older Carbon import that no longer exists, so the modals partially fall back to browser defaults with sharp corners and flat buttons.
-
-**Files to rewrite** (use `UserManagement.tsx` modals as the reference — those are already in the correct modern style):
-
-| File | Current state |
-|---|---|
-| `src/app/components/AddCustomerModal.tsx` | All Carbon classes — full rewrite needed |
-| `src/app/components/AddGasStockModal.tsx` | All Carbon classes — full rewrite needed |
-| `src/app/components/AddGasUsageModal.tsx` | All Carbon classes — full rewrite needed |
-| `src/app/components/AddCRMModal.tsx` | All Carbon classes — full rewrite needed |
-| `src/app/components/AddJobModal.tsx` | Partially modernised — inputs/buttons still flat (no `rounded-lg`) |
-| `src/app/components/JobCardModal.tsx` | Review tabs, form inputs, action buttons for Carbon remnants |
+The modal components now use the Splash Air design tokens and the shared
+`.modal-overlay`/`.modal` surfaces in `globals.css`. Legacy Carbon button
+classes were removed from the signature pad as part of the final UI cleanup.
+Keep new dialogs on the same modern rounded surfaces and 44px touch targets.
 
 **Target style** (copy this pattern for all inputs, selects, buttons):
 ```tsx

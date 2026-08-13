@@ -42,3 +42,10 @@ CHANGELOG.md
 *.md
 .github
 docs
+
+# Separate/untracked applications and local artifacts; they are not part of
+# the Splash Air CRM image and must not enter the Docker build context.
+shippingos
+crm
+tmp
+.claude

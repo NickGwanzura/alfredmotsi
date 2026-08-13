@@ -3,16 +3,16 @@ import { hashPassword } from '../src/app/lib/password';
 
 const prisma = new PrismaClient();
 
-// Production Admin Credentials
-const ADMIN_EMAIL = "alfred@splashaircrmzw.site";
-const ADMIN_PASSWORD = "#631168609K86zw";
-
-// Superadmin credentials
-const SUPERADMIN_EMAIL = "nicholas.gwanzura@outlook.com";
-const SUPERADMIN_PASSWORD = "Zubi_2026$";
+const ADMIN_EMAIL = process.env.RESET_ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.RESET_ADMIN_PASSWORD;
+const SUPERADMIN_EMAIL = process.env.RESET_SUPERADMIN_EMAIL;
+const SUPERADMIN_PASSWORD = process.env.RESET_SUPERADMIN_PASSWORD;
 
 async function main() {
   console.log('🔧 Resetting admin passwords...');
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD) {
+    throw new Error('Set RESET_ADMIN_EMAIL, RESET_ADMIN_PASSWORD, RESET_SUPERADMIN_EMAIL, and RESET_SUPERADMIN_PASSWORD');
+  }
 
   // Hash passwords
   const hashedPassword = await hashPassword(ADMIN_PASSWORD);

@@ -7,8 +7,19 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+const resetAttemptMap = new Map<string, { count: number; resetAt: number }>();
+
 export async function POST(request: NextRequest) {
   try {
+    const clientKey = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const now = Date.now();
+    const current = resetAttemptMap.get(clientKey);
+    if (current && now < current.resetAt && current.count >= 10) {
+      return NextResponse.json({ error: 'Too many reset attempts. Try again later.' }, { status: 429 });
+    }
+    if (!current || now >= current.resetAt) resetAttemptMap.set(clientKey, { count: 1, resetAt: now + 10 * 60 * 1000 });
+    else current.count += 1;
+
     const { token, password } = await request.json();
 
     if (!token || !password) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { canAccessJob, cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await auth();
@@ -17,6 +18,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const where: Record<string, unknown> = {};
   if (jobId) where.jobId = jobId;
   if (userId) where.recordedBy = userId;
+  const currentUser = session.user as { id: string; role: string };
+  if (!['admin', 'owner'].includes(currentUser.role)) {
+    if (jobId) {
+      if (!await canAccessJob(currentUser.id, currentUser.role, jobId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    } else {
+      where.recordedBy = currentUser.id;
+    }
+  }
 
   const consumables = await prisma.consumable.findMany({
     where,
@@ -41,26 +50,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const user = session.user as { id: string; name?: string; role: string };
-  if (user.role !== 'admin' && user.role !== 'owner') {
-    const job = await prisma.job.findUnique({
-      where: { id: jobId },
-      include: { technicians: { select: { id: true } }, coTechnicians: { select: { id: true } } },
-    });
-    if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-    const assigned = [...job.technicians, ...job.coTechnicians].some(t => t.id === user.id);
-    if (!assigned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!await canAccessJob(user.id, user.role, jobId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const parsedQuantity = positiveNumber(quantity);
+  if (!parsedQuantity) return NextResponse.json({ error: 'Quantity must be positive' }, { status: 400 });
+  const validTypes = new Set(['gas', 'compressor', 'part', 'other']);
+  if (!validTypes.has(type)) return NextResponse.json({ error: 'Invalid consumable type' }, { status: 400 });
 
    const consumable = await prisma.consumable.create({
      data: {
        jobId,
        type,
-       name,
-       brand: brand || null,
-       model: model || null,
-       quantity: parseFloat(quantity),
-       unit,
-       notes: notes || null,
+       name: cleanText(name, 180),
+       brand: cleanText(brand, 120) || null,
+       model: cleanText(model, 120) || null,
+       quantity: parsedQuantity,
+       unit: cleanText(unit, 30),
+       notes: cleanText(notes, 2000) || null,
        recordedBy: user.id,
      },
    });
