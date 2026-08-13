@@ -98,10 +98,10 @@ function CustomerSelect({
         }}
         className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full flex items-center justify-between gap-2 text-left"
       >
-        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
+        <span className="truncate text-gray-900">
           {selected?.name || 'Select customer…'}
         </span>
-        <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`shrink-0 text-gray-700 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -126,7 +126,7 @@ function CustomerSelect({
               role="option"
               aria-selected={!value}
               onClick={() => choose('')}
-              className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-500 hover:bg-brand-50 hover:text-brand-700"
+              className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-900 hover:bg-brand-50 hover:text-brand-700"
             >
               {!value ? <Check size={15} className="text-brand-600" /> : <span className="w-[15px]" />}
               Select customer…
@@ -143,11 +143,11 @@ function CustomerSelect({
                 {customer.id === value ? <Check size={15} className="shrink-0 text-brand-600" /> : <span className="w-[15px] shrink-0" />}
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-gray-900">{customer.name}</span>
-                  {customer.email && <span className="block truncate text-xs text-gray-500">{customer.email}</span>}
+                  {customer.email && <span className="block truncate text-xs text-gray-700">{customer.email}</span>}
                 </span>
               </button>
             ))}
-            {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-gray-500">No matching customers</p>}
+            {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-gray-700">No matching customers</p>}
           </div>
         </div>
       )}
@@ -483,7 +483,7 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
 
       {/* Create Invoice Modal */}
       {showCreate && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setShowCreate(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setShowCreate(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-auto overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>

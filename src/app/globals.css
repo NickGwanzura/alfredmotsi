@@ -210,6 +210,13 @@ button, a, [role="button"], input, select, textarea {
   touch-action: manipulation;
 }
 
+/* Keep native select popups readable across browsers and operating systems. */
+select, option {
+  color: #161616;
+  background-color: #ffffff;
+  opacity: 1;
+}
+
 button:focus-visible, a:focus-visible, [role="button"]:focus-visible,
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--color-focus);
