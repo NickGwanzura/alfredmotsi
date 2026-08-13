@@ -15,13 +15,20 @@ const DEFAULTS = {
 };
 
 async function getOrCreate() {
-  let profile = await prisma.companyProfile.findUnique({ where: { id: 'default' } });
-  if (!profile) {
-    profile = await prisma.companyProfile.create({
-      data: { id: 'default', ...DEFAULTS },
-    });
+  try {
+    let profile = await prisma.companyProfile.findUnique({ where: { id: 'default' } });
+    if (!profile) {
+      profile = await prisma.companyProfile.create({
+        data: { id: 'default', ...DEFAULTS },
+      });
+    }
+    return profile;
+  } catch (error) {
+    // Keep the dashboard usable while a delayed production migration is being
+    // applied. Writes still return an explicit 503 instead of a raw Prisma 500.
+    console.error('[company-profile] Storage unavailable:', error);
+    return null;
   }
-  return profile;
 }
 
 export async function GET() {
@@ -30,7 +37,7 @@ export async function GET() {
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const profile = await getOrCreate();
-  return NextResponse.json(profile);
+  return NextResponse.json(profile || { id: 'default', ...DEFAULTS, vatNumber: '', logoUrl: '', onboarded: false });
 }
 
 export async function PUT(req: NextRequest) {
@@ -46,7 +53,8 @@ export async function PUT(req: NextRequest) {
     if (body[key] !== undefined) updateData[key] = body[key];
   }
 
-  await getOrCreate(); // ensure it exists
+  const existing = await getOrCreate(); // ensure it exists
+  if (!existing) return NextResponse.json({ error: 'Company profile storage is not ready yet. Please retry shortly.' }, { status: 503 });
 
   const profile = await prisma.companyProfile.update({
     where: { id: 'default' },
