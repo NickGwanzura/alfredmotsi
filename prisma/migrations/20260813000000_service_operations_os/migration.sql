@@ -109,7 +109,10 @@ CREATE TABLE "leads" (
   "status" "LeadStatus" NOT NULL DEFAULT 'new',
   "service_type" TEXT,
   "description" TEXT NOT NULL,
-  "priority" "JobPriority" NOT NULL DEFAULT 'normal',
+  -- PostgreSQL cannot use an enum value added earlier in this same migration
+  -- transaction. The follow-up migration sets the intended `normal` default
+  -- once the enum value has been committed.
+  "priority" "JobPriority" NOT NULL DEFAULT 'medium',
   "next_follow_up" TEXT,
   "lost_reason" TEXT,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
