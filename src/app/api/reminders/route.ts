@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const { error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES]);
   if (error) return error;
   const includeCompleted = request.nextUrl.searchParams.get('completed') === 'true';
-  const reminders = await prisma.reminder.findMany({ where: includeCompleted ? undefined : { completed: false }, include: { customer: { select: { id: true, name: true } }, lead: { select: { id: true, name: true, status: true } } }, orderBy: { dueAt: 'asc' } });
+  const reminders = await prisma.reminder.findMany({ where: includeCompleted ? undefined : { completed: false }, include: { customer: { select: { id: true, name: true } }, lead: { select: { id: true, name: true, status: true } } }, orderBy: { dueAt: 'asc' }, take: 500 });
   return NextResponse.json(reminders);
 }
 

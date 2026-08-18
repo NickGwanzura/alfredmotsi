@@ -28,6 +28,7 @@ export async function GET() {
   const items = await prisma.inventoryItem.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' },
+    take: 500,
   });
   return NextResponse.json(items);
 }

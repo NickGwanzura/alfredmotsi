@@ -43,8 +43,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const now = new Date().toISOString();
 
   const updateData: Record<string, unknown> = action === 'in'
-    ? { clockIn: now, status: 'on-site' }
-    : { clockOut: now, status: (job.status as string) === 'on-site' ? 'completed' : job.status };
+    ? { clockIn: now, status: 'on_site' }
+    : { clockOut: now, status: (job.status as string) === 'on_site' ? 'completed' : job.status };
 
   const updated = await prisma.job.update({ where: { id }, data: updateData });
 

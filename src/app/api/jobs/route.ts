@@ -61,7 +61,8 @@ export async function GET(request: NextRequest) {
         coTechnicians: { select: { id: true, name: true, email: true } },
         diagnostics: true,
       },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'asc' },
+      take: 500,
     });
 
     const clientJobs = jobs.map(j => jobToClient(j as Record<string, unknown>));

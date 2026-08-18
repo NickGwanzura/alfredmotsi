@@ -14,9 +14,10 @@ export async function GET() {
   });
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
 
-  const jobs = await prisma.job.findMany({
-    where: { customerId: customer.id },
-    orderBy: { createdAt: 'desc' },
+    const jobs = await prisma.job.findMany({
+      where: { customerId: customer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
     select: {
       id: true, title: true, type: true, status: true, date: true, time: true,
       jobCardRef: true, priority: true, description: true,
@@ -28,6 +29,7 @@ export async function GET() {
     where: { customerId: customer.id },
     select: { id: true, invoiceRef: true, status: true, total: true, issueDate: true, dueDate: true },
     orderBy: { createdAt: 'desc' },
+    take: 200,
   });
 
   return NextResponse.json({ customer: { name: customer.name, email: customer.email }, jobs, invoices });

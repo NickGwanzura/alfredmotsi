@@ -47,6 +47,7 @@ export async function sendJobCompletedEmail(payload: {
   jobTitle: string;
   jobDate: string;
   technicianName: string;
+  jobId: string;
   workDescription: string;
   recommendations?: string;
   nextServiceDate?: string;

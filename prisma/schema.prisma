@@ -179,6 +179,8 @@ enum AuditAction {
   accept_quote
   reject_quote
   create_invoice
+  update_invoice
+  delete_invoice
   send_invoice
   record_payment
   create_contract

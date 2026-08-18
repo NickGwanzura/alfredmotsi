@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import { hashPassword } from '../src/app/lib/password';
+import crypto from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -113,9 +114,13 @@ async function main() {
   }
 
   if (process.env.SEED_DEMO_DATA === 'true') {
-    const demoPassword = await hashPassword(process.env.SEED_DEMO_PASSWORD || 'Demo-Only-Change-123!');
+    if (!process.env.SEED_DEMO_PASSWORD) {
+      console.log('⚠️ SEED_DEMO_DATA=true but SEED_DEMO_PASSWORD is missing — skipping demo records');
+      return;
+    }
+    const demoPassword = await hashPassword(process.env.SEED_DEMO_PASSWORD);
     const tech = await prisma.user.upsert({ where: { email: 'tech.demo@splashair.local' }, update: {}, create: { name: 'Tawanda Demo Technician', email: 'tech.demo@splashair.local', role: 'tech', password: demoPassword, passwordChanged: false, phone: '+263 77 000 0001', specialty: 'Air conditioning and refrigeration', status: 'available' } });
-    const customer = await prisma.customer.upsert({ where: { email: 'facilities.demo@example.com' }, update: {}, create: { name: 'Demo Retail Centre', address: '12 Sample Avenue, Harare', siteAddress: '12 Sample Avenue, Harare', phone: '+263 77 000 0002', whatsapp: '+263 77 000 0002', email: 'facilities.demo@example.com', notes: 'Demonstration customer for Service Operations flows.', portalCode: 'DEMO2026' } });
+    const customer = await prisma.customer.upsert({ where: { email: 'facilities.demo@example.com' }, update: {}, create: { name: 'Demo Retail Centre', address: '12 Sample Avenue, Harare', siteAddress: '12 Sample Avenue, Harare', phone: '+263 77 000 0002', whatsapp: '+263 77 000 0002', email: 'facilities.demo@example.com', notes: 'Demonstration customer for Service Operations flows.', portalCode: crypto.randomBytes(6).toString('hex').toUpperCase() } });
     let site = await prisma.serviceSite.findFirst({ where: { customerId: customer.id, name: 'Main Retail Site' } });
     site ||= await prisma.serviceSite.create({ data: { customerId: customer.id, name: 'Main Retail Site', address: customer.address, isPrimary: true, accessNotes: 'Report to facilities office.' } });
     let equipment = await prisma.equipment.findFirst({ where: { siteId: site.id, serialNumber: 'DEMO-AC-001' } });

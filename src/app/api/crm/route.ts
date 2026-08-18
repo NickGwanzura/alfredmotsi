@@ -12,8 +12,12 @@ export async function GET(): Promise<NextResponse> {
     const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
+    const role = (session.user as { role: string }).role;
+    const userId = session.user.id!;
     const records = await prisma.cRMRecord.findMany({
+      where: role === 'tech' ? { customer: { jobs: { some: { OR: [{ technicians: { some: { id: userId } } }, { coTechnicians: { some: { id: userId } } }] } } } } : undefined,
       orderBy: { createdAt: 'desc' },
+      take: 500,
       include: {
         customer: {
           select: {

@@ -17,6 +17,7 @@ export async function GET(): Promise<NextResponse> {
 
     const customers = await prisma.customer.findMany({
       orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     const canViewPortalCode = ['owner', 'admin'].includes(session.user.role);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { cleanText, nonNegativeNumber, positiveNumber } from '@/app/lib/serviceAuth';
 
 export async function PUT(
   request: NextRequest,
@@ -15,32 +16,26 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
   const { gasType, brand, quantity, remaining, unit, supplier, supplierRef, notes } = body;
-
-  // Validate that remaining does not go negative or exceed original quantity
-  if (remaining !== undefined) {
-    const parsed = parseFloat(remaining);
-    if (isNaN(parsed) || parsed < 0) {
-      return NextResponse.json({ error: 'Remaining quantity cannot be negative' }, { status: 400 });
-    }
-    if (quantity !== undefined) {
-      const parsedQty = parseFloat(quantity);
-      if (!isNaN(parsedQty) && parsed > parsedQty) {
-        return NextResponse.json({ error: 'Remaining cannot exceed total quantity' }, { status: 400 });
-      }
-    }
+  const existing = await prisma.gasStockItem.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+  const parsedQuantity = quantity === undefined ? existing.quantity : positiveNumber(quantity);
+  const parsedRemaining = remaining === undefined ? existing.remaining : nonNegativeNumber(remaining);
+  if (parsedQuantity === null || parsedRemaining === null || parsedRemaining > parsedQuantity) {
+    return NextResponse.json({ error: 'Quantity must be positive and remaining must be between zero and quantity' }, { status: 400 });
   }
 
+  // Validate that remaining does not go negative or exceed original quantity
   const stockItem = await prisma.gasStockItem.update({
     where: { id },
     data: {
-      ...(gasType !== undefined && { gasType }),
-      ...(brand !== undefined && { brand }),
-      ...(quantity !== undefined && { quantity: parseFloat(quantity) }),
-      ...(remaining !== undefined && { remaining: parseFloat(remaining) }),
-      ...(unit !== undefined && { unit }),
-      ...(supplier !== undefined && { supplier }),
-      ...(supplierRef !== undefined && { supplierRef }),
-      ...(notes !== undefined && { notes }),
+      ...(gasType !== undefined && { gasType: cleanText(gasType, 60) }),
+      ...(brand !== undefined && { brand: cleanText(brand, 120) }),
+      quantity: parsedQuantity,
+      remaining: parsedRemaining,
+      ...(unit !== undefined && { unit: cleanText(unit, 20) }),
+      ...(supplier !== undefined && { supplier: cleanText(supplier, 180) }),
+      ...(supplierRef !== undefined && { supplierRef: cleanText(supplierRef, 120) }),
+      ...(notes !== undefined && { notes: cleanText(notes, 2_000) || null }),
     },
   });
 

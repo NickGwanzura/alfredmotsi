@@ -11,20 +11,22 @@ const unitMap: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  const { error } = await serviceSession([...FIELD_ROLES, 'sales']);
+  const { session, error } = await serviceSession([...FIELD_ROLES, 'sales']);
   if (error) return error;
   const customerId = request.nextUrl.searchParams.get('customerId');
   const siteId = request.nextUrl.searchParams.get('siteId');
+  const isTech = session!.user.role === 'tech';
   const equipment = await prisma.equipment.findMany({
-    where: { ...(customerId && { customerId }), ...(siteId && { siteId }) },
+    where: { ...(customerId && { customerId }), ...(siteId && { siteId }), ...(isTech ? { jobs: { some: { OR: [{ technicians: { some: { id: session!.user.id } } }, { coTechnicians: { some: { id: session!.user.id } } }] } } } : {}) },
     include: { site: true, jobs: { orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, jobCardRef: true, title: true, date: true, status: true } } },
     orderBy: { createdAt: 'desc' },
+    take: 500,
   });
   return NextResponse.json(equipment);
 }
 
 export async function POST(request: NextRequest) {
-  const { session, error } = await serviceSession([...OPERATIONS_ROLES, 'tech']);
+  const { session, error } = await serviceSession(OPERATIONS_ROLES);
   if (error) return error;
   const body = await request.json();
   const siteId = cleanText(body.siteId, 100);

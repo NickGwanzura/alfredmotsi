@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { sendTechAssignmentEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
+import { prisma } from '@/app/lib/db';
+import { consumeOutboundEmail } from '@/app/lib/email/outbound-rate-limit';
 
 interface TechAssignmentRequest {
   to: string;
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error('[API /email/tech-assignment] Forbidden - not admin:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (!consumeOutboundEmail(session.user.id!)) return NextResponse.json({ error: 'Outbound email limit reached. Try again later.' }, { status: 429 });
 
     let body: TechAssignmentRequest;
     try {
@@ -75,6 +78,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       );
     }
+
+    const job = await prisma.job.findUnique({ where: { id: jobId.trim() }, select: { technicians: { select: { email: true } }, coTechnicians: { select: { email: true } } } });
+    if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    const assignedEmails = [...job.technicians, ...job.coTechnicians].map((tech) => tech.email.toLowerCase());
+    if (!assignedEmails.includes(to.trim().toLowerCase())) return NextResponse.json({ error: 'Recipient must be assigned to the job' }, { status: 400 });
 
     const payload = {
       to: to.trim(),

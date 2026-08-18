@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const { gasType, brand, quantity, unit, supplier, supplierRef, notes } = body;
 
-    if (!gasType || !brand || !quantity || !supplier) {
+    const parsedQuantity = positiveNumber(quantity);
+    if (!gasType || !brand || parsedQuantity === null || !supplier) {
       return NextResponse.json(
         { error: 'Gas type, brand, quantity, and supplier are required' },
         { status: 400 }
@@ -44,16 +46,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const stockItem = await prisma.gasStockItem.create({
       data: {
-        gasType,
-        brand,
-        quantity: parseFloat(quantity),
-        remaining: parseFloat(quantity),
-        unit: unit || 'kg',
-        supplier,
-        supplierRef: supplierRef || '',
+        gasType: cleanText(gasType, 60),
+        brand: cleanText(brand, 120),
+        quantity: parsedQuantity,
+        remaining: parsedQuantity,
+        unit: cleanText(unit, 20) || 'kg',
+        supplier: cleanText(supplier, 180),
+        supplierRef: cleanText(supplierRef, 120),
         addedBy: session.user.name || 'Admin',
         date: new Date().toISOString().split('T')[0],
-        notes: notes || null,
+        notes: cleanText(notes, 2_000) || null,
       },
     });
 

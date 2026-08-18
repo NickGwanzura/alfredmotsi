@@ -15,8 +15,12 @@ export async function GET(): Promise<NextResponse> {
     const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'accounts', 'tech']);
     if (forbidden) return forbidden;
 
+    const role = (session.user as { role: string }).role;
+    const userId = session.user.id!;
     const usage = await prisma.gasUsageRecord.findMany({
+      where: role === 'tech' ? { job: { OR: [{ technicians: { some: { id: userId } } }, { coTechnicians: { some: { id: userId } } }] } } : undefined,
       orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     return NextResponse.json(usage);

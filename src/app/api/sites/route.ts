@@ -3,16 +3,18 @@ import { prisma } from '@/app/lib/db';
 import { auditServiceAction, cleanText, FIELD_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
 
 export async function GET(request: NextRequest) {
-  const { error } = await serviceSession([...FIELD_ROLES, 'sales']);
+  const { session, error } = await serviceSession([...FIELD_ROLES, 'sales']);
   if (error) return error;
   const customerId = request.nextUrl.searchParams.get('customerId');
+  const isTech = session!.user.role === 'tech';
   const sites = await prisma.serviceSite.findMany({
-    where: customerId ? { customerId } : undefined,
+    where: { ...(customerId && { customerId }), ...(isTech ? { jobs: { some: { OR: [{ technicians: { some: { id: session!.user.id } } }, { coTechnicians: { some: { id: session!.user.id } } }] } } } : {}) },
     include: {
       equipment: { orderBy: { createdAt: 'desc' } },
       _count: { select: { jobs: true, contracts: true } },
     },
     orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }],
+    take: 500,
   });
   return NextResponse.json(sites);
 }

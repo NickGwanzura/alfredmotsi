@@ -38,6 +38,7 @@ export async function GET(
     where: { fundId: id },
     include: expenseInclude,
     orderBy: { recordedAt: 'desc' },
+    take: 500,
   });
 
   return NextResponse.json(expenses);

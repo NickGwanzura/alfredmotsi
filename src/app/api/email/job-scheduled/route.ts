@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { sendJobScheduledEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
+import { prisma } from '@/app/lib/db';
+import { getAppOrigin } from '@/app/lib/brand';
+import { consumeOutboundEmail } from '@/app/lib/email/outbound-rate-limit';
 
 interface JobScheduledRequest {
   to: string;
@@ -31,6 +34,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error('[API /email/job-scheduled] Forbidden - not admin:', session.user.role);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (!consumeOutboundEmail(session.user.id!)) return NextResponse.json({ error: 'Outbound email limit reached. Try again later.' }, { status: 429 });
 
     let body: JobScheduledRequest;
     try {
@@ -75,6 +79,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: 'Missing required fields', fields: missingFields },
         { status: 400 }
       );
+    }
+
+    const job = await prisma.job.findUnique({ where: { id: jobId.trim() }, select: { customer: { select: { email: true } } } });
+    if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (job.customer.email.toLowerCase() !== to.trim().toLowerCase()) {
+      return NextResponse.json({ error: 'Recipient must match the job customer' }, { status: 400 });
+    }
+    if (portalUrl) {
+      try {
+        if (new URL(portalUrl.trim()).origin !== new URL(getAppOrigin()).origin) {
+          return NextResponse.json({ error: 'portalUrl must use the configured application origin' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'portalUrl must be a valid URL' }, { status: 400 });
+      }
     }
 
 

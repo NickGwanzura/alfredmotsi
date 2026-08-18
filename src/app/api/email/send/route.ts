@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { sendCustomEmail } from '@/app/lib/email/send';
 import { escapeEmailHtml, renderPremiumEmail } from '@/app/lib/email/premium-shell';
+import { prisma } from '@/app/lib/db';
+
+const sendRateLimit = new Map<string, { count: number; resetAt: number }>();
 
 /**
  * POST /api/email/send
@@ -20,7 +23,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { to, subject, body, customerName } = await request.json();
 
-  if (!to || !subject || !body) {
+  const key = `${session.user.id}:${new Date().toISOString().slice(0, 13)}`;
+  const current = sendRateLimit.get(key);
+  if (current && current.count >= 20) return NextResponse.json({ error: 'Email sending limit reached. Try again later.' }, { status: 429 });
+  sendRateLimit.set(key, { count: (current?.count || 0) + 1, resetAt: Date.now() + 60 * 60 * 1000 });
+  if (sendRateLimit.size > 10_000) {
+    for (const [entryKey, entry] of sendRateLimit) if (entry.resetAt < Date.now()) sendRateLimit.delete(entryKey);
+  }
+
+  if (typeof to !== 'string' || typeof subject !== 'string' || typeof body !== 'string' || !to.trim() || !subject.trim() || !body.trim() || subject.length > 200 || body.length > 20_000) {
     return NextResponse.json({ error: 'To, subject, and body are required' }, { status: 400 });
   }
 
@@ -28,6 +39,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(to)) {
     return NextResponse.json({ error: 'Invalid recipient email address' }, { status: 400 });
+  }
+
+  if (session.user.role === 'tech') {
+    const customer = await prisma.customer.findFirst({ where: { email: to.trim().toLowerCase() }, select: { id: true } });
+    if (!customer) return NextResponse.json({ error: 'Technicians may only email CRM customers' }, { status: 403 });
   }
 
   const safeBody = escapeEmailHtml(body).replace(/\n/g, '<br>');

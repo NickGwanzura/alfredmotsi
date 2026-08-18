@@ -4,6 +4,7 @@ import { prisma } from '@/app/lib/db';
 import { sendCustomEmail } from '@/app/lib/email/send';
 import { escapeEmailHtml, renderPremiumEmail } from '@/app/lib/email/premium-shell';
 import { isAdmin } from '@/app/lib/auth/auth';
+import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 
 const fundInclude = {
   tech: { select: { id: true, name: true, email: true } },
@@ -14,6 +15,7 @@ const fundInclude = {
       recordedBy: { select: { id: true, name: true } },
     },
     orderBy: { recordedAt: 'desc' as const },
+    take: 500,
   },
 };
 
@@ -45,8 +47,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { name, amount, techId, notes } = await req.json();
+  const parsedAmount = positiveNumber(amount);
 
-  if (!amount || amount <= 0) {
+  if (parsedAmount === null || parsedAmount > 100_000_000) {
     return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 });
   }
 
@@ -61,27 +64,27 @@ export async function POST(req: NextRequest) {
 
   const allocation = await prisma.fundAllocation.create({
     data: {
-      name: name || null,
-      amount,
+      name: cleanText(name, 200) || null,
+      amount: parsedAmount,
       techId,
       createdById: session.user.id!,
-      notes: notes || null,
+      notes: cleanText(notes, 2_000) || null,
     },
     include: fundInclude,
   });
 
   // Notification email to tech
   if (tech.email) {
-    const fundName = name || 'Fund Allocation';
+    const fundName = cleanText(name, 200) || 'Fund Allocation';
     sendCustomEmail({
       to: tech.email,
-      subject: `💰 ${fundName} — $${amount} allocated to you`,
+      subject: `💰 ${fundName} — $${parsedAmount} allocated to you`,
       html: renderPremiumEmail({
-        preview: `${fundName}: $${amount.toFixed(2)} allocated`,
+        preview: `${fundName}: $${parsedAmount.toFixed(2)} allocated`,
         eyebrow: 'Technician funds',
         title: 'Funds allocated',
         recipientName: tech.name,
-        bodyHtml: `<p style="margin:0 0 18px;">A new allocation has been added to your account.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8eef5;border-left:4px solid #093a68;"><tr><td style="padding:18px 20px;"><span style="display:block;color:#525252;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeEmailHtml(fundName)}</span><strong style="display:block;margin-top:4px;color:#062d52;font-size:24px;">$${amount.toFixed(2)}</strong>${notes ? `<span style="display:block;margin-top:8px;color:#525252;font-size:13px;">${escapeEmailHtml(notes)}</span>` : ''}</td></tr></table><p style="margin:18px 0 0;">Sign in to view the allocation and record expenses.</p>`,
+        bodyHtml: `<p style="margin:0 0 18px;">A new allocation has been added to your account.</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e8eef5;border-left:4px solid #093a68;"><tr><td style="padding:18px 20px;"><span style="display:block;color:#525252;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeEmailHtml(fundName)}</span><strong style="display:block;margin-top:4px;color:#062d52;font-size:24px;">$${parsedAmount.toFixed(2)}</strong>${notes ? `<span style="display:block;margin-top:8px;color:#525252;font-size:13px;">${escapeEmailHtml(cleanText(notes, 2_000))}</span>` : ''}</td></tr></table><p style="margin:18px 0 0;">Sign in to view the allocation and record expenses.</p>`,
         cta: { label: 'Open Splash Air CRM', url: process.env.NEXTAUTH_URL || 'https://splashaircrmzw.site' },
       }),
       category: 'fund-allocated',
@@ -94,7 +97,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id!,
       userName: session.user.name || 'Admin',
       action: 'allocate_fund',
-      reason: `$${amount} allocated to ${tech.name}${name ? ` — ${name}` : ''}`,
+      reason: `$${parsedAmount} allocated to ${tech.name}${name ? ` — ${name}` : ''}`,
     },
   });
 
