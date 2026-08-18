@@ -22,6 +22,15 @@ export function cleanText(value: unknown, max = 5000): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+export function boundedStringArray(value: unknown, maxItems: number, maxLength: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().slice(0, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
 export function positiveNumber(value: unknown): number | null {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;

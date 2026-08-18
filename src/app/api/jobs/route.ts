@@ -3,7 +3,7 @@ import { prisma } from '@/app/lib/db';
 import { auth, filterFinancialArray, authorizeRole } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
-import { auditServiceAction } from '@/app/lib/serviceAuth';
+import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
 
 function minutes(value: string): number {
@@ -82,14 +82,15 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
+    // Technicians may update assigned jobs, but may not create or assign jobs.
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales']);
     if (forbidden) return forbidden;
 
     const body = await request.json();
     const {
       techIds, coTechIds,
       diagnostics, recurring, comments, history, gasUsageRecords, consumables, auditLogs,
-      customer,
+      customer: _customer,
       id,
       ...jobData
     } = body;
@@ -101,6 +102,37 @@ export async function POST(request: NextRequest) {
       photos: (jobData.photos as string[]) || [],
       alerts: (jobData.alerts as string[]) || [],
     });
+
+    const validSources = new Set(['admin', 'portal', 'phone', 'whatsapp', 'website', 'referral', 'facebook', 'google', 'walk_in', 'repeat']);
+    const validTypes = new Set(['installation', 'maintenance', 'repair', 'sales', 'inspection', 'callout']);
+    const validUnits = new Set(['Split_System', 'Ducted', 'Package_Unit', 'Multi_Head', 'Cassette', 'VRV_VRF', 'Refrigeration_System', 'Chiller', 'Heat_Pump', 'Precision_Cooling']);
+    const validIssues = new Set(['install', 'repair', 'service', 'quote']);
+    const validPriorities = new Set(['emergency', 'urgent', 'high', 'normal', 'medium', 'low']);
+    const validStatuses = new Set(['draft', 'scheduled', 'dispatched', 'on_route', 'in_progress', 'on_site', 'awaiting_parts', 'completed', 'cancelled', 'pending_parts', 'unallocated', 'pending_booking']);
+    const customerId = cleanText(prismaData.customerId, 100);
+    const siteId = cleanText(prismaData.siteId, 100);
+    const equipmentId = cleanText(prismaData.equipmentId, 100);
+    if (!customerId || !cleanText(prismaData.title, 200) || !cleanText(prismaData.date, 10) || !/^\d{4}-\d{2}-\d{2}$/.test(String(prismaData.date)) || !/^\d{2}:\d{2}$/.test(String(prismaData.time || '')) || !validSources.has(String(prismaData.source)) || !validTypes.has(String(prismaData.type)) || !validUnits.has(String(prismaData.unitType)) || !validIssues.has(String(prismaData.issue)) || !validPriorities.has(String(prismaData.priority)) || !validStatuses.has(String(prismaData.status))) {
+      return NextResponse.json({ error: 'Invalid customer, job details, date, time, or enum value' }, { status: 400 });
+    }
+    const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+    if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+    if (siteId) {
+      const site = await prisma.serviceSite.findFirst({ where: { id: siteId, customerId }, select: { id: true } });
+      if (!site) return NextResponse.json({ error: 'Site does not belong to customer' }, { status: 400 });
+    }
+    if (equipmentId) {
+      const equipment = await prisma.equipment.findFirst({ where: { id: equipmentId, customerId, ...(siteId ? { siteId } : {}) }, select: { id: true } });
+      if (!equipment) return NextResponse.json({ error: 'Equipment does not belong to customer/site' }, { status: 400 });
+    }
+    const assignmentIds = [...(Array.isArray(techIds) ? techIds : []), ...(Array.isArray(coTechIds) ? coTechIds : [])];
+    if ((techIds !== undefined && !Array.isArray(techIds)) || (coTechIds !== undefined && !Array.isArray(coTechIds)) || assignmentIds.some((id) => typeof id !== 'string')) {
+      return NextResponse.json({ error: 'Technician assignments must be arrays' }, { status: 400 });
+    }
+    if (assignmentIds.length) {
+      const techCount = await prisma.user.count({ where: { id: { in: assignmentIds }, role: 'tech' } });
+      if (techCount !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts' }, { status: 400 });
+    }
 
     if (techIds?.length && prismaData.date && prismaData.time) {
       const start = minutes(prismaData.time as string);

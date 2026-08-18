@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { auditServiceAction, cleanText, FIELD_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
+import { auditServiceAction, boundedStringArray, cleanText, FIELD_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
 import type { UnitType } from '@prisma/client';
 
 const UNIT_TYPES = new Set(['Split_System', 'Ducted', 'Package_Unit', 'Multi_Head', 'Cassette', 'VRV_VRF', 'Refrigeration_System', 'Chiller', 'Heat_Pump', 'Precision_Cooling']);
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       serialNumber: cleanText(body.serialNumber, 120) || null,
       installDate: cleanText(body.installDate, 10) || null,
       warrantyExpiry: cleanText(body.warrantyExpiry, 10) || null,
-      photos: Array.isArray(body.photos) ? body.photos.filter((p: unknown) => typeof p === 'string').slice(0, 20) : [],
+      photos: boundedStringArray(body.photos, 20, 2_000_000).filter((photo) => /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(photo) || /^https:\/\//i.test(photo)),
       notes: cleanText(body.notes) || null,
     },
     include: { site: true, jobs: true },

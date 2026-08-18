@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { FINANCE_ROLES, FIELD_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { session, error } = await serviceSession([...FIELD_ROLES, ...OPERATIONS_ROLES, ...FINANCE_ROLES, 'sales']);
+    if (error) return error;
 
     const userRole = (session.user as any).role;
     const { searchParams } = new URL(request.url);
@@ -16,6 +16,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!['owner', 'admin'].includes(userRole)) {
       where.role = 'tech';
     } else if (role) {
+      if (!['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech', 'client'].includes(role)) {
+        return NextResponse.json({ error: 'Invalid role filter' }, { status: 400 });
+      }
       where.role = role;
     }
 

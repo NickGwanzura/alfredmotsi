@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { sendPortalInviteEmail } from '@/app/lib/email/send';
+import { getAppOrigin } from '@/app/lib/brand';
 
 interface PortalInviteRequest {
   to: string;
@@ -48,6 +49,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: 'Missing required fields', fields: missingFields },
         { status: 400 }
       );
+    }
+
+    if (loginUrl) {
+      try {
+        const parsedLoginUrl = new URL(loginUrl.trim());
+        if (parsedLoginUrl.origin !== new URL(getAppOrigin()).origin) {
+          return NextResponse.json({ error: 'loginUrl must use the configured application origin' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'loginUrl must be a valid URL' }, { status: 400 });
+      }
     }
 
 

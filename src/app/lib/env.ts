@@ -18,11 +18,22 @@ export function validateEnv(): { valid: boolean; missing: string[]; errors: stri
   // Accept either AUTH_SECRET (NextAuth v5) or NEXTAUTH_SECRET (v4 compat)
   if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
     missing.push('AUTH_SECRET');
+  } else if (process.env.NODE_ENV === 'production' && (process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? '').length < 32) {
+    errors.push('AUTH_SECRET/NEXTAUTH_SECRET must be at least 32 characters in production');
   }
 
   // NEXTAUTH_URL is required for correct auth redirects
   if (!process.env.NEXTAUTH_URL && process.env.NODE_ENV === 'production') {
     missing.push('NEXTAUTH_URL');
+  }
+
+  if (process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL) {
+    try {
+      const origin = new URL(process.env.NEXTAUTH_URL);
+      if (origin.protocol !== 'https:') errors.push('NEXTAUTH_URL must use HTTPS in production');
+    } catch {
+      errors.push('NEXTAUTH_URL must be a valid URL');
+    }
   }
 
   if (missing.length > 0) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/lib/auth/auth';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
 import { isAdmin } from '@/app/lib/auth/auth';
+import { getAppOrigin } from '@/app/lib/brand';
 
 interface UserInviteRequest {
   to: string;
@@ -50,6 +51,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: 'Missing required fields', fields: missingFields },
         { status: 400 }
       );
+    }
+
+    try {
+      const parsedResetUrl = new URL(resetUrl.trim());
+      const appOrigin = new URL(getAppOrigin()).origin;
+      if (parsedResetUrl.origin !== appOrigin || !parsedResetUrl.pathname.startsWith('/auth/reset-password/')) {
+        return NextResponse.json({ error: 'resetUrl must be a same-origin password reset link' }, { status: 400 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'resetUrl must be a valid URL' }, { status: 400 });
     }
 
 

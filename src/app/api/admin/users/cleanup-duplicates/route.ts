@@ -11,6 +11,7 @@ export async function POST(): Promise<NextResponse> {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const actorIsOwner = session.user.role === 'owner';
 
   const users = await prisma.user.findMany({
     select: { id: true, email: true, role: true, createdAt: true },
@@ -28,9 +29,12 @@ export async function POST(): Promise<NextResponse> {
   const toDelete: string[] = [];
   for (const [, group] of byEmail) {
     if (group.length < 2) continue;
-    // Prefer keeping an admin account over a tech account
-    const adminAcc = group.find((u: Record<string, unknown>) => u.id === session.user.id || (u as any).role === 'admin');
-    const keep = adminAcc || group[0];
+    // Preserve the owner account above every other role. An ordinary admin
+    // must never be able to delete or merge an owner account.
+    const ownerAcc = group.find((u) => u.role === 'owner');
+    if (ownerAcc && !actorIsOwner) continue;
+    const adminAcc = group.find((u) => u.id === session.user.id || u.role === 'admin');
+    const keep = ownerAcc || adminAcc || group[0];
     for (const u of group) {
       if (u.id !== keep.id && u.id !== session.user.id) toDelete.push(u.id);
     }

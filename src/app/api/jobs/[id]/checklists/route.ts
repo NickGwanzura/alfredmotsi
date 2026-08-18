@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import type { ChecklistResult } from '@prisma/client';
-import { auditServiceAction, canAccessJob, FIELD_ROLES, serviceSession } from '@/app/lib/serviceAuth';
+import { auditServiceAction, boundedStringArray, canAccessJob, FIELD_ROLES, serviceSession } from '@/app/lib/serviceAuth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await serviceSession(FIELD_ROLES);
@@ -38,7 +38,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!body.responseId || !validResults.has(body.result)) return NextResponse.json({ error: 'Response id and valid result required' }, { status: 400 });
   const existingResponse = await prisma.checklistResponse.findUnique({ where: { id: body.responseId }, include: { jobChecklist: { select: { jobId: true } } } });
   if (!existingResponse || existingResponse.jobChecklist.jobId !== id) return NextResponse.json({ error: 'Checklist response not found' }, { status: 404 });
-  const response = await prisma.checklistResponse.update({ where: { id: body.responseId }, data: { result: body.result as ChecklistResult, notes: typeof body.notes === 'string' ? body.notes.trim().slice(0, 5000) : null, photos: Array.isArray(body.photos) ? body.photos.filter((value: unknown) => typeof value === 'string').slice(0, 10) : [] } });
+  const photos = boundedStringArray(body.photos, 10, 2_000_000);
+  if (photos.some((photo) => !/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(photo) && !/^https:\/\//i.test(photo))) return NextResponse.json({ error: 'Checklist photos must be HTTPS URLs or base64 images' }, { status: 400 });
+  const response = await prisma.checklistResponse.update({ where: { id: body.responseId }, data: { result: body.result as ChecklistResult, notes: typeof body.notes === 'string' ? body.notes.trim().slice(0, 5000) : null, photos } });
   const checklist = await prisma.jobChecklist.findUnique({ where: { id: response.jobChecklistId }, include: { responses: true } });
   if (checklist && checklist.responses.every((item) => item.result !== 'pending')) await prisma.jobChecklist.update({ where: { id: checklist.id }, data: { completedAt: new Date(), completedBy: session!.user.id } });
   await auditServiceAction(session!, 'update_checklist', `Updated checklist response ${response.id}`, id);

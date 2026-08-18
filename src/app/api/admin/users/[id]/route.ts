@@ -14,6 +14,11 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
   const { name, email, role, phone, specialty, newPassword } = body;
+  const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } });
+  if (!target) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (session.user.role !== 'owner' && target.role === 'owner') {
+    return NextResponse.json({ error: 'Only an owner can modify an owner account' }, { status: 403 });
+  }
 
   if (role && !['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech', 'client'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
@@ -23,20 +28,25 @@ export async function PATCH(
   if (id === session.user.id && role && role !== session.user.role) {
     return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 });
   }
+  if (role === 'owner' && session.user.role !== 'owner') {
+    return NextResponse.json({ error: 'Only an owner can assign the owner role' }, { status: 403 });
+  }
 
   // If email is changing, check it isn't already taken
-  if (email) {
-    const conflict = await prisma.user.findFirst({ where: { email, NOT: { id } } });
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  if (normalizedEmail) {
+    const conflict = await prisma.user.findFirst({ where: { email: normalizedEmail, NOT: { id } } });
     if (conflict) return NextResponse.json({ error: 'Email already in use by another user' }, { status: 409 });
   }
 
   const updateData: Record<string, unknown> = {};
-  if (name) updateData.name = name.trim();
-  if (email) updateData.email = email.trim().toLowerCase();
+  if (name) updateData.name = String(name).trim().slice(0, 160);
+  if (normalizedEmail) updateData.email = normalizedEmail;
   if (role) updateData.role = role;
   if (phone !== undefined) updateData.phone = phone || null;
   if (specialty !== undefined) updateData.specialty = specialty || null;
   if (newPassword) {
+    if (typeof newPassword !== 'string' || newPassword.length < 8) return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     updateData.password = await bcrypt.hash(newPassword, 12);
     updateData.passwordChanged = false;
   }
@@ -80,6 +90,9 @@ export async function DELETE(
 
   const targetUser = await prisma.user.findUnique({ where: { id } });
   if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (session.user.role !== 'owner' && targetUser.role === 'owner') {
+    return NextResponse.json({ error: 'Only an owner can delete an owner account' }, { status: 403 });
+  }
 
   // Reassign related records to the deleting admin before removing the user
   const adminId = session.user.id;

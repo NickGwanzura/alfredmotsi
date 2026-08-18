@@ -32,7 +32,13 @@ async function getOrCreate() {
 }
 
 export async function GET() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch (error) {
+    console.error('[company-profile] Auth configuration unavailable:', error);
+    return NextResponse.json({ error: 'Authentication service is not configured' }, { status: 503 });
+  }
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -41,7 +47,13 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch (error) {
+    console.error('[company-profile] Auth configuration unavailable:', error);
+    return NextResponse.json({ error: 'Authentication service is not configured' }, { status: 503 });
+  }
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!isAdmin(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -73,11 +85,15 @@ export async function PUT(req: NextRequest) {
   const existing = await getOrCreate(); // ensure it exists
   if (!existing) return NextResponse.json({ error: 'Company profile storage is not ready yet. Please retry shortly.' }, { status: 503 });
 
-  const profile = await prisma.companyProfile.update({
-    where: { id: 'default' },
-    data: updateData,
-  });
-  clearCompanyCache();
-
-  return NextResponse.json(profile);
+  try {
+    const profile = await prisma.companyProfile.update({
+      where: { id: 'default' },
+      data: updateData,
+    });
+    clearCompanyCache();
+    return NextResponse.json(profile);
+  } catch (error) {
+    console.error('[company-profile] Update unavailable:', error);
+    return NextResponse.json({ error: 'Company profile storage is not ready yet. Please retry shortly.' }, { status: 503 });
+  }
 }

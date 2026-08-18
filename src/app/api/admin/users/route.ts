@@ -46,6 +46,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   }
+  if (role === 'owner' && session.user.role !== 'owner') {
+    return NextResponse.json({ error: 'Only an owner can create another owner account' }, { status: 403 });
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {

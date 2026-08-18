@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { FINANCE_ROLES, serviceSession, auditServiceAction } from '@/app/lib/serviceAuth';
+import { calculateTotals, isoDate, parseLineItems } from '@/app/lib/financial';
 
 function genRef(prefix: string) {
   const d = new Date();
@@ -25,22 +26,31 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const { customerId, jobId, quoteId, dueDate, taxRate = 15.5, discount = 0, notes, lineItems } = await req.json();
-
-  if (!customerId || !dueDate || !lineItems?.length) {
-    return NextResponse.json({ error: 'Customer, due date, and line items are required' }, { status: 400 });
+  const items = parseLineItems(lineItems);
+  const totals = calculateTotals(items || [], taxRate, discount);
+  const safeDueDate = isoDate(dueDate);
+  if (!customerId || !safeDueDate || !items || !totals) {
+    return NextResponse.json({ error: 'Customer, valid due date, and valid line items are required' }, { status: 400 });
   }
-
-  for (const item of lineItems) {
-    if (!item.description) {
-      return NextResponse.json({ error: 'All line items must have a description' }, { status: 400 });
-    }
+  const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+  if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+  const itemIds = [...new Set(items.flatMap((item) => item.itemId ? [item.itemId] : []))];
+  const pricebookIds = [...new Set(items.flatMap((item) => item.pricebookItemId ? [item.pricebookItemId] : []))];
+  const [inventoryCount, pricebookCount] = await Promise.all([
+    itemIds.length ? prisma.inventoryItem.count({ where: { id: { in: itemIds } } }) : 0,
+    pricebookIds.length ? prisma.pricebookItem.count({ where: { id: { in: pricebookIds } } }) : 0,
+  ]);
+  if (inventoryCount !== itemIds.length || pricebookCount !== pricebookIds.length) {
+    return NextResponse.json({ error: 'A line item references an unknown catalogue item' }, { status: 400 });
   }
-
-  const subtotal = lineItems.reduce((s: number, l: { total: number }) => s + (l.total || 0), 0);
-  const rate = parseFloat(String(taxRate)) || 15.5;
-  const safeDiscount = Math.max(0, Math.min(Number(discount) || 0, subtotal));
-  const tax = (subtotal - safeDiscount) * (rate / 100);
-  const total = subtotal - safeDiscount + tax;
+  if (jobId) {
+    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { customerId: true } });
+    if (!job || job.customerId !== customerId) return NextResponse.json({ error: 'Job does not belong to customer' }, { status: 400 });
+  }
+  if (quoteId) {
+    const quote = await prisma.quote.findUnique({ where: { id: quoteId }, select: { customerId: true } });
+    if (!quote || quote.customerId !== customerId) return NextResponse.json({ error: 'Quote does not belong to customer' }, { status: 400 });
+  }
   const today = new Date().toISOString().split('T')[0];
 
   const invoice = await prisma.invoice.create({
@@ -50,24 +60,16 @@ export async function POST(req: NextRequest) {
       jobId: jobId || null,
       quoteId: quoteId || null,
       issueDate: today,
-      dueDate,
-      subtotal,
-      discount: safeDiscount,
-      taxRate: rate,
-      tax,
-      total,
-      balance: total,
+      dueDate: safeDueDate,
+      subtotal: totals.subtotal,
+      discount: totals.discount,
+      taxRate: totals.taxRate,
+      tax: totals.tax,
+      total: totals.total,
+      balance: totals.total,
       notes,
       lineItems: {
-        create: lineItems.map((l: { description: string; quantity: number; unitPrice: number; total: number; itemId?: string }) => ({
-          description: l.description,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          total: l.total,
-          itemId: l.itemId || null,
-          pricebookItemId: (l as any).pricebookItemId || null,
-          category: (l as any).category || 'service',
-        })),
+        create: items,
       },
     },
     include: { lineItems: true, payments: true, customer: { select: { name: true, email: true, phone: true, address: true } }, job: { select: { id: true, jobCardRef: true, title: true } } },

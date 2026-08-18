@@ -103,12 +103,13 @@ export async function POST(
     const fileName = typeof body.fileName === 'string' ? body.fileName.trim().slice(0, 255) : '';
     const contentType = typeof body.contentType === 'string' ? body.contentType.trim().toLowerCase().slice(0, 120) : '';
     const dataUrl = typeof body.dataUrl === 'string' && body.dataUrl.trim() ? body.dataUrl.trim() : null;
-    const url = typeof body.url === 'string' && body.url.trim() ? body.url.trim() : null;
+    const url = typeof body.url === 'string' && body.url.trim() ? body.url.trim().slice(0, 2048) : null;
     const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 2000) : null;
     const parsedSize = Number(body.size);
     const size = Number.isFinite(parsedSize) && parsedSize > 0 ? Math.round(parsedSize) : null;
 
-    if (!fileName || !contentType) {
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+    if (!fileName || !contentType || !allowedTypes.has(contentType)) {
       return NextResponse.json({ error: 'fileName and contentType are required' }, { status: 400 });
     }
 
@@ -119,14 +120,14 @@ export async function POST(
     if (url) {
       try {
         const parsedUrl = new URL(url);
-        if (!['https:', 'http:'].includes(parsedUrl.protocol)) throw new Error('invalid protocol');
+        if (parsedUrl.protocol !== 'https:') throw new Error('invalid protocol');
       } catch {
         return NextResponse.json({ error: 'url must be a valid HTTP(S) URL' }, { status: 400 });
       }
     }
 
-    if (dataUrl && !dataUrl.startsWith('data:')) {
-      return NextResponse.json({ error: 'dataUrl must be a valid data URL' }, { status: 400 });
+    if (dataUrl && !new RegExp(`^data:${contentType.replace('/', '\\/')};base64,[a-z0-9+/=]+$`, 'i').test(dataUrl)) {
+      return NextResponse.json({ error: 'dataUrl must be a base64 image or PDF matching contentType' }, { status: 400 });
     }
 
     if (size && size > MAX_ATTACHMENT_BYTES) {

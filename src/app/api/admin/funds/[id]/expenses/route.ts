@@ -54,8 +54,11 @@ export async function POST(
 
   const { id } = await params;
   const { description, amount, jobId, receiptRef, receiptDataUrl, notes } = await req.json();
+  const parsedAmount = Number(amount);
+  const cleanDescription = typeof description === 'string' ? description.trim().slice(0, 500) : '';
+  const cleanNotes = typeof notes === 'string' ? notes.trim().slice(0, 2_000) : null;
 
-  if (!description || !amount || amount <= 0) {
+  if (!cleanDescription || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 100_000_000) {
     return NextResponse.json({ error: 'Description and a positive amount are required' }, { status: 400 });
   }
 
@@ -75,7 +78,7 @@ export async function POST(
     return NextResponse.json({ error: 'Cannot add expenses to a closed fund' }, { status: 400 });
   }
 
-  if (allocation.spent + amount > allocation.amount) {
+  if (allocation.spent + parsedAmount > allocation.amount) {
     return NextResponse.json({ error: 'Expense would exceed allocated amount' }, { status: 400 });
   }
 
@@ -85,18 +88,18 @@ export async function POST(
       data: {
         fundId: id,
         jobId: jobId || null,
-        description,
-        amount,
+        description: cleanDescription,
+        amount: parsedAmount,
         receiptRef: receiptRef || null,
-        receiptDataUrl: receiptDataUrl || null,
-        notes: notes || null,
+        receiptDataUrl: typeof receiptDataUrl === 'string' && receiptDataUrl.length <= 8_000_000 && (/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(receiptDataUrl) || /^https:\/\//i.test(receiptDataUrl)) ? receiptDataUrl : null,
+        notes: cleanNotes,
         recordedById: userId,
       },
       include: expenseInclude,
     }),
     prisma.fundAllocation.update({
       where: { id },
-      data: { spent: { increment: amount } },
+      data: { spent: { increment: parsedAmount } },
     }),
   ]);
 
@@ -121,7 +124,7 @@ export async function POST(
       userName: (session.user as any).name || 'User',
       action: 'record_expense',
       jobId: jobId || null,
-      reason: `$${amount} — ${description}${jobId ? ' (linked to job)' : ''}`,
+      reason: `$${parsedAmount} — ${cleanDescription}${jobId ? ' (linked to job)' : ''}`,
     },
   });
 
@@ -161,13 +164,16 @@ export async function PATCH(
   // Auth check
   const role = (session.user as any).role;
   const userId = session.user.id!;
-  if (!canAccessFund(role, expense.fund.techId, userId)) {
+  if (!isAdmin(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Calculate the spent delta
-  const oldAmount = expense.amount;
-  const newAmount = amount !== undefined ? amount : oldAmount;
+  const oldAmount = Number(expense.amount);
+  const newAmount = amount !== undefined ? Number(amount) : oldAmount;
+  if (!Number.isFinite(newAmount) || newAmount <= 0 || newAmount > 100_000_000) {
+    return NextResponse.json({ error: 'Amount must be positive and no greater than 100,000,000' }, { status: 400 });
+  }
   const spentDelta = newAmount - oldAmount;
 
   // Validate: spending cap
@@ -176,12 +182,16 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = {};
-  if (description !== undefined) data.description = description;
-  if (amount !== undefined && amount > 0) data.amount = amount;
+  if (description !== undefined) {
+    const cleanDescription = typeof description === 'string' ? description.trim().slice(0, 500) : '';
+    if (!cleanDescription) return NextResponse.json({ error: 'Description is required' }, { status: 400 });
+    data.description = cleanDescription;
+  }
+  if (amount !== undefined) data.amount = newAmount;
   if (jobId !== undefined) data.jobId = jobId || null;
   if (receiptRef !== undefined) data.receiptRef = receiptRef || null;
-  if (receiptDataUrl !== undefined) data.receiptDataUrl = receiptDataUrl || null;
-  if (notes !== undefined) data.notes = notes || null;
+  if (receiptDataUrl !== undefined) data.receiptDataUrl = typeof receiptDataUrl === 'string' && receiptDataUrl.length <= 8_000_000 && (/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(receiptDataUrl) || /^https:\/\//i.test(receiptDataUrl)) ? receiptDataUrl : null;
+  if (notes !== undefined) data.notes = typeof notes === 'string' ? notes.trim().slice(0, 2_000) || null : null;
 
   // Update expense and spent in transaction
   await prisma.$transaction([
@@ -256,7 +266,7 @@ export async function DELETE(
   // Auth check
   const role = (session.user as any).role;
   const userId = session.user.id!;
-  if (!canAccessFund(role, expense.fund.techId, userId)) {
+  if (!isAdmin(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

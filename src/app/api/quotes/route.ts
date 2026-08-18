@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { FINANCE_ROLES, OPERATIONS_ROLES, serviceSession, auditServiceAction } from '@/app/lib/serviceAuth';
+import { calculateTotals, isoDate, parseLineItems } from '@/app/lib/financial';
 
 function genRef() {
   const d = new Date();
@@ -25,11 +26,31 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const { customerId, jobId, leadId, issueDate, validUntil, tier = 'custom', taxRate = 15.5, discount = 0, terms, notes, lineItems } = await req.json();
-  if (!customerId || !validUntil || !Array.isArray(lineItems) || !lineItems.length) return NextResponse.json({ error: 'Customer, valid-until date, and line items are required' }, { status: 400 });
-  const subtotal: number = lineItems.reduce((s: number, l: { total: number }) => s + l.total, 0);
-  const safeDiscount = Math.max(0, Math.min(Number(discount) || 0, subtotal));
-  const tax = (subtotal - safeDiscount) * (taxRate / 100);
-  const total = subtotal - safeDiscount + tax;
+  const items = parseLineItems(lineItems);
+  const totals = calculateTotals(items || [], taxRate, discount);
+  const safeIssueDate = issueDate == null ? new Date().toISOString().slice(0, 10) : isoDate(issueDate);
+  const safeValidUntil = isoDate(validUntil);
+  if (!customerId || !safeValidUntil || !safeIssueDate || !items || !totals) return NextResponse.json({ error: 'Customer, valid dates, and valid line items are required' }, { status: 400 });
+  if (!['basic', 'standard', 'premium', 'custom'].includes(tier)) return NextResponse.json({ error: 'Invalid quote tier' }, { status: 400 });
+  const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+  if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+  const itemIds = [...new Set(items.flatMap((item) => item.itemId ? [item.itemId] : []))];
+  const pricebookIds = [...new Set(items.flatMap((item) => item.pricebookItemId ? [item.pricebookItemId] : []))];
+  const [inventoryCount, pricebookCount] = await Promise.all([
+    itemIds.length ? prisma.inventoryItem.count({ where: { id: { in: itemIds } } }) : 0,
+    pricebookIds.length ? prisma.pricebookItem.count({ where: { id: { in: pricebookIds } } }) : 0,
+  ]);
+  if (inventoryCount !== itemIds.length || pricebookCount !== pricebookIds.length) {
+    return NextResponse.json({ error: 'A line item references an unknown catalogue item' }, { status: 400 });
+  }
+  if (jobId) {
+    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { customerId: true } });
+    if (!job || job.customerId !== customerId) return NextResponse.json({ error: 'Job does not belong to customer' }, { status: 400 });
+  }
+  if (leadId) {
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { customerId: true } });
+    if (!lead || (lead.customerId && lead.customerId !== customerId)) return NextResponse.json({ error: 'Lead does not belong to customer' }, { status: 400 });
+  }
 
   const quote = await prisma.quote.create({
     data: {
@@ -38,25 +59,17 @@ export async function POST(req: NextRequest) {
       jobId: jobId || null,
       leadId: leadId || null,
       tier,
-      issueDate: issueDate || new Date().toISOString().slice(0, 10),
-      validUntil,
-      subtotal,
-      discount: safeDiscount,
-      taxRate,
-      tax,
-      total,
+      issueDate: safeIssueDate,
+      validUntil: safeValidUntil,
+      subtotal: totals.subtotal,
+      discount: totals.discount,
+      taxRate: totals.taxRate,
+      tax: totals.tax,
+      total: totals.total,
       notes,
       terms,
       lineItems: {
-        create: lineItems.map((l: { description: string; quantity: number; unitPrice: number; total: number; itemId?: string }) => ({
-          description: l.description,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          total: l.total,
-          itemId: l.itemId || null,
-          pricebookItemId: (l as any).pricebookItemId || null,
-          category: (l as any).category || 'service',
-        })),
+        create: items,
       },
     },
     include: { lineItems: true, customer: { select: { name: true } } },

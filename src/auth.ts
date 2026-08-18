@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/app/lib/db";
+import { clearLoginFailures, isLoginBlocked, recordLoginFailure } from "@/app/lib/auth/login-rate-limit";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -12,11 +13,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
           const email = (credentials.email as string).toLowerCase().trim();
+          if (isLoginBlocked(email, request)) return null;
           const user = await prisma.user.findUnique({
             where: { email },
             select: { id: true, email: true, name: true, password: true, role: true, image: true, passwordChanged: true, updatedAt: true },
@@ -30,6 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           );
 
           if (!isValidPassword) {
+            recordLoginFailure(email, request);
             // Audit failed login attempt
             await prisma.auditLog.create({
               data: {
@@ -40,6 +43,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }).catch(() => {});
             return null;
           }
+
+          clearLoginFailures(email, request);
 
           return {
             id: user.id,
@@ -62,17 +67,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         portalCode: { label: "Portal Code", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.portalCode) return null;
         try {
+          const email = (credentials.email as string).toLowerCase().trim();
+          if (isLoginBlocked(email, request)) return null;
           const customer = await prisma.customer.findFirst({
             where: {
-              email: (credentials.email as string).toLowerCase().trim(),
+              email,
               portalEnabled: true,
               portalCode: (credentials.portalCode as string).toUpperCase().trim(),
             },
           });
           if (!customer) {
+            recordLoginFailure(email, request);
             // Audit failed portal login
             await prisma.auditLog.create({
               data: {
@@ -83,6 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }).catch(() => {});
             return null;
           }
+          clearLoginFailures(email, request);
           return {
             id: customer.id,
             email: customer.email,
@@ -90,6 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: 'client',
             image: null,
             passwordChanged: true, // Portal users don't use password auth
+            userUpdatedAt: customer.updatedAt.toISOString(),
           };
         } catch {
           return null;
@@ -133,7 +143,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { id: token.id as string },
             select: { passwordChanged: true, role: true, updatedAt: true },
           });
-          if (dbUser) {
+          if (token.role === 'client') {
+            const customer = await prisma.customer.findUnique({
+              where: { id: token.id as string },
+              select: { updatedAt: true, portalEnabled: true },
+            });
+            if (!customer || !customer.portalEnabled) {
+              token.invalidated = true;
+            } else if (token.userUpdatedAt && customer.updatedAt.toISOString() !== token.userUpdatedAt) {
+              token.invalidated = true;
+            }
+          } else if (dbUser) {
             // Always refresh role to handle DB enum migrations
             token.role = dbUser.role;
             // Any account update, including a password reset, invalidates the
@@ -143,6 +163,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               token.invalidated = true;
             }
             token.passwordChanged = dbUser.passwordChanged;
+          } else if (token.role) {
+            // A deleted staff account must not retain access until JWT expiry.
+            token.invalidated = true;
           }
         } catch {
           // Silently fail — next request will retry

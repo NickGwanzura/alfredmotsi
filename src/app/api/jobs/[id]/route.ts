@@ -3,7 +3,7 @@ import { prisma } from '@/app/lib/db';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
-import { auditServiceAction } from '@/app/lib/serviceAuth';
+import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
 
 // Valid status transitions
@@ -121,6 +121,37 @@ export async function PUT(
     } = body;
 
     const updateData = jobFromClient(rawUpdate as Record<string, unknown>);
+    const isFieldTech = userRole === 'tech';
+    if (isFieldTech) {
+      // A technician can update field execution data only; assignment, customer,
+      // scheduling, and job classification remain dispatcher/admin controlled.
+      for (const key of ['source', 'customerId', 'siteId', 'equipmentId', 'leadId', 'title', 'type', 'unitType', 'issue', 'priority', 'date', 'time', 'durationMinutes']) {
+        delete updateData[key];
+      }
+    }
+    if (updateData.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(updateData.date))) {
+      return NextResponse.json({ error: 'Invalid job date' }, { status: 400 });
+    }
+    if (updateData.time !== undefined && !/^\d{2}:\d{2}$/.test(String(updateData.time))) {
+      return NextResponse.json({ error: 'Invalid job time' }, { status: 400 });
+    }
+    if (updateData.customerId || updateData.siteId || updateData.equipmentId) {
+      const customerId = cleanText(updateData.customerId || existingJob.customerId, 100);
+      const siteId = cleanText(updateData.siteId || existingJob.siteId, 100);
+      const equipmentId = cleanText(updateData.equipmentId || existingJob.equipmentId, 100);
+      const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+      if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      if (siteId && !await prisma.serviceSite.findFirst({ where: { id: siteId, customerId }, select: { id: true } })) return NextResponse.json({ error: 'Site does not belong to customer' }, { status: 400 });
+      if (equipmentId && !await prisma.equipment.findFirst({ where: { id: equipmentId, customerId, ...(siteId ? { siteId } : {}) }, select: { id: true } })) return NextResponse.json({ error: 'Equipment does not belong to customer/site' }, { status: 400 });
+    }
+    const assignmentIds = [...(Array.isArray(techIds) ? techIds : []), ...(Array.isArray(coTechIds) ? coTechIds : [])];
+    if (!isFieldTech && (techIds !== undefined || coTechIds !== undefined)) {
+      if ((techIds !== undefined && !Array.isArray(techIds)) || (coTechIds !== undefined && !Array.isArray(coTechIds)) || assignmentIds.some((tid) => typeof tid !== 'string')) return NextResponse.json({ error: 'Technician assignments must be arrays' }, { status: 400 });
+      if (assignmentIds.length) {
+        const techCount = await prisma.user.count({ where: { id: { in: assignmentIds }, role: 'tech' } });
+        if (techCount !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts' }, { status: 400 });
+      }
+    }
 
     // Validate status transition
     const oldStatus = existingJob.status as string;
@@ -143,8 +174,8 @@ export async function PUT(
         data: {
           ...updateData,
           version: { increment: 1 },
-          ...(techIds && { technicians: { set: techIds.map((tid: string) => ({ id: tid })) } }),
-          ...(coTechIds && { coTechnicians: { set: coTechIds.map((tid: string) => ({ id: tid })) } }),
+          ...(!isFieldTech && techIds && { technicians: { set: techIds.map((tid: string) => ({ id: tid })) } }),
+          ...(!isFieldTech && coTechIds && { coTechnicians: { set: coTechIds.map((tid: string) => ({ id: tid })) } }),
         },
         include: {
           customer: true, technicians: true, coTechnicians: true, diagnostics: true,
@@ -195,7 +226,7 @@ export async function PUT(
     });
 
     // Push to newly assigned techs (those not previously assigned)
-    if (techIds?.length) {
+    if (!isFieldTech && techIds?.length) {
       const prevTechIds = existingJob.technicians.map((t: any) => t.id);
       const newlyAssigned = techIds.filter((tid: string) => !prevTechIds.includes(tid));
       if (newlyAssigned.length) {
@@ -209,7 +240,7 @@ export async function PUT(
       }
     }
 
-    const changedAssignment = Array.isArray(techIds) && techIds.some((tid: string) => !existingJob.technicians.some((tech) => tech.id === tid));
+    const changedAssignment = !isFieldTech && Array.isArray(techIds) && techIds.some((tid: string) => !existingJob.technicians.some((tech) => tech.id === tid));
     await auditServiceAction(session, changedAssignment ? 'assign_technician' : (newStatus === 'cancelled' ? 'cancel_job' : newStatus === 'dispatched' ? 'dispatch_job' : 'update_job'), `Updated job ${id}${newStatus ? ` to ${newStatus}` : ''}`, id);
     if (newStatus === 'on_route') emitServiceNotification({ event: 'job.on_route', channel: 'whatsapp', jobId: id, payload: { jobId: id } }).catch(() => undefined);
     if (newStatus === 'completed') emitServiceNotification({ event: 'job.completed', channel: 'email', jobId: id, payload: { jobId: id } }).catch(() => undefined);

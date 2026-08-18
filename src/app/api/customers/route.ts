@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import crypto from 'node:crypto';
+import { redactPortalCode } from '@/app/lib/customerTransform';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -17,7 +19,8 @@ export async function GET(): Promise<NextResponse> {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(customers);
+    const canViewPortalCode = ['owner', 'admin'].includes(session.user.role);
+    return NextResponse.json(customers.map((customer) => redactPortalCode(customer, canViewPortalCode)));
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });
@@ -33,13 +36,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (forbidden) return forbidden;
 
     const body = await request.json();
-    const { name, address, siteAddress, phone, whatsapp, email, notes } = body;
+    const { name, address, siteAddress, phone, whatsapp, notes } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 
     if (!name || !address || !phone || !email) {
       return NextResponse.json(
         { error: 'Name, address, phone, and email are required' },
         { status: 400 }
       );
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 });
     }
 
     const existing = await prisma.customer.findUnique({
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-   const portalCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+   const portalCode = crypto.randomBytes(6).toString('hex').toUpperCase();
 
    const user = session.user as { id: string; name?: string | null };
    const customer = await prisma.customer.create({
@@ -83,7 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
      },
    }).catch(() => {});
 
-   return NextResponse.json(customer, { status: 201 });
+   return NextResponse.json(redactPortalCode(customer, ['owner', 'admin'].includes(session.user.role)), { status: 201 });
   } catch (error) {
     console.error('Error creating customer:', error);
     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });

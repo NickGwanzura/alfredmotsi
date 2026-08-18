@@ -24,14 +24,12 @@
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.21.0",
-    "next": "16.2.1",
-    "next-auth": "^5.0.0-beta.30",
+    "next": "^16.3.1",
+    "next-auth": "^5.0.0-beta.32",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-email": "^5.2.10",
-    "resend": "^6.9.4",
-    "web-push": "^3.6.7",
-    "xlsx": "^0.18.5"
+    "resend": "^6.20.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -41,10 +39,14 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "16.2.1",
+    "eslint-config-next": "^16.3.1",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "esbuild": "^0.28.1"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { FIELD_ROLES, FINANCE_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
+import { redactPortalCode } from '@/app/lib/customerTransform';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await serviceSession([...FIELD_ROLES, ...OPERATIONS_ROLES, ...FINANCE_ROLES, 'sales']);
@@ -25,7 +26,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       delete copy.agreedAmount;
       return copy;
     });
-    return NextResponse.json({ ...customer, quotes: [], invoices: [], payments: [], contracts: safeContracts });
+    return NextResponse.json(redactPortalCode({ ...customer, quotes: [], invoices: [], payments: [], contracts: safeContracts }, false));
   }
-  return NextResponse.json(customer);
+  return NextResponse.json(redactPortalCode(customer, true));
 }
