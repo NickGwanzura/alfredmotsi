@@ -8,11 +8,12 @@ const resetAttemptMap = new Map<string, { count: number; resetAt: number }>();
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')?.trim() || '';
-  if (!token) return NextResponse.json({ valid: false, error: 'Reset token is missing' }, { status: 400 });
+  const headers = { 'Cache-Control': 'no-store, max-age=0' };
+  if (!token) return NextResponse.json({ valid: false, error: 'Reset token is missing' }, { status: 400, headers });
   const record = await prisma.passwordResetToken.findUnique({ where: { token: hashPasswordResetToken(token) }, select: { used: true, expiresAt: true } });
-  if (!record || record.used) return NextResponse.json({ valid: false, error: 'Invalid or expired reset link' }, { status: 400 });
-  if (record.expiresAt <= new Date()) return NextResponse.json({ valid: false, error: 'This reset link has expired' }, { status: 400 });
-  return NextResponse.json({ valid: true, expiresAt: record.expiresAt });
+  if (!record || record.used) return NextResponse.json({ valid: false, error: 'Invalid or expired reset link' }, { status: 400, headers });
+  if (record.expiresAt <= new Date()) return NextResponse.json({ valid: false, error: 'This reset link has expired' }, { status: 400, headers });
+  return NextResponse.json({ valid: true, expiresAt: record.expiresAt }, { headers });
 }
 
 export async function POST(request: NextRequest) {

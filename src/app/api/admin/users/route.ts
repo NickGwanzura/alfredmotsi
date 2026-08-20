@@ -81,7 +81,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
    const rawToken = await createPasswordResetToken(user.email);
    const appUrl = getAppOrigin();
-   const resetUrl = `${appUrl.replace(/\/$/, '')}/auth/reset-password/${rawToken}`;
+   // Keep the opaque token intact when email clients rewrite URL characters.
+   const resetUrl = `${appUrl.replace(/\/$/, '')}/auth/reset-password/${encodeURIComponent(rawToken)}`;
    const emailResult = await sendPasswordResetEmail({
      to: user.email,
      userName: user.name,
