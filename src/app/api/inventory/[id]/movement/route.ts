@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
+import { cleanText, positiveNumber, redactInventoryItem } from '@/app/lib/serviceAuth';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -36,5 +36,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (result === null) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (result === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Insufficient stock' }, { status: 400 });
 
-  return NextResponse.json({ movement: result.movement, item: result.updated });
+  return NextResponse.json({ movement: result.movement, item: redactInventoryItem(result.updated, session.user.role as string) });
 }

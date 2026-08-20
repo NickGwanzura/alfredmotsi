@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { canViewFinancials } from '@/app/lib/permissions';
 import type { AuditAction } from '@prisma/client';
 
 export const OPERATIONS_ROLES = ['owner', 'admin', 'dispatcher', 'sales'] as const;
@@ -44,6 +45,15 @@ export function nonNegativeNumber(value: unknown): number | null {
 export function boundedNumber(value: unknown, min: number, max: number): number | null {
   const number = Number(value);
   return Number.isFinite(number) && number >= min && number <= max ? number : null;
+}
+
+/** Remove inventory pricing from responses visible to field and operations roles. */
+export function redactInventoryItem<T extends Record<string, unknown>>(item: T, role: string): T {
+  if (canViewFinancials(role)) return item;
+  const safeItem = { ...item };
+  delete safeItem.costPrice;
+  delete safeItem.sellPrice;
+  return safeItem;
 }
 
 /** Verify that a field user may only operate on an assigned job. */

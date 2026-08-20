@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { auditServiceAction, canAccessJob, FIELD_ROLES, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
+import { auditServiceAction, canAccessJob, FIELD_ROLES, positiveNumber, redactInventoryItem, serviceSession } from '@/app/lib/serviceAuth';
+
+function redactPartUsage<T extends Record<string, unknown>>(usage: T, role: string): T {
+  const safeUsage = { ...usage };
+  if (!['owner', 'admin', 'accounts'].includes(role)) {
+    delete safeUsage.unitCost;
+    delete safeUsage.unitPrice;
+  }
+  const item = (safeUsage as Record<string, unknown>).item;
+  if (item && typeof item === 'object' && !Array.isArray(item)) {
+    (safeUsage as Record<string, unknown>).item = redactInventoryItem(item as Record<string, unknown>, role);
+  }
+  return safeUsage;
+}
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await serviceSession(FIELD_ROLES);
   if (error) return error;
   const { id } = await params;
   if (!session || !await canAccessJob(session.user.id!, session.user.role as string, id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  return NextResponse.json(await prisma.jobPartUsage.findMany({ where: { jobId: id }, include: { item: true }, orderBy: { recordedAt: 'desc' } }));
+  const usages = await prisma.jobPartUsage.findMany({ where: { jobId: id }, include: { item: true }, orderBy: { recordedAt: 'desc' } });
+  return NextResponse.json(usages.map((usage) => redactPartUsage(usage, session!.user.role as string)));
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return tx.jobPartUsage.findUnique({ where: { id: created.id }, include: { item: true } });
     });
     await auditServiceAction(session!, 'use_job_part', `Used ${quantity} of inventory item ${body.itemId}`, id);
-    return NextResponse.json(usage, { status: 201 });
+    return NextResponse.json(usage ? redactPartUsage(usage, session!.user.role as string) : usage, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') return NextResponse.json({ error: 'Insufficient stock' }, { status: 409 });
     if (error instanceof Error && error.message === 'ITEM_NOT_FOUND') return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });

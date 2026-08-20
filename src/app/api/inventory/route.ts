@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
-import { cleanText, nonNegativeNumber, FIELD_ROLES, FINANCE_ROLES, serviceSession } from '@/app/lib/serviceAuth';
+import { cleanText, nonNegativeNumber, FIELD_ROLES, FINANCE_ROLES, redactInventoryItem, serviceSession } from '@/app/lib/serviceAuth';
 
 function inventoryData(body: Record<string, unknown>) {
   const stockLevel = nonNegativeNumber(body.stockLevel);
@@ -22,7 +22,7 @@ function inventoryData(body: Record<string, unknown>) {
 }
 
 export async function GET() {
-  const { error } = await serviceSession([...FIELD_ROLES, ...FINANCE_ROLES]);
+  const { session, error } = await serviceSession([...FIELD_ROLES, ...FINANCE_ROLES]);
   if (error) return error;
 
   const items = await prisma.inventoryItem.findMany({
@@ -30,7 +30,7 @@ export async function GET() {
     orderBy: { name: 'asc' },
     take: 500,
   });
-  return NextResponse.json(items);
+  return NextResponse.json(items.map((item) => redactInventoryItem(item, session!.user.role as string)));
 }
 
 export async function POST(req: NextRequest) {

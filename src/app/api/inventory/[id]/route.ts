@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
 import { isAdmin } from '@/app/lib/auth/auth';
-import { cleanText, FIELD_ROLES, FINANCE_ROLES, nonNegativeNumber, serviceSession } from '@/app/lib/serviceAuth';
+import { cleanText, FIELD_ROLES, FINANCE_ROLES, nonNegativeNumber, redactInventoryItem, serviceSession } from '@/app/lib/serviceAuth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await serviceSession([...FIELD_ROLES, ...FINANCE_ROLES]);
+  const { session, error } = await serviceSession([...FIELD_ROLES, ...FINANCE_ROLES]);
   if (error) return error;
   const { id } = await params;
   const item = await prisma.inventoryItem.findUnique({
@@ -13,7 +13,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     include: { movements: { orderBy: { recordedAt: 'desc' }, take: 50 } },
   });
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(item);
+  return NextResponse.json({ ...redactInventoryItem(item, session!.user.role as string), movements: item.movements });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
