@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { createPasswordResetToken, revokePasswordResetToken, revokePasswordResetTokensForEmail } from '@/app/lib/auth/password-reset';
+import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
 import { getAppOrigin } from '@/app/lib/brand';
 
@@ -25,13 +25,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   if (!user.email) return NextResponse.json({ error: 'User has no email address' }, { status: 400 });
 
-  await revokePasswordResetTokensForEmail(user.email);
   const rawToken = await createPasswordResetToken(user.email);
   const appUrl = getAppOrigin();
   const result = await sendPasswordResetEmail({
     to: user.email,
     userName: user.name,
-    resetUrl: `${appUrl.replace(/\/$/, '')}/auth/reset-password/${rawToken}`,
+    resetUrl: `${appUrl.replace(/\/$/, '')}/auth/reset-password/${encodeURIComponent(rawToken)}`,
   });
 
   if (!result.success) {

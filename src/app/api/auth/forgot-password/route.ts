@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { sendPasswordResetEmail } from '@/app/lib/email/send';
-import { createPasswordResetToken, revokePasswordResetToken, revokePasswordResetTokensForEmail } from '@/app/lib/auth/password-reset';
+import { createPasswordResetToken, revokePasswordResetToken } from '@/app/lib/auth/password-reset';
 import { getAppOrigin } from '@/app/lib/brand';
 
 // Simple in-memory rate limit: max 3 requests per email per 10 minutes
@@ -10,6 +10,11 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 function checkRateLimit(email: string): { allowed: boolean; retryAfter?: number } {
   const key = email.toLowerCase().trim();
   const now = Date.now();
+  if (rateLimitMap.size > 10_000) {
+    for (const [staleKey, staleEntry] of rateLimitMap) {
+      if (staleEntry.resetAt <= now) rateLimitMap.delete(staleKey);
+    }
+  }
   const entry = rateLimitMap.get(key);
 
   if (entry && now < entry.resetAt) {
@@ -34,13 +39,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Rate limit check
+    // Rate limit check (in-memory for fast rejection plus a database-backed
+    // limit so it remains effective across restarts and app instances).
     const limitCheck = checkRateLimit(email);
     if (!limitCheck.allowed) {
       return NextResponse.json(
         { error: `Too many requests. Try again in ${limitCheck.retryAfter} seconds.` },
         { status: 429 }
       );
+    }
+
+    const recentRequests = await prisma.emailDeliveryLog.count({
+      where: {
+        recipient: email,
+        category: 'password-reset',
+        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+    }).catch(() => 0);
+    if (recentRequests >= 3) {
+      return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 });
     }
 
     const user = await prisma.user.findUnique({
@@ -53,12 +70,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    await revokePasswordResetTokensForEmail(user.email);
     const rawToken = await createPasswordResetToken(user.email);
 
     // Build reset URL — send the RAW token (not the hash)
     const appUrl = getAppOrigin();
-    const resetUrl = `${appUrl}/auth/reset-password/${rawToken}`;
+    const resetUrl = `${appUrl}/auth/reset-password/${encodeURIComponent(rawToken)}`;
 
     const result = await sendPasswordResetEmail({
       to: user.email,

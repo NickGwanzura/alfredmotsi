@@ -10,6 +10,12 @@ export function hashPasswordResetToken(token: string): string {
 /** Create a one-hour, single-use reset token without ever storing the raw token. */
 export async function createPasswordResetToken(email: string): Promise<string> {
   const rawToken = crypto.randomBytes(32).toString('hex');
+  await prisma.passwordResetToken.deleteMany({
+    where: {
+      email: email.toLowerCase().trim(),
+      OR: [{ used: true }, { expiresAt: { lte: new Date() } }],
+    },
+  });
   await prisma.passwordResetToken.create({
     data: {
       email: email.toLowerCase().trim(),

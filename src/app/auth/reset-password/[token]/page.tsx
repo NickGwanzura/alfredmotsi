@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,13 +16,41 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setTokenValid(false);
+      setError('Reset token is missing');
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/auth/reset-password?token=${encodeURIComponent(token)}`)
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        setTokenValid(response.ok && data.valid === true);
+        if (!response.ok) setError(data.error || 'Invalid or expired reset link');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTokenValid(false);
+          setError('Could not verify this reset link. Please request a new one.');
+        }
+      });
+    return () => { cancelled = true; };
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!password || password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (tokenValid !== true) {
+      setError('This reset link is invalid or expired. Please request a new one.');
+      return;
+    }
+    if (!password || password.length < 12) {
+      setError('Password must be at least 12 characters');
       return;
     }
     if (password !== confirm) {
@@ -102,6 +130,7 @@ export default function ResetPasswordPage() {
               </div>
 
               {/* Error */}
+              {tokenValid === null && !error && <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">Checking reset link…</div>}
               {error && (
                 <div className="flex items-start gap-3 p-4 mb-6 rounded-xl bg-red-50 border border-red-100" role="alert">
                   <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -121,7 +150,7 @@ export default function ResetPasswordPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="At least 8 characters"
+                    placeholder="At least 12 characters"
                     autoComplete="new-password"
                     required
                   />
@@ -166,7 +195,7 @@ export default function ResetPasswordPage() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || tokenValid !== true}
                 className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-brand-600/20 mb-4"
               >
                 {loading ? (
