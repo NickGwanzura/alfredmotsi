@@ -20,7 +20,10 @@ interface InventoryItem {
   notes?: string;
 }
 
-const CATEGORIES = ['Parts', 'Tools', 'Refrigerants', 'Electrical', 'Filters', 'Consumables', 'Other'];
+const CATEGORIES = [
+  'Air Conditioning Units', 'Compressors', 'Copper & Fittings', 'Electrical & Controls',
+  'Installation Materials', 'Parts', 'Tools', 'Refrigerants', 'Filters', 'Consumables', 'Other',
+];
 
 export default function Inventory() {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -34,6 +37,7 @@ export default function Inventory() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [form, setForm] = useState<Partial<InventoryItem>>({});
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -54,12 +58,19 @@ export default function Inventory() {
   });
 
   const handleSave = async () => {
+    setError('');
     setSaving(true);
-    await fetch('/api/inventory', {
+    const res = await fetch('/api/inventory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      setError(payload.error || 'Could not add inventory item');
+      setSaving(false);
+      return;
+    }
     await load();
     setShowAdd(false);
     setForm({});
@@ -189,16 +200,18 @@ export default function Inventory() {
               <h3 className="font-semibold text-lg">Add Inventory Item</h3>
               <button onClick={() => setShowAdd(false)} className="bg-transparent border-none cursor-pointer text-text-secondary"><X size={20} /></button>
             </div>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { label: 'Name *', key: 'name', required: true },
+                { label: 'Item / Unit Name *', key: 'name', required: true, placeholder: 'e.g. 2.5kW Split AC Unit' },
                 { label: 'Brand', key: 'brand' },
-                { label: 'SKU', key: 'sku' },
+                { label: 'SKU / Model', key: 'sku', placeholder: 'Model or stock code' },
                 { label: 'Unit *', key: 'unit', required: true, placeholder: 'each, kg, m…' },
                 { label: 'Stock Level', key: 'stockLevel', type: 'number' },
                 { label: 'Reorder Level *', key: 'reorderLevel', type: 'number', required: true },
                 { label: 'Reorder Qty *', key: 'reorderQty', type: 'number', required: true },
                 { label: 'Supplier', key: 'supplier' },
+                { label: 'Supplier Reference', key: 'supplierRef', placeholder: 'PO or supplier code' },
                 { label: 'Cost Price', key: 'costPrice', type: 'number' },
                 { label: 'Sell Price', key: 'sellPrice', type: 'number' },
                 { label: 'Location', key: 'location', placeholder: 'Shelf A2…' },
@@ -221,6 +234,12 @@ export default function Inventory() {
                   <option value="">Select…</option>
                   {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-text-secondary mb-1">Notes</label>
+                <textarea value={form.notes || ''} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="Capacity, voltage, phase, warranty, or other details…" rows={2}
+                  className="w-full px-3 py-2 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
               </div>
             </div>
             <div className="flex gap-3 mt-6 justify-end">

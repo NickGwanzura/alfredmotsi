@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
 import { cleanText, nonNegativeNumber, FIELD_ROLES, FINANCE_ROLES, redactInventoryItem, serviceSession } from '@/app/lib/serviceAuth';
+import { canManageInventory } from '@/app/lib/permissions';
 
 function inventoryData(body: Record<string, unknown>) {
   const stockLevel = nonNegativeNumber(body.stockLevel);
@@ -35,7 +36,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || !['owner', 'admin', 'accounts'].includes(session.user.role as string)) {
+  if (!session?.user || !canManageInventory(session.user.role as string)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

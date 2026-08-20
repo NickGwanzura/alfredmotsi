@@ -31,6 +31,11 @@ export function canManageGasUsage(role: string): boolean {
   return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
+/** Roles that can create inventory items and record stock movements. */
+export function canManageInventory(role: string): boolean {
+  return ['owner', 'admin', 'dispatcher', 'accounts'].includes(role);
+}
+
 export function canManageCRM(role: string): boolean {
   return CUSTOMER_ROLES.has(role as UserRole);
 }

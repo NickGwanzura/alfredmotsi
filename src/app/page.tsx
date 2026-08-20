@@ -35,7 +35,7 @@ import ServiceOperations from '@/app/components/ServiceOperations';
 import { captureAudit } from '@/app/lib/audit/capture';
 import { useToast } from '@/app/components/Toast';
 import {
-  canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage,
+  canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage, canManageInventory,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
   canViewFinancials, canManageFunds
 } from '@/app/lib/permissions';
@@ -231,6 +231,7 @@ export default function Home() {
     canManageCustomers: canManageCustomers(user.role),
     canManageGasStock: canManageGasStock(user.role),
     canManageGasUsage: canManageGasUsage(user.role),
+    canManageInventory: canManageInventory(user.role),
     canManageCRM: canManageCRM(user.role),
     canViewODSReport: canViewODSReport(user.role),
     canManageUsers: canManageUsers(user.role),
@@ -719,7 +720,7 @@ export default function Home() {
                 <AuditLogView techs={techs} />
               )}
 
-              {!showAddJob && page === 'inventory' && (isAdmin || user.role === 'accounts' || user.role === 'dispatcher') && (
+              {!showAddJob && page === 'inventory' && perm.canManageInventory && (
                 <Inventory />
               )}
 

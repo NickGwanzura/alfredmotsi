@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, authorizeRole } from '@/app/lib/auth/auth';
+import { auth } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { cleanText, positiveNumber, redactInventoryItem } from '@/app/lib/serviceAuth';
+import { canManageInventory } from '@/app/lib/permissions';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Only admins and technicians may adjust inventory stock levels.
-  const forbidden = authorizeRole(session, ['admin', 'tech']);
-  if (forbidden) return forbidden;
+  // Keep stock movement permissions aligned with the inventory add form.
+  if (!canManageInventory(session.user.role as string)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const { id } = await params;
   const { type, quantity, reference, notes } = await req.json();
