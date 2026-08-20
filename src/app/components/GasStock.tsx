@@ -36,6 +36,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasStockProps) {
+  const canManage = canManageGasStock(currentUser.role);
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustVal, setAdjustVal] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
@@ -80,7 +81,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
               <RefreshCcw size={16} /> Refresh
             </button>
           )}
-          {onAdd && (
+          {onAdd && canManage && (
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
               onClick={() => onAdd({ id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg', supplier: '', supplierRef: '', addedBy: '', date: new Date().toISOString().split('T')[0], notes: '' })}>
               <Plus size={16} /> Add Stock
@@ -158,9 +159,9 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                               <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); }}>Cancel</button>
                             </div>
                           </div>
-                        ) : (
+                        ) : canManage ? (
                           <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); }}>Adjust Stock</button>
-                        )}
+                        ) : null}
                       </td>
                     </tr>
                   );

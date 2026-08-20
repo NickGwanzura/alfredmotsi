@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
+import { canManageGasStock } from '@/app/lib/permissions';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -30,8 +31,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await auth();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const forbidden = authorizeRole(session, ['owner', 'admin']);
-    if (forbidden) return forbidden;
+    if (!canManageGasStock(session.user.role as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { gasType, brand, quantity, unit, supplier, supplierRef, notes } = body;
