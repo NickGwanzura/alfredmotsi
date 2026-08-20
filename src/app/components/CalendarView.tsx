@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Job, User, Customer } from '@/app/types';
 import { STATUS_CFG, TYPE_CFG, TECH_STATUS } from '@/app/lib/config';
 import { Avatar } from './ui';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { canViewAllJobs } from '@/app/lib/permissions';
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -40,6 +40,26 @@ function addMonths(base: Date, n: number): Date {
   const d = new Date(base);
   d.setMonth(d.getMonth() + n);
   return d;
+}
+
+function SegControl({ view, onChange }: { view: ViewMode; onChange: (value: ViewMode) => void }) {
+  return (
+    <div className="inline-flex rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
+      {(['day', 'week', 'month'] as ViewMode[]).map((value, index) => (
+        <button
+          key={value}
+          onClick={() => onChange(value)}
+          className={`px-4 py-1.5 text-xs font-semibold cursor-pointer border-none capitalize transition-all duration-150 ${
+            view === value
+              ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white'
+              : 'bg-white text-gray-500 hover:bg-gray-50'
+          } ${index !== 2 ? 'border-r border-gray-200' : ''}`}
+        >
+          {value}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function CalendarView({ jobs, techs, customers, currentUser, onJobClick }: CalendarViewProps) {
@@ -98,13 +118,6 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
   const getDayAllJobs = (d: string) =>
     visJobs.filter(j => j.date === d);
 
-  const getMostCommonStatus = (dayJobs: Job[]): string => {
-    if (!dayJobs.length) return '';
-    const counts: Record<string, number> = {};
-    dayJobs.forEach(j => { counts[j.status] = (counts[j.status] || 0) + 1; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-  };
-
   // ── Navigation handlers ────────────────────────────────────────────────────
   const prev = () => setOffset(o => o - 1);
   const next = () => setOffset(o => o + 1);
@@ -134,7 +147,6 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
 
   // ── Job card (reusable) ────────────────────────────────────────────────────
   const JobCard = ({ j }: { j: Job }) => {
-    const sc = STATUS_CFG[j.status] || STATUS_CFG.scheduled;
     const typeInfo = getJobTypeDot(j.type);
     const borderColor = j.alerts && j.alerts.length ? '#ef4444' : typeInfo.color;
     return (
@@ -155,25 +167,6 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
       </div>
     );
   };
-
-  // ── Segmented control ──────────────────────────────────────────────────────
-  const SegControl = () => (
-    <div className="inline-flex rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm">
-      {(['day', 'week', 'month'] as ViewMode[]).map((v, i) => (
-        <button
-          key={v}
-          onClick={() => handleViewChange(v)}
-          className={`px-4 py-1.5 text-xs font-semibold cursor-pointer border-none capitalize transition-all duration-150 ${
-            view === v
-              ? 'bg-gradient-to-r from-brand-600 to-brand-700 text-white'
-              : 'bg-white text-gray-500 hover:bg-gray-50'
-          } ${i !== 2 ? 'border-r border-gray-200' : ''}`}
-        >
-          {v}
-        </button>
-      ))}
-    </div>
-  );
 
   // ── DAY VIEW ──────────────────────────────────────────────────────────────
   const DayView = () => (
@@ -196,7 +189,7 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
             </div>
             <div className="p-3">
               {dayJobs.length > 0
-                ? dayJobs.map(j => <JobCard key={j.id} j={j} />)
+                ? dayJobs.map(j => <React.Fragment key={j.id}>{JobCard({ j })}</React.Fragment>)
                 : <p className="text-sm text-gray-400 m-0 text-center py-4">No jobs scheduled for this day.</p>
               }
             </div>
@@ -247,7 +240,7 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
                     const dayJobs = getDayTechJobs(t.id, d);
                     return (
                       <td key={t.id} className="border-b border-gray-100 align-top p-2">
-                        {dayJobs.map(j => <JobCard key={j.id} j={j} />)}
+                        {dayJobs.map(j => <React.Fragment key={j.id}>{JobCard({ j })}</React.Fragment>)}
                         {dayJobs.length === 0 && (
                           <p className="text-xs text-center pt-3 m-0 text-gray-300">\u2014</p>
                         )}
@@ -287,8 +280,6 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
                   const inMonth = cellDate.getMonth() === monthMonth;
                   const isToday = ds === todayStr;
                   const cellJobs = getDayAllJobs(ds);
-                  const mostStatus = getMostCommonStatus(cellJobs);
-                  const statusColor = mostStatus ? ((STATUS_CFG as Record<string, { bg: string; txt: string; label: string }>)[mostStatus]?.bg || 'transparent') : 'transparent';
                   const hasAlert = cellJobs.some(j => j.alerts && j.alerts.length > 0);
 
                   return (
@@ -360,7 +351,7 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
         </div>
 
         <div className="flex items-center gap-3">
-          <SegControl />
+          <SegControl view={view} onChange={handleViewChange} />
         </div>
       </div>
 
@@ -391,9 +382,9 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
         </div>
       </div>
 
-      {view === 'day' && <DayView />}
-      {view === 'week' && <WeekView />}
-      {view === 'month' && <MonthView />}
+      {view === 'day' && DayView()}
+      {view === 'week' && WeekView()}
+      {view === 'month' && MonthView()}
 
       {/* Legend */}
       <div className="mt-5 bg-white rounded-xl shadow-sm border border-gray-100 p-4">

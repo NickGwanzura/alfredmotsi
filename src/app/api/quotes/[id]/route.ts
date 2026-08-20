@@ -3,6 +3,7 @@ import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { auditServiceAction, cleanText, FINANCE_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
+import { isoDate } from '@/app/lib/financial';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -34,7 +35,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.status === 'accepted') data.acceptedAt = new Date();
   }
   if (body.tier !== undefined) data.tier = body.tier;
-  if (body.validUntil !== undefined) data.validUntil = cleanText(body.validUntil, 10);
+  if (body.validUntil !== undefined) {
+    const validUntil = isoDate(body.validUntil);
+    if (!validUntil) return NextResponse.json({ error: 'validUntil must be a valid ISO date' }, { status: 400 });
+    data.validUntil = validUntil;
+  }
   if (body.terms !== undefined) data.terms = cleanText(body.terms, 10000) || null;
   if (body.notes !== undefined) data.notes = cleanText(body.notes, 5000) || null;
   if (!Object.keys(data).length) return NextResponse.json({ error: 'No editable quote fields supplied' }, { status: 400 });

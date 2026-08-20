@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { FINANCE_ROLES, OPERATIONS_ROLES, serviceSession } from '@/app/lib/serviceAuth';
+import { canViewFinancials } from '@/app/lib/permissions';
 
 export async function GET() {
-  const { error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES]);
+  const { session, error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES]);
   if (error) return error;
+  const canSeeFinancials = canViewFinancials(session!.user.role as string);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const monthStart = `${today.slice(0, 7)}-01`;
@@ -32,19 +34,29 @@ export async function GET() {
     acc[type] = (acc[type] || 0) + invoice.total;
     return acc;
   }, {});
+  const safeExpiringContracts = contracts.map((contract) => {
+    if (canSeeFinancials) return contract;
+    const { agreedAmount, billingCycle, ...safeContract } = contract;
+    void agreedAmount;
+    void billingCycle;
+    return safeContract;
+  });
+
   return NextResponse.json({
     todayScheduled: jobs.filter((job) => job.date === today && !['completed', 'cancelled'].includes(job.status)).length,
     openJobs: jobs.filter((job) => !['completed', 'cancelled'].includes(job.status)).length,
     emergencyJobs: jobs.filter((job) => job.priority === 'emergency' && !['completed', 'cancelled'].includes(job.status)).length,
     completedThisMonth: jobs.filter((job) => job.status === 'completed' && job.date >= monthStart).length,
-    revenueThisMonth: payments._sum.amount || 0,
-    outstandingInvoices: invoices.reduce((sum, invoice) => sum + (invoice.status === 'paid' ? 0 : invoice.balance || invoice.total), 0),
     quoteConversionRate: quotes.length ? Math.round(acceptedQuotes / quotes.length * 100) : 0,
     jobsByStatus: statusCounts,
     jobsByServiceType: jobs.reduce<Record<string, number>>((acc, job) => { acc[job.type] = (acc[job.type] || 0) + 1; return acc; }, {}),
-    revenueByServiceType,
     technicianPerformance: techPerformance,
     lowStock: lowStock.filter((item) => item.stockLevel <= item.reorderLevel),
-    expiringContracts: contracts,
+    expiringContracts: safeExpiringContracts,
+    ...(canSeeFinancials ? {
+      revenueThisMonth: payments._sum.amount || 0,
+      outstandingInvoices: invoices.reduce((sum, invoice) => sum + (invoice.status === 'paid' ? 0 : invoice.balance || invoice.total), 0),
+      revenueByServiceType,
+    } : {}),
   });
 }

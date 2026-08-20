@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { cleanText, FINANCE_ROLES, nonNegativeNumber, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
+import { canViewFinancials } from '@/app/lib/permissions';
+
+function redactCostPrice<T extends { costPrice?: unknown }>(item: T, role: string): Omit<T, 'costPrice'> | T {
+  if (canViewFinancials(role)) return item;
+  const safeItem = { ...item };
+  delete safeItem.costPrice;
+  return safeItem;
+}
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await serviceSession([...FINANCE_ROLES, 'sales']);
@@ -27,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
   if (!Object.keys(data).length) return NextResponse.json({ error: 'No editable fields supplied' }, { status: 400 });
   const item = await prisma.pricebookItem.update({ where: { id }, data });
-  return NextResponse.json(item);
+  return NextResponse.json(redactCostPrice(item, session!.user.role));
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {

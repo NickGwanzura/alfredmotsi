@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { mergeUserRecords } from '@/app/lib/user-merge';
 
 /**
  * POST /api/admin/users/cleanup-duplicates
@@ -33,8 +34,9 @@ export async function POST(): Promise<NextResponse> {
     // must never be able to delete or merge an owner account.
     const ownerAcc = group.find((u) => u.role === 'owner');
     if (ownerAcc && !actorIsOwner) continue;
-    const adminAcc = group.find((u) => u.id === session.user.id || u.role === 'admin');
-    const keep = ownerAcc || adminAcc || group[0];
+    const currentAcc = group.find((u) => u.id === session.user.id);
+    const adminAcc = group.find((u) => u.role === 'admin');
+    const keep = currentAcc || ownerAcc || adminAcc || group[0];
     for (const u of group) {
       if (u.id !== keep.id && u.id !== session.user.id) toDelete.push(u.id);
     }
@@ -44,7 +46,16 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ removed: 0 });
   }
 
-  await prisma.user.deleteMany({ where: { id: { in: toDelete } } });
+  await prisma.$transaction(async (tx) => {
+    for (const duplicateId of toDelete) {
+      const group = users.find((user) => user.id === duplicateId);
+      if (!group) continue;
+      const normalizedEmail = group.email.toLowerCase().trim();
+      const keep = users.find((user) => user.email.toLowerCase().trim() === normalizedEmail && !toDelete.includes(user.id));
+      if (!keep) continue;
+      await mergeUserRecords(tx, duplicateId, keep.id);
+    }
+  });
 
   return NextResponse.json({ removed: toDelete.length });
 }

@@ -3,6 +3,15 @@ import { prisma } from '@/app/lib/db';
 import type { BillingCycle, ContractStatus } from '@prisma/client';
 import { auditServiceAction, cleanText, FINANCE_ROLES, makeReference, OPERATIONS_ROLES, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
 import { isoDate } from '@/app/lib/financial';
+import { canViewFinancials } from '@/app/lib/permissions';
+
+function redactContract<T extends { agreedAmount?: unknown; billingCycle?: unknown }>(contract: T, role: string): Omit<T, 'agreedAmount' | 'billingCycle'> | T {
+  if (canViewFinancials(role)) return contract;
+  const safeContract = { ...contract };
+  delete safeContract.agreedAmount;
+  delete safeContract.billingCycle;
+  return safeContract;
+}
 
 function derivedStatus(endDate: string, current: ContractStatus): ContractStatus {
   if (current === 'cancelled') return current;
@@ -11,14 +20,14 @@ function derivedStatus(endDate: string, current: ContractStatus): ContractStatus
 }
 
 export async function GET() {
-  const { error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES, 'tech']);
+  const { session, error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES, 'tech']);
   if (error) return error;
   const contracts = await prisma.maintenanceContract.findMany({
     include: { customer: { select: { id: true, name: true, phone: true } }, site: true, equipment: { include: { equipment: true } } },
     orderBy: { nextServiceDate: 'asc' },
     take: 500,
   });
-  return NextResponse.json(contracts.map((contract) => ({ ...contract, status: derivedStatus(contract.endDate, contract.status) })));
+  return NextResponse.json(contracts.map((contract) => redactContract({ ...contract, status: derivedStatus(contract.endDate, contract.status) }, session!.user.role)));
 }
 
 export async function POST(request: NextRequest) {
@@ -55,5 +64,5 @@ export async function POST(request: NextRequest) {
   });
   await prisma.reminder.create({ data: { type: 'maintenance_due', customerId: body.customerId, title: `Maintenance due - ${contract.contractRef}`, dueAt: new Date(`${contract.nextServiceDate}T08:00:00`), referenceType: 'contract', referenceId: contract.id } });
   await auditServiceAction(session!, 'create_contract', `Created maintenance contract ${contract.contractRef}`);
-  return NextResponse.json(contract, { status: 201 });
+  return NextResponse.json(redactContract(contract, session!.user.role), { status: 201 });
 }

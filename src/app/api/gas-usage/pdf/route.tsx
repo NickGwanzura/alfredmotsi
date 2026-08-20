@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serviceSession, FIELD_ROLES } from '@/app/lib/serviceAuth';
+import { prisma } from '@/app/lib/db';
 import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
@@ -106,13 +107,35 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const { usage } = await req.json();
-  if (!Array.isArray(usage) || usage.length === 0) {
+  const ids = Array.isArray(usage)
+    ? [...new Set(usage.map((record: unknown) => (record && typeof record === 'object' && 'id' in record ? record.id : null)).filter((id): id is string => typeof id === 'string' && id.trim().length > 0))].slice(0, 500)
+    : [];
+  if (ids.length === 0) {
     return NextResponse.json({ error: 'No usage data provided' }, { status: 400 });
   }
 
+  const role = session!.user.role as string;
+  const records = await prisma.gasUsageRecord.findMany({
+    where: {
+      id: { in: ids },
+      ...(role === 'tech' ? {
+        job: { OR: [{ technicians: { some: { id: session!.user.id } } }, { coTechnicians: { some: { id: session!.user.id } } }] },
+      } : {}),
+    },
+    select: { id: true, gasType: true, quantityUsed: true, usedBy: true, jobId: true, customer: true, date: true, time: true, purpose: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (records.length === 0) return NextResponse.json({ error: 'No accessible usage records found' }, { status: 404 });
+
+  const reportUsage: GasUsageRecord[] = records.map((record) => ({
+    ...record,
+    usedBy: record.usedBy || 'Unknown',
+    jobId: record.jobId || '—',
+  }));
+
   const dateStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' });
   const company = await loadCompany();
-  const buffer = await renderToBuffer(<GasUsagePdfDoc usage={usage as GasUsageRecord[]} dateStr={dateStr} company={company} />);
+  const buffer = await renderToBuffer(<GasUsagePdfDoc usage={reportUsage} dateStr={dateStr} company={company} />);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

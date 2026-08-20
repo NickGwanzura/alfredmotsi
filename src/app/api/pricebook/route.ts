@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { cleanText, FINANCE_ROLES, OPERATIONS_ROLES, nonNegativeNumber, positiveNumber, serviceSession } from '@/app/lib/serviceAuth';
+import { canViewFinancials } from '@/app/lib/permissions';
+
+function redactCostPrice<T extends { costPrice?: unknown }>(item: T, role: string): Omit<T, 'costPrice'> | T {
+  if (canViewFinancials(role)) return item;
+  const safeItem = { ...item };
+  delete safeItem.costPrice;
+  return safeItem;
+}
 
 export async function GET(request: NextRequest) {
-  const { error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES, 'tech']);
+  const { session, error } = await serviceSession([...OPERATIONS_ROLES, ...FINANCE_ROLES, 'tech']);
   if (error) return error;
   const category = request.nextUrl.searchParams.get('category');
-  return NextResponse.json(await prisma.pricebookItem.findMany({
+  const items = await prisma.pricebookItem.findMany({
     where: { isActive: true, ...(category && { category }) },
     include: { inventoryItem: { select: { id: true, stockLevel: true, reorderLevel: true, sku: true } } },
     orderBy: [{ category: 'asc' }, { name: 'asc' }],
     take: 500,
-  }));
+  });
+  return NextResponse.json(items.map((item) => redactCostPrice(item, session!.user.role)));
 }
 
 export async function POST(request: NextRequest) {
@@ -31,5 +40,5 @@ export async function POST(request: NextRequest) {
   const item = await prisma.pricebookItem.create({
     data: { name, code, category, sellPrice, description: cleanText(body.description) || null, unit: cleanText(body.unit, 30) || 'each', costPrice, taxable: body.taxable !== false, inventoryItemId },
   });
-  return NextResponse.json(item, { status: 201 });
+  return NextResponse.json(redactCostPrice(item, session!.user.role), { status: 201 });
 }

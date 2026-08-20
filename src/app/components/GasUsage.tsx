@@ -9,10 +9,8 @@ import { useToast } from './Toast';
 interface GasUsageProps {
   usage: GasUsageRecord[];
   currentUser: User;
-  onExport?: () => void;
   onAdd?: (record: GasUsageRecord) => void;
   stock?: { id: string; gasType: string; remaining: number; unit: string }[];
-  customers?: { id: string; name: string }[];
   jobs?: { id: string; title: string; jobCardRef: string }[];
   techs?: { id: string; name: string }[];
 }
@@ -38,7 +36,7 @@ function getTechName(usedBy: string, techs?: { id: string; name: string }[]): st
   return t?.name || usedBy;
 }
 
-export default function GasUsage({ usage, currentUser, onExport, onAdd, stock, customers, jobs, techs }: GasUsageProps) {
+export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs }: GasUsageProps) {
   const { success, warning } = useToast();
   const [gasFilter, setGasFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -97,7 +95,7 @@ export default function GasUsage({ usage, currentUser, onExport, onAdd, stock, c
   const handleExportPDF = async () => {
     setGeneratingPdf(true);
     try {
-      const res = await fetch('/api/gas-usage/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: sortedUsage }) });
+      const res = await fetch('/api/gas-usage/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: sortedUsage.map(({ id }) => ({ id })) }) });
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);

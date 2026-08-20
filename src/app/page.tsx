@@ -37,7 +37,7 @@ import { useToast } from '@/app/components/Toast';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
-  canViewFinancials, canViewReports, canManageFunds
+  canViewFinancials, canManageFunds
 } from '@/app/lib/permissions';
 
 // Lucide icons
@@ -56,7 +56,6 @@ import {
   ShieldAlert,
   Menu as MenuIcon,
   AlertTriangle,
-  Snowflake,
   Package,
   X,
   FileText,
@@ -99,7 +98,7 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
 
-  const { success: toastSuccess, warning: toastWarning, error: toastError } = useToast();
+  const { success: toastSuccess } = useToast();
 
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddGasStock, setShowAddGasStock] = useState(false);
@@ -359,7 +358,7 @@ export default function Home() {
 
       setShowAddGasUsage(false);
       setNewGasUsage({});
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error recording gas usage:', error);
       throw error; // Re-throw so the modal can show the error
     }
@@ -381,7 +380,7 @@ export default function Home() {
       setShowAddCRM(false);
       setNewCRM({});
       toastSuccess('CRM record created', createdRecord.subject);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating CRM record:', error);
       throw error; // Re-throw so the modal can show the error
     }
@@ -688,7 +687,6 @@ export default function Home() {
                   usage={gasUsage}
                   currentUser={currentUser}
                   stock={gasStock.map((s) => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
-                  customers={customers.map((c) => ({ id: c.id, name: c.name }))}
                   jobs={jobs.map((j) => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
                   techs={techs.map((t) => ({ id: t.id, name: t.name }))}
                   onAdd={(record) => {
@@ -774,7 +772,7 @@ export default function Home() {
         />
       )}
 
-      {(user as any).passwordChanged === false && (
+      {user.passwordChanged === false && (
         <PasswordChangeModal
           isOpen={true}
           isTempPassword={true}

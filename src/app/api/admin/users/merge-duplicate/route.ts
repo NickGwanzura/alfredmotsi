@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
+import { mergeUserRecords } from '@/app/lib/user-merge';
 
 /**
  * POST /api/admin/users/merge-duplicate
@@ -35,23 +36,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Keep the owner first, then an admin account, otherwise keep the oldest.
   const adminUser = users.find(u => u.role === 'admin');
   const keep = ownerUser || adminUser || users[0];
-  const toDelete = users.filter(u => u.id !== keep.id);
+  const toDelete = users.filter(u => u.id !== keep.id && u.id !== session.user.id);
 
   let deleted = 0;
 
-  for (const del of toDelete) {
-    // Reassign records to the admin performing the merge (or the kept user)
-    const reassignTo = keep.id;
-
-    // Reassign audit logs, gas usage, consumables
-    await prisma.auditLog.updateMany({ where: { userId: del.id }, data: { userId: reassignTo } });
-    await prisma.gasUsageRecord.updateMany({ where: { usedBy: del.id }, data: { usedBy: reassignTo } });
-    await prisma.consumable.updateMany({ where: { recordedBy: del.id }, data: { recordedBy: reassignTo } });
-
-    // Delete the duplicate user (cascade will clean up join tables)
-    await prisma.user.delete({ where: { id: del.id } });
-    deleted++;
-  }
+  await prisma.$transaction(async (tx) => {
+    for (const del of toDelete) {
+      await mergeUserRecords(tx, del.id, keep.id);
+      deleted++;
+    }
+  });
 
   return NextResponse.json({
     message: `Merged ${deleted} duplicate(s) into ${keep.name} (${keep.email})`,
