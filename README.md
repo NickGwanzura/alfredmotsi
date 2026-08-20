@@ -369,7 +369,7 @@ A: Go to **Settings** → upload your logo → click **Save Settings**. All PDFs
 - **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS v4
-- **Database:** PostgreSQL (Neon)
+- **Database:** PostgreSQL (Dokploy in production; provide `DATABASE_URL` for local development)
 - **ORM:** Prisma
 - **Auth:** NextAuth.js (credentials + portal)
 - **Email:** Resend
