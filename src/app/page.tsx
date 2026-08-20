@@ -417,8 +417,8 @@ export default function Home() {
   ];
 
   const officeNav = adminNav.filter((item) => {
-    if (user.role === 'accounts') return ['home', 'invoices', 'inventory', 'customers'].includes(item.id);
-    if (user.role === 'sales') return ['home', 'operations', 'customers', 'crm', 'jobs', 'calendar'].includes(item.id);
+    if (user.role === 'accounts') return ['home', 'invoices', 'inventory', 'customers', 'gas-stock'].includes(item.id);
+    if (user.role === 'sales') return ['home', 'operations', 'customers', 'crm', 'jobs', 'calendar', 'gas-stock'].includes(item.id);
     if (user.role === 'dispatcher') return !['invoices', 'funds', 'users', 'audit-log', 'settings'].includes(item.id);
     return true;
   });

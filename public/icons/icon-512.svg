@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Splash Air">
+  <rect width="512" height="512" rx="112" fill="#093a68"/>
+  <circle cx="256" cy="256" r="174" fill="#1e5291"/>
+  <path d="M256 99v314M99 256h314M144 144l224 224M144 368l224-224" stroke="#fff" stroke-width="29" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="43" fill="#fff"/>
+</svg>

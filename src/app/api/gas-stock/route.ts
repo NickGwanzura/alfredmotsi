@@ -12,7 +12,7 @@ export async function GET(): Promise<NextResponse> {
     }
 
     // Only admins and technicians may view gas stock.
-    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'accounts', 'tech']);
+    const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
     const stock = await prisma.gasStockItem.findMany({

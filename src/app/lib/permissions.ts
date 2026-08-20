@@ -5,6 +5,7 @@ const ADMIN_ROLES: Set<UserRole> = new Set(['owner', 'admin']);
 const OPERATIONS_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher']);
 const CUSTOMER_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher', 'sales', 'tech']);
 const TECH_MANAGE_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher', 'tech']);
+const STAFF_ROLES: Set<UserRole> = new Set(['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech']);
 
 export function canViewFinancials(role: string): boolean {
   return FINANCIAL_ROLES.has(role as UserRole);
@@ -23,7 +24,7 @@ export function canManageCustomers(role: string): boolean {
 }
 
 export function canManageGasStock(role: string): boolean {
-  return TECH_MANAGE_ROLES.has(role as UserRole);
+  return STAFF_ROLES.has(role as UserRole);
 }
 
 export function canManageGasUsage(role: string): boolean {
