@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import crypto from 'node:crypto';
-import { redactPortalCode } from '@/app/lib/customerTransform';
+import { getCustomerDisplayName, redactPortalCode } from '@/app/lib/customerTransform';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -21,7 +21,7 @@ export async function GET(): Promise<NextResponse> {
     });
 
     const canViewPortalCode = ['owner', 'admin'].includes(session.user.role);
-    return NextResponse.json(customers.map((customer) => redactPortalCode(customer, canViewPortalCode)));
+    return NextResponse.json(customers.map((customer) => redactPortalCode({ ...customer, name: getCustomerDisplayName(customer) }, canViewPortalCode)));
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });
