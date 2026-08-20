@@ -3,6 +3,7 @@ import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 import { canManageGasStock } from '@/app/lib/permissions';
+import { RefrigerantType } from '@prisma/client';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -39,21 +40,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { gasType, brand, quantity, unit, supplier, supplierRef, notes } = body;
 
     const parsedQuantity = positiveNumber(quantity);
-    if (!gasType || !brand || parsedQuantity === null || !supplier) {
+    const normalizedGasType = cleanText(gasType, 60);
+    const normalizedBrand = cleanText(brand, 120);
+    const normalizedSupplier = cleanText(supplier, 180);
+    if (!Object.values(RefrigerantType).includes(normalizedGasType as RefrigerantType) || !normalizedBrand || parsedQuantity === null || !normalizedSupplier) {
       return NextResponse.json(
-        { error: 'Gas type, brand, quantity, and supplier are required' },
+        { error: 'Select a supported gas type and provide brand, positive quantity, and supplier' },
         { status: 400 }
       );
     }
 
     const stockItem = await prisma.gasStockItem.create({
       data: {
-        gasType: cleanText(gasType, 60),
-        brand: cleanText(brand, 120),
+        gasType: normalizedGasType,
+        brand: normalizedBrand,
         quantity: parsedQuantity,
         remaining: parsedQuantity,
         unit: cleanText(unit, 20) || 'kg',
-        supplier: cleanText(supplier, 180),
+        supplier: normalizedSupplier,
         supplierRef: cleanText(supplierRef, 120),
         addedBy: session.user.name || 'Admin',
         date: new Date().toISOString().split('T')[0],

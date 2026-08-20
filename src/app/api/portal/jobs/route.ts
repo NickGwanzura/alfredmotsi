@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
+import { getCustomerDisplayName } from '@/app/lib/customerTransform';
 
 export async function GET() {
   const session = await auth();
@@ -32,5 +33,5 @@ export async function GET() {
     take: 200,
   });
 
-  return NextResponse.json({ customer: { name: customer.name, email: customer.email }, jobs, invoices });
+  return NextResponse.json({ customer: { name: getCustomerDisplayName(customer), email: customer.email }, jobs, invoices });
 }

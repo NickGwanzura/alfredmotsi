@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { cleanText, nonNegativeNumber, positiveNumber } from '@/app/lib/serviceAuth';
+import { auditServiceAction, cleanText, nonNegativeNumber, positiveNumber } from '@/app/lib/serviceAuth';
 import { canManageGasStock } from '@/app/lib/permissions';
+import { RefrigerantType } from '@prisma/client';
 
 export async function PUT(
   request: NextRequest,
@@ -20,6 +21,10 @@ export async function PUT(
   const { gasType, brand, quantity, remaining, unit, supplier, supplierRef, notes } = body;
   const existing = await prisma.gasStockItem.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+  const normalizedGasType = gasType === undefined ? existing.gasType : cleanText(gasType, 60);
+  if (!Object.values(RefrigerantType).includes(normalizedGasType as RefrigerantType)) {
+    return NextResponse.json({ error: 'Unsupported gas type' }, { status: 400 });
+  }
   const parsedQuantity = quantity === undefined ? existing.quantity : positiveNumber(quantity);
   const parsedRemaining = remaining === undefined ? existing.remaining : nonNegativeNumber(remaining);
   if (parsedQuantity === null || parsedRemaining === null || parsedRemaining > parsedQuantity) {
@@ -30,7 +35,7 @@ export async function PUT(
   const stockItem = await prisma.gasStockItem.update({
     where: { id },
     data: {
-      ...(gasType !== undefined && { gasType: cleanText(gasType, 60) }),
+      gasType: normalizedGasType,
       ...(brand !== undefined && { brand: cleanText(brand, 120) }),
       quantity: parsedQuantity,
       remaining: parsedRemaining,
@@ -40,6 +45,8 @@ export async function PUT(
       ...(notes !== undefined && { notes: cleanText(notes, 2_000) || null }),
     },
   });
+
+  await auditServiceAction(session, 'update_gas_stock', `Updated gas stock ${stockItem.id} (${stockItem.gasType})`);
 
   return NextResponse.json(stockItem);
 }
@@ -58,8 +65,10 @@ export async function DELETE(
   if (forbidden) return forbidden;
 
   const { id } = await params;
-
+  const existing = await prisma.gasStockItem.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
   await prisma.gasStockItem.delete({ where: { id } });
+  await auditServiceAction(session, 'delete_gas_stock', `Deleted gas stock ${existing.id} (${existing.gasType})`);
 
   return NextResponse.json({ success: true });
 }
