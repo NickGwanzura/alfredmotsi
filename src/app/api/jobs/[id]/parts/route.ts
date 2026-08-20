@@ -34,7 +34,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!body.itemId || quantity === null) return NextResponse.json({ error: 'Inventory item and positive quantity required' }, { status: 400 });
   try {
     const usage = await prisma.$transaction(async (tx) => {
-      const item = await tx.inventoryItem.findUnique({ where: { id: body.itemId }, select: { id: true, name: true, stockLevel: true, costPrice: true, sellPrice: true } });
+      const lockedJobs = await tx.$queryRaw<{ status: string }[]>`SELECT "status" FROM "jobs" WHERE "id" = ${id} FOR UPDATE`;
+      const jobStatus = lockedJobs[0]?.status;
+      if (!jobStatus) throw new Error('JOB_NOT_FOUND');
+      if (['completed', 'cancelled'].includes(jobStatus)) throw new Error('JOB_NOT_ACTIVE');
+      const item = await tx.inventoryItem.findUnique({ where: { id: body.itemId, isActive: true }, select: { id: true, name: true, stockLevel: true, costPrice: true, sellPrice: true } });
       if (!item) throw new Error('ITEM_NOT_FOUND');
       // Conditional decrement prevents two concurrent job cards from taking
       // the same stock and guarantees inventory never goes negative.
@@ -51,8 +55,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json(usage ? redactPartUsage(usage, session!.user.role as string) : usage, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === 'INSUFFICIENT_STOCK') {
-      await auditServiceAction(session!, 'adjust_stock', `Stock alarm: ${quantity} requested for inventory item ${body.itemId} on job ${id}`, id);
       const current = await prisma.inventoryItem.findUnique({ where: { id: body.itemId }, select: { name: true, stockLevel: true, unit: true } });
+      if (current) {
+        await prisma.$transaction(async (tx) => {
+          const existingAlarm = await tx.inventoryStockAlarm.findFirst({ where: { itemId: body.itemId, jobId: id, status: 'open' } });
+          if (existingAlarm) {
+            await tx.inventoryStockAlarm.update({ where: { id: existingAlarm.id }, data: { requested: quantity, available: current.stockLevel, unit: current.unit } });
+          } else {
+            await tx.inventoryStockAlarm.create({ data: { itemId: body.itemId, jobId: id, requested: quantity, available: current.stockLevel, unit: current.unit } });
+          }
+          const movedToPending = await tx.job.updateMany({ where: { id, status: { notIn: ['completed', 'cancelled'] } }, data: { status: 'pending_parts', version: { increment: 1 } } });
+          if (movedToPending.count === 1) {
+            await tx.historyEntry.create({ data: { jobId: id, date: new Date().toISOString().split('T')[0], note: `Moved to pending parts: ${quantity} ${current.unit} of ${current.name} unavailable.` } });
+          }
+        });
+      }
+      await auditServiceAction(session!, 'adjust_stock', `Stock alarm: ${quantity} requested for inventory item ${body.itemId} on job ${id}`, id);
       return NextResponse.json({
         error: 'Insufficient stock',
         alarm: true,
@@ -62,6 +80,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         unit: current?.unit || 'units',
       }, { status: 409 });
     }
+    if (error instanceof Error && error.message === 'JOB_NOT_FOUND') return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    if (error instanceof Error && error.message === 'JOB_NOT_ACTIVE') return NextResponse.json({ error: 'Stock cannot be drawn from a completed or cancelled job' }, { status: 409 });
     if (error instanceof Error && error.message === 'ITEM_NOT_FOUND') return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
     throw error;
   }

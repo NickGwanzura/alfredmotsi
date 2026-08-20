@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
+import type { Prisma } from '@prisma/client';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
@@ -27,6 +28,22 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   'pending_booking':['scheduled', 'cancelled'],
   'cancelled':      ['scheduled', 'unallocated'],
 };
+
+async function returnUnreturnedJobStock(tx: Prisma.TransactionClient, jobId: string, reason: string): Promise<number> {
+  const usages = await tx.jobPartUsage.findMany({
+    where: { jobId, returnedAt: null },
+    select: { id: true, itemId: true, quantity: true },
+  });
+  if (!usages.length) return 0;
+  const totals = new Map<string, number>();
+  for (const usage of usages) totals.set(usage.itemId, (totals.get(usage.itemId) || 0) + usage.quantity);
+  for (const [itemId, quantity] of totals) {
+    await tx.inventoryItem.update({ where: { id: itemId }, data: { stockLevel: { increment: quantity } } });
+    await tx.inventoryMovement.create({ data: { itemId, jobId, type: 'in', quantity, reference: reason, notes: 'Returned from job stock draw', recordedBy: null } });
+  }
+  await tx.jobPartUsage.updateMany({ where: { id: { in: usages.map((usage) => usage.id) } }, data: { returnedAt: new Date() } });
+  return usages.length;
+}
 
 export async function GET(
   request: NextRequest,
@@ -213,6 +230,13 @@ export async function PUT(
         }
       }
 
+      if (newStatus === 'cancelled' && oldStatus !== 'cancelled') {
+        const returnedCount = await returnUnreturnedJobStock(tx, id, `Job ${id} cancellation return`);
+        if (returnedCount > 0) {
+          await tx.historyEntry.create({ data: { jobId: id, date: new Date().toISOString().split('T')[0], note: `Returned ${returnedCount} stock draw record(s) because the job was cancelled.` } });
+        }
+      }
+
       // Comments and history are managed via their dedicated endpoints
       // Do NOT replace them on job update to prevent data loss
 
@@ -292,8 +316,9 @@ export async function DELETE(
       null;
     const userAgent = request.headers.get('user-agent') || null;
 
-    await prisma.$transaction([
-      prisma.auditLog.create({
+    await prisma.$transaction(async (tx) => {
+      await returnUnreturnedJobStock(tx, id, `Job ${id} deletion return`);
+      await tx.auditLog.create({
         data: {
           userId: user.id,
           userName: user.name || 'Unknown',
@@ -303,9 +328,9 @@ export async function DELETE(
           ipAddress,
           userAgent,
         },
-      }),
-      prisma.job.delete({ where: { id } }),
-    ]);
+      });
+      await tx.job.delete({ where: { id } });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

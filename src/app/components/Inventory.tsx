@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, AlertTriangle, Package, ArrowDown, ArrowUp, RefreshCw, Pencil, X } from 'lucide-react';
+import { Plus, AlertTriangle, Package, ArrowDown, ArrowUp, RefreshCw, X, Check } from 'lucide-react';
+import { INVENTORY_CATEGORIES } from '@/app/lib/config';
 
 interface InventoryItem {
   id: string;
@@ -14,19 +15,30 @@ interface InventoryItem {
   reorderLevel: number;
   reorderQty: number;
   supplier?: string;
+  supplierRef?: string;
+  model?: string;
+  capacity?: string;
+  voltage?: string;
+  serialNumber?: string;
   costPrice?: number;
   sellPrice?: number;
   location?: string;
   notes?: string;
 }
 
-const CATEGORIES = [
-  'Air Conditioning Units', 'Compressors', 'Copper & Fittings', 'Electrical & Controls',
-  'Installation Materials', 'Parts', 'Tools', 'Refrigerants', 'Filters', 'Consumables', 'Other',
-];
+interface InventoryAlarm {
+  id: string;
+  requested: number;
+  available: number;
+  unit: string;
+  createdAt: string;
+  item: { id: string; name: string; stockLevel: number; unit: string };
+  job?: { id: string; jobCardRef: string; title: string } | null;
+}
 
-export default function Inventory() {
+export default function Inventory({ canEditFinancials = true }: { canEditFinancials?: boolean }) {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [alarms, setAlarms] = useState<InventoryAlarm[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [movementItem, setMovementItem] = useState<InventoryItem | null>(null);
@@ -41,8 +53,9 @@ export default function Inventory() {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch('/api/inventory');
-    if (res.ok) setItems(await res.json());
+    const [inventoryRes, alarmsRes] = await Promise.all([fetch('/api/inventory'), fetch('/api/inventory/alarms')]);
+    if (inventoryRes.ok) setItems(await inventoryRes.json());
+    if (alarmsRes.ok) setAlarms(await alarmsRes.json());
     setLoading(false);
   };
 
@@ -80,16 +93,27 @@ export default function Inventory() {
   const handleMovement = async () => {
     if (!movementItem || !movementQty) return;
     setSaving(true);
-    await fetch(`/api/inventory/${movementItem.id}/movement`, {
+    const response = await fetch(`/api/inventory/${movementItem.id}/movement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: movementType, quantity: parseFloat(movementQty), reference: movementRef }),
     });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setError(payload.error || 'Could not update stock');
+      setSaving(false);
+      return;
+    }
     await load();
     setMovementItem(null);
     setMovementQty('');
     setMovementRef('');
     setSaving(false);
+  };
+
+  const resolveAlarm = async (id: string) => {
+    const response = await fetch('/api/inventory/alarms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    if (response.ok) setAlarms((current) => current.filter((alarm) => alarm.id !== id));
   };
 
   const stockColor = (item: InventoryItem) => {
@@ -111,6 +135,19 @@ export default function Inventory() {
           <Plus size={16} /> Add Item
         </button>
       </div>
+
+      {alarms.length > 0 && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="mb-2 flex items-center gap-2 font-semibold text-red-800 text-sm"><AlertTriangle size={16} /> {alarms.length} open stock alarm{alarms.length === 1 ? '' : 's'}</div>
+          <div className="space-y-2">
+            {alarms.map((alarm) => <div key={alarm.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm text-red-900">
+              <span><strong>{alarm.item.name}</strong> — requested {alarm.requested} {alarm.unit}, available {alarm.available} {alarm.unit}{alarm.job ? ` · ${alarm.job.jobCardRef}` : ''}</span>
+              <button onClick={() => resolveAlarm(alarm.id)} className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"><Check size={13} /> Resolve</button>
+            </div>)}
+          </div>
+        </div>
+      )}
+      {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {/* Low Stock Alerts */}
       {lowStock.length > 0 && (
@@ -138,7 +175,7 @@ export default function Inventory() {
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
           className="h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
           <option value="">All Categories</option>
-          {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          {INVENTORY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
         <button onClick={load} className="h-9 w-9 flex items-center justify-center border border-border-subtle rounded-lg hover:bg-surface-hover cursor-pointer">
           <RefreshCw size={15} />
@@ -212,8 +249,11 @@ export default function Inventory() {
                 { label: 'Reorder Qty *', key: 'reorderQty', type: 'number', required: true },
                 { label: 'Supplier', key: 'supplier' },
                 { label: 'Supplier Reference', key: 'supplierRef', placeholder: 'PO or supplier code' },
-                { label: 'Cost Price', key: 'costPrice', type: 'number' },
-                { label: 'Sell Price', key: 'sellPrice', type: 'number' },
+                { label: 'Model', key: 'model', placeholder: 'Outdoor/indoor model' },
+                { label: 'Capacity', key: 'capacity', placeholder: '2.5 kW / 9000 BTU' },
+                { label: 'Voltage / Phase', key: 'voltage', placeholder: '230V 1Ph' },
+                { label: 'Serial Number', key: 'serialNumber', placeholder: 'For individual units' },
+                ...(canEditFinancials ? [{ label: 'Cost Price', key: 'costPrice', type: 'number' }, { label: 'Sell Price', key: 'sellPrice', type: 'number' }] : []),
                 { label: 'Location', key: 'location', placeholder: 'Shelf A2…' },
               ].map(({ label, key, type, placeholder }) => (
                 <div key={key} className={key === 'name' || key === 'supplier' ? 'col-span-2' : ''}>
@@ -232,7 +272,7 @@ export default function Inventory() {
                 <select value={form.category || ''} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                   className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
                   <option value="">Select…</option>
-                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  {INVENTORY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div className="col-span-2">

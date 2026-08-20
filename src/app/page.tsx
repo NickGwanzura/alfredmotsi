@@ -721,7 +721,7 @@ export default function Home() {
               )}
 
               {!showAddJob && page === 'inventory' && perm.canManageInventory && (
-                <Inventory />
+                <Inventory canEditFinancials={perm.canViewFinancials} />
               )}
 
               {!showAddJob && page === 'invoices' && perm.canViewFinancials && (

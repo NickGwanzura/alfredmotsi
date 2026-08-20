@@ -48,6 +48,11 @@ export const PRIO_TAG: Record<JobPriority, PriorityTagConfig> = {
 
 export const UNIT_TYPES = ["Split System", "Ducted", "Package Unit", "Multi-Head", "Cassette", "VRV/VRF", "Refrigeration System", "Chiller", "Heat Pump", "Precision Cooling"];
 
+export const INVENTORY_CATEGORIES = [
+  'Air Conditioning Units', 'Compressors', 'Copper & Fittings', 'Electrical & Controls',
+  'Installation Materials', 'Parts', 'Tools', 'Refrigerants', 'Filters', 'Consumables', 'Other',
+] as const;
+
 export const REFRIGERANT_TYPES = [
   // Keep this list aligned with the Prisma RefrigerantType enum used by gas usage.
   "R-32", "R-410A", "R-22", "R-134a", "R-407C", "R-600A", "R-290",

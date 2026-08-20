@@ -439,16 +439,17 @@ model Job {
   comments           Comment[]
   history            HistoryEntry[]
   recurring          RecurringSchedule?
-  gasUsageRecords    GasUsageRecord[]    @relation("GasUsageOfJob")
-  consumables        Consumable[]        @relation("ConsumableOfJob")
-  auditLogs          AuditLog[]          @relation("AuditLogOfJob")
-  attachments        JobAttachment[]     @relation("JobAttachmentOfJob")
+  gasUsageRecords    GasUsageRecord[]      @relation("GasUsageOfJob")
+  consumables        Consumable[]          @relation("ConsumableOfJob")
+  auditLogs          AuditLog[]            @relation("AuditLogOfJob")
+  attachments        JobAttachment[]       @relation("JobAttachmentOfJob")
   invoices           Invoice[]
   fundExpenses       FundExpense[]
   quotes             Quote[]
   checklists         JobChecklist[]
   partUsages         JobPartUsage[]
   inventoryMovements InventoryMovement[]
+  stockAlarms        InventoryStockAlarm[]
   notificationEvents NotificationEvent[]
 
   @@map("jobs")
@@ -790,6 +791,10 @@ model InventoryItem {
   reorderQty   Float    @map("reorder_qty")
   supplier     String?
   supplierRef  String?  @map("supplier_ref")
+  model        String?
+  capacity     String?
+  voltage      String?
+  serialNumber String?  @map("serial_number")
   costPrice    Float?   @map("cost_price")
   sellPrice    Float?   @map("sell_price")
   location     String?
@@ -799,6 +804,7 @@ model InventoryItem {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   movements     InventoryMovement[]
+  stockAlarms   InventoryStockAlarm[]
   invoiceLines  InvoiceLine[]
   quoteLines    QuoteLine[]
   pricebookItem PricebookItem?
@@ -827,6 +833,25 @@ model InventoryMovement {
   @@map("inventory_movements")
 }
 
+model InventoryStockAlarm {
+  id         String    @id @default(cuid())
+  itemId     String    @map("item_id")
+  jobId      String?   @map("job_id")
+  requested  Float
+  available  Float
+  unit       String
+  status     String    @default("open")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  resolvedAt DateTime? @map("resolved_at")
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  job  Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([itemId, status])
+  @@map("inventory_stock_alarms")
+}
+
 model PricebookItem {
   id              String   @id @default(cuid())
   name            String
@@ -851,15 +876,16 @@ model PricebookItem {
 }
 
 model JobPartUsage {
-  id         String   @id @default(cuid())
-  jobId      String   @map("job_id")
-  itemId     String   @map("item_id")
+  id         String    @id @default(cuid())
+  jobId      String    @map("job_id")
+  itemId     String    @map("item_id")
   quantity   Float
-  unitCost   Float?   @map("unit_cost")
-  unitPrice  Float?   @map("unit_price")
+  unitCost   Float?    @map("unit_cost")
+  unitPrice  Float?    @map("unit_price")
   notes      String?
-  recordedBy String?  @map("recorded_by")
-  recordedAt DateTime @default(now()) @map("recorded_at")
+  recordedBy String?   @map("recorded_by")
+  recordedAt DateTime  @default(now()) @map("recorded_at")
+  returnedAt DateTime? @map("returned_at")
 
   job  Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
   item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)

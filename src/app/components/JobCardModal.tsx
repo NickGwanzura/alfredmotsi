@@ -60,6 +60,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const userRole = currentUser.role;
   const isAssigned = job.techIds.includes(currentUser.id) || (job.coTechIds || []).includes(currentUser.id);
   const canEdit = ['owner', 'admin', 'dispatcher'].includes(userRole) || isAssigned;
+  const canDrawStock = canEdit && !['completed', 'cancelled'].includes(job.status);
 
   const [tab, setTab] = useState<Tab>("details");
   const [status, setStatus] = useState<JobStatus>(job.status);
@@ -1027,7 +1028,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           )}
 
           {tab === "checklist" && <FieldWorkflowTab jobId={job.id} mode="checklist" canEdit={canEdit} />}
-          {tab === "parts" && <FieldWorkflowTab jobId={job.id} mode="parts" canEdit={canEdit} />}
+          {tab === "parts" && <FieldWorkflowTab jobId={job.id} mode="parts" canEdit={canEdit} canDrawStock={canDrawStock} />}
 
           {tab === "funds" && (
             <FundExpensesTab jobId={job.id} />
@@ -1101,15 +1102,16 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 type ChecklistTemplateData = { id: string; name: string; items: { id: string; label: string; requiresPhoto: boolean }[] };
 type JobChecklistData = { id: string; template: ChecklistTemplateData; responses: { id: string; templateItemId: string; result: string; notes?: string; photos: string[] }[] };
 type InventoryPart = { id: string; name: string; sku?: string; unit: string; stockLevel: number; sellPrice?: number };
-type PartUsage = { id: string; quantity: number; recordedAt: string; item: InventoryPart };
+type PartUsage = { id: string; quantity: number; recordedAt: string; returnedAt?: string | null; item: InventoryPart };
 
-function FieldWorkflowTab({ jobId, mode, canEdit }: { jobId: string; mode: 'checklist' | 'parts'; canEdit: boolean }) {
+function FieldWorkflowTab({ jobId, mode, canEdit, canDrawStock = canEdit }: { jobId: string; mode: 'checklist' | 'parts'; canEdit: boolean; canDrawStock?: boolean }) {
   const [templates, setTemplates] = useState<ChecklistTemplateData[]>([]);
   const [checklists, setChecklists] = useState<JobChecklistData[]>([]);
   const [inventory, setInventory] = useState<InventoryPart[]>([]);
   const [parts, setParts] = useState<PartUsage[]>([]);
   const [templateId, setTemplateId] = useState('');
   const [partForm, setPartForm] = useState({ itemId: '', quantity: '1', notes: '' });
+  const [partSaving, setPartSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -1141,15 +1143,24 @@ function FieldWorkflowTab({ jobId, mode, canEdit }: { jobId: string; mode: 'chec
     setChecklists((current) => current.map((checklist) => ({ ...checklist, responses: checklist.responses.map((item) => item.id === responseId ? { ...item, ...data } : item) })));
   };
   const usePart = async () => {
-    const response = await fetch(`/api/jobs/${jobId}/parts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...partForm, quantity: Number(partForm.quantity) }) });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      if (response.status === 409 && data.alarm) {
-        return setError(`STOCK ALARM — ${data.itemName} has only ${data.available} ${data.unit} available; ${data.requested} requested. Ask inventory control to replenish or approve stock.`);
+    if (partSaving) return;
+    setPartSaving(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/parts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...partForm, quantity: Number(partForm.quantity) }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 409 && data.alarm) {
+          setError(`STOCK ALARM — ${data.itemName} has only ${data.available} ${data.unit} available; ${data.requested} requested. Ask inventory control to replenish or approve stock.`);
+        } else {
+          setError(data.error || 'Could not record part usage.');
+        }
+        return;
       }
-      return setError(data.error || 'Could not record part usage.');
+      setError('');
+      setPartForm({ itemId: '', quantity: '1', notes: '' }); await load();
+    } finally {
+      setPartSaving(false);
     }
-    setPartForm({ itemId: '', quantity: '1', notes: '' }); await load();
   };
   const field = 'min-h-[44px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-brand-500';
   const button = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border-none bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 cursor-pointer';
@@ -1162,8 +1173,8 @@ function FieldWorkflowTab({ jobId, mode, canEdit }: { jobId: string; mode: 'chec
       {canEdit && <div className={cardBase}><SectionTitle>Assign HVAC checklist</SectionTitle><div className="flex flex-col sm:flex-row gap-2"><select className={field} value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Choose reusable checklist</option>{templates.filter((template) => !checklists.some((checklist) => checklist.template.id === template.id)).map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select><button className={button} disabled={!templateId} onClick={addChecklist}><Plus size={15} /> Assign</button></div></div>}
       {checklists.length === 0 ? <div className={cardBase}><p className="text-sm text-gray-500">No checklist assigned yet.</p></div> : checklists.map((checklist) => <section key={checklist.id} className={cardBase}><SectionTitle>{checklist.template.name}</SectionTitle><div className="space-y-3 mt-3">{checklist.template.items.map((item) => { const response = checklist.responses.find((entry) => entry.templateItemId === item.id); if (!response) return null; return <div key={item.id} className="rounded-lg border border-gray-200 p-3"><div className="flex flex-col sm:flex-row sm:items-center gap-3"><p className="flex-1 text-sm font-medium text-gray-900">{item.label}{item.requiresPhoto && <span className="ml-2 text-xs text-brand-600">Photo required</span>}</p><div className="grid grid-cols-3 gap-2">{[['pass','Pass'],['fail','Fail'],['not_applicable','N/A']].map(([value, label]) => <button key={value} disabled={!canEdit} onClick={() => updateResponse(response.id, value, response.notes)} className={`min-h-[44px] rounded-lg border px-3 text-xs font-semibold cursor-pointer disabled:cursor-default ${response.result === value ? value === 'fail' ? 'border-red-600 bg-red-600 text-white' : 'border-brand-600 bg-brand-600 text-white' : 'border-gray-200 bg-white text-gray-600'}`}>{label}</button>)}</div></div>{canEdit && <textarea className={`${field} mt-3 py-2`} rows={2} placeholder="Technician notes" defaultValue={response.notes || ''} onBlur={(event) => updateResponse(response.id, response.result, event.target.value)} />}</div>; })}</div></section>)}
     </> : <>
-      {canEdit && <div className={cardBase}><SectionTitle>Draw stock for this job</SectionTitle><p className="mb-3 text-xs text-gray-500">Stock is deducted only through this job card. Technicians cannot draw inventory directly.</p><div className="grid grid-cols-1 sm:grid-cols-[1fr_100px_1fr_auto] gap-2"><select className={field} value={partForm.itemId} onChange={(event) => setPartForm({ ...partForm, itemId: event.target.value })}><option value="">Choose stock item</option>{inventory.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.stockLevel} {item.unit}{item.stockLevel <= 0 ? ' — OUT OF STOCK' : ''})</option>)}</select><input className={field} type="number" min="0.01" step="0.01" inputMode="decimal" value={partForm.quantity} onChange={(event) => setPartForm({ ...partForm, quantity: event.target.value })} /><input className={field} placeholder="Notes" value={partForm.notes} onChange={(event) => setPartForm({ ...partForm, notes: event.target.value })} /><button className={button} disabled={!partForm.itemId} onClick={usePart}><Plus size={15} /> Draw</button></div></div>}
-      <div className={cardBase}><SectionTitle>Parts used on this job</SectionTitle>{parts.length === 0 ? <p className="text-sm text-gray-500 mt-2">No inventory parts recorded.</p> : <div className="space-y-2 mt-3">{parts.map((usage) => <div key={usage.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 p-3"><div><p className="text-sm font-semibold">{usage.item.name}</p><p className="text-xs text-gray-500">{usage.item.sku || 'No SKU'} - {new Date(usage.recordedAt).toLocaleString()}</p></div><span className="text-sm font-bold text-brand-600">{usage.quantity} {usage.item.unit}</span></div>)}</div>}</div>
+      {canDrawStock && <div className={cardBase}><SectionTitle>Draw stock for this job</SectionTitle><p className="mb-3 text-xs text-gray-500">Stock is deducted only through this job card. Technicians cannot draw inventory directly.</p><div className="grid grid-cols-1 sm:grid-cols-[1fr_100px_1fr_auto] gap-2"><select className={field} value={partForm.itemId} onChange={(event) => setPartForm({ ...partForm, itemId: event.target.value })}><option value="">Choose stock item</option>{inventory.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.stockLevel} {item.unit}{item.stockLevel <= 0 ? ' — OUT OF STOCK' : ''})</option>)}</select><input className={field} type="number" min="0.01" step="0.01" inputMode="decimal" value={partForm.quantity} onChange={(event) => setPartForm({ ...partForm, quantity: event.target.value })} /><input className={field} placeholder="Notes" value={partForm.notes} onChange={(event) => setPartForm({ ...partForm, notes: event.target.value })} /><button className={button} disabled={!partForm.itemId || partSaving} onClick={usePart}><Plus size={15} /> {partSaving ? 'Drawing…' : 'Draw'}</button></div></div>}
+      <div className={cardBase}><SectionTitle>Parts used on this job</SectionTitle>{parts.length === 0 ? <p className="text-sm text-gray-500 mt-2">No inventory parts recorded.</p> : <div className="space-y-2 mt-3">{parts.map((usage) => <div key={usage.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 p-3"><div><p className="text-sm font-semibold">{usage.item.name}</p><p className="text-xs text-gray-500">{usage.item.sku || 'No SKU'} - {new Date(usage.recordedAt).toLocaleString()}</p></div><span className="text-sm font-bold text-brand-600">{usage.quantity} {usage.item.unit}{usage.returnedAt ? ' · returned' : ''}</span></div>)}</div>}</div>
     </>}
   </div>;
 }
