@@ -1,3 +1,5 @@
+import { toRefrigerantLabel, toSystemStatusLabel } from '@/app/lib/refrigerantType';
+
 const UNIT_MAP: Record<string, string> = {
   'Split System': 'Split_System',
   'Package Unit': 'Package_Unit',
@@ -27,7 +29,22 @@ export const FINANCIAL_JOB_FIELDS = [
   'discount', 'deposit', 'balance',
 ];
 
+export function diagnosticsToClient(diagnostics: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...diagnostics,
+    refrigerantType: diagnostics.refrigerantType == null
+      ? diagnostics.refrigerantType
+      : (toRefrigerantLabel(diagnostics.refrigerantType) ?? diagnostics.refrigerantType),
+    status: diagnostics.status == null
+      ? diagnostics.status
+      : (toSystemStatusLabel(diagnostics.status) ?? diagnostics.status),
+  };
+}
+
 export function jobToClient(job: Record<string, unknown>): Record<string, unknown> {
+  const diagnostics = job.diagnostics && typeof job.diagnostics === 'object'
+    ? job.diagnostics as Record<string, unknown>
+    : null;
   return {
     ...job,
     unitType: UNIT_RMAP[job.unitType as string] ?? job.unitType,
@@ -38,6 +55,7 @@ export function jobToClient(job: Record<string, unknown>): Record<string, unknow
     coTechIds: Array.isArray(job.coTechnicians)
       ? (job.coTechnicians as { id: string }[]).map((t) => t.id)
       : (job.coTechIds ?? []),
+    diagnostics: diagnostics ? diagnosticsToClient(diagnostics) : diagnostics,
   };
 }
 

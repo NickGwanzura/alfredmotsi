@@ -28,7 +28,7 @@ import { StatusTag, PrioTag, SectionTitle, Notification, FormItem, AlertTag } fr
 import SignaturePad from './SignaturePad';
 import { captureAudit } from '@/app/lib/audit/capture';
 import { getCurrentPositionSafe } from '@/app/lib/geolocation';
-import { canDeleteJobs, canManageJobs } from '@/app/lib/permissions';
+import { canDeleteJobs } from '@/app/lib/permissions';
 import { X, Play, Square, Printer, Camera, Download, Plus, Trash2, Mail } from 'lucide-react';
 
 interface JobCardModalProps {
@@ -37,7 +37,8 @@ interface JobCardModalProps {
   currentUser: User;
   gasUsage?: GasUsageRecord[];
   onClose: () => void;
-  onUpdate: (job: Job) => void;
+  onUpdate: (job: Job) => Promise<void> | void;
+  onGasUsageRecorded?: (usage: GasUsageRecord) => Promise<void> | void;
   onDelete?: (jobId: string, reason: string) => Promise<boolean> | boolean;
   onPrint?: (job: Job) => void;
 }
@@ -53,9 +54,9 @@ const UNIT_TYPE_OPTIONS: UnitType[] = [
   "VRV/VRF", "Refrigeration System", "Chiller", "Heat Pump", "Precision Cooling"
 ];
 
-const REFRIGERANT_OPTIONS: (RefrigerantType | string)[] = REFRIGERANT_TYPES;
+const REFRIGERANT_OPTIONS: readonly (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 
-export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onDelete, onPrint }: JobCardModalProps) {
+export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onGasUsageRecorded, onDelete, onPrint }: JobCardModalProps) {
   const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
   const userRole = currentUser.role;
   const isAssigned = job.techIds.includes(currentUser.id) || (job.coTechIds || []).includes(currentUser.id);
@@ -99,6 +100,8 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [gasSuccess, setGasSuccess] = useState<string | null>(null);
   const [gasError, setGasError] = useState<string | null>(null);
   const [gasMismatchWarning, setGasMismatchWarning] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
@@ -176,10 +179,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
       const res = await fetch('/api/gas-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockId: gasForm.stockId, gasType: selected?.gasType || '', quantityUsed: qty, customer: cust.name || '', jobId: job.id, purpose: gasForm.purpose || '' }),
+        body: JSON.stringify({ stockId: gasForm.stockId, quantityUsed: qty, jobId: job.id, purpose: gasForm.purpose || '' }),
       });
       const data = await res.json();
       if (res.ok) {
+        await onGasUsageRecorded?.(data as GasUsageRecord);
         setGasSuccess(`${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
         setGasError(null); setGasMismatchWarning(null);
         if (selected) {
@@ -223,13 +227,21 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const techName = job.techIds.map(id => SEED_USERS.find(u => u.id === id)?.name || id).join(", ");
   const coName = (job.coTechIds || []).map(id => SEED_USERS.find(u => u.id === id)?.name || id).join(", ");
 
-  const save = () => {
+  const save = async () => {
     const a = runCheck();
     const co = status === "completed" ? (clockOut || nowTime()) : clockOut;
-    if (status === "completed") captureAudit('complete_job', job.id);
-    else captureAudit('edit_job', job.id);
-    onUpdate({ ...job, status, clockIn, clockOut: co, diagnostics: hasAnyDiagnosticData(diag) ? diag : job.diagnostics, alerts: a, signature: sig, photos, jobCardRef, comments });
-    onClose();
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onUpdate({ ...job, status, clockIn, clockOut: co, diagnostics: hasAnyDiagnosticData(diag) ? diag : job.diagnostics, alerts: a, signature: sig, photos, jobCardRef, comments });
+      if (status === "completed") captureAudit('complete_job', job.id);
+      else captureAudit('edit_job', job.id);
+      onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save the job card. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleClockIn = async () => {
@@ -763,7 +775,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                     <div>
                       <div className="font-semibold text-sm text-gray-900">Confirm status change</div>
                       <div className="text-sm text-gray-600 mt-1">
-                        This job was marked completed. Changing to "{STATUS_CFG[pendingStatus]?.label}" will undo completion.
+                        This job was marked completed. Changing to &quot;{STATUS_CFG[pendingStatus]?.label}&quot; will undo completion.
                       </div>
                       <div className="flex gap-2 mt-3">
                         <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50`} onClick={() => setPendingStatus(null)}>Cancel</button>
@@ -1037,8 +1049,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 items-center">
+          {saveError && (
+            <span className="text-xs font-medium text-red-600 mr-auto" role="alert">{saveError}</span>
+          )}
           {emailJobCardMsg && (
-            <span className={`text-xs font-medium mr-auto ${emailJobCardMsg.startsWith('✅') ? 'text-emerald-600' : 'text-red-600'}`}>
+            <span className={`text-xs font-medium ${saveError ? '' : 'mr-auto'} ${emailJobCardMsg.startsWith('✅') ? 'text-emerald-600' : 'text-red-600'}`}>
               {emailJobCardMsg}
             </span>
           )}
@@ -1058,7 +1073,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               <Mail size={14} /> {emailingJobCard ? 'Sending...' : 'Email PDF'}
             </button>
           )}
-          {canEdit && <button className={btnPrimary} onClick={save}>Save Job Card</button>}
+          {canEdit && <button className={btnPrimary} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Job Card'}</button>}
         </div>
       </div>
 

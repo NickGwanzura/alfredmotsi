@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { boundedNumber, cleanText } from '@/app/lib/serviceAuth';
+import { diagnosticsToClient } from '@/app/lib/jobTransform';
+import { toPrismaRefrigerantType, toPrismaSystemStatus } from '@/app/lib/refrigerantType';
 
 async function verifyJobAccess(jobId: string, userId: string, userRole: string): Promise<NextResponse | null> {
   const job = await prisma.job.findUnique({
@@ -25,8 +27,8 @@ export async function GET(
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const userRole = (session.user as any).role;
-    const userId = (session.user as any).id;
+    const userRole = session.user.role as string;
+    const userId = session.user.id!;
     const accessError = await verifyJobAccess(id, userId, userRole);
     if (accessError) return accessError;
 
@@ -38,7 +40,7 @@ export async function GET(
       return NextResponse.json(null, { status: 404 });
     }
 
-    return NextResponse.json(diagnostics);
+    return NextResponse.json(diagnosticsToClient(diagnostics as unknown as Record<string, unknown>));
   } catch (error) {
     console.error('Error fetching diagnostics:', error);
     return NextResponse.json({ error: 'Failed to fetch diagnostics' }, { status: 500 });
@@ -57,8 +59,8 @@ export async function POST(
     if (forbidden) return forbidden;
 
     const { id } = await params;
-    const userRole = (session.user as any).role;
-    const userId = (session.user as any).id;
+    const userRole = session.user.role as string;
+    const userId = session.user.id!;
     const accessError = await verifyJobAccess(id, userId, userRole);
     if (accessError) return accessError;
 
@@ -78,8 +80,9 @@ export async function POST(
     if (suction !== undefined) data.suction = cleanText(suction, 120);
     if (discharge !== undefined) data.discharge = cleanText(discharge, 120);
     if (refrigerantType !== undefined) {
-      if (!['R_32', 'R_410A', 'R_22', 'R_134a', 'R_407C', 'R_600A', 'R_290'].includes(refrigerantType)) return NextResponse.json({ error: 'Invalid refrigerant type' }, { status: 400 });
-      data.refrigerantType = refrigerantType;
+      const normalized = toPrismaRefrigerantType(refrigerantType);
+      if (!normalized) return NextResponse.json({ error: 'Invalid refrigerant type' }, { status: 400 });
+      data.refrigerantType = normalized;
     }
     for (const [key, value] of [['refrigerantRecovered', refrigerantRecovered], ['refrigerantUsed', refrigerantUsed], ['refrigerantReused', refrigerantReused]] as const) {
       if (value !== undefined) {
@@ -89,8 +92,9 @@ export async function POST(
       }
     }
     if (status !== undefined) {
-      if (!['optimal', 'sub_optimal', 'critical'].includes(status)) return NextResponse.json({ error: 'Invalid diagnostics status' }, { status: 400 });
-      data.status = status;
+      const normalized = toPrismaSystemStatus(status);
+      if (!normalized) return NextResponse.json({ error: 'Invalid diagnostics status' }, { status: 400 });
+      data.status = normalized;
     }
     if (notes !== undefined) data.notes = cleanText(notes, 5_000) || null;
     if (deltaT !== undefined) data.deltaT = cleanText(deltaT, 120);
@@ -106,7 +110,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json(diagnostics);
+    return NextResponse.json(diagnosticsToClient(diagnostics as unknown as Record<string, unknown>));
   } catch (error) {
     console.error('Error saving diagnostics:', error);
     return NextResponse.json({ error: 'Failed to save diagnostics' }, { status: 500 });

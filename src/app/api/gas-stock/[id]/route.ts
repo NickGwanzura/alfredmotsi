@@ -3,7 +3,7 @@ import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { auditServiceAction, cleanText, nonNegativeNumber, positiveNumber } from '@/app/lib/serviceAuth';
 import { canManageGasStock } from '@/app/lib/permissions';
-import { RefrigerantType } from '@prisma/client';
+import { toRefrigerantLabel } from '@/app/lib/refrigerantType';
 
 export async function PUT(
   request: NextRequest,
@@ -18,11 +18,11 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const { gasType, brand, quantity, remaining, unit, supplier, supplierRef, notes } = body;
+  const { gasType, brand, quantity, remaining, unit, supplier, supplierRef, notes, reason } = body;
   const existing = await prisma.gasStockItem.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
-  const normalizedGasType = gasType === undefined ? existing.gasType : cleanText(gasType, 60);
-  if (!Object.values(RefrigerantType).includes(normalizedGasType as RefrigerantType)) {
+  const normalizedGasType = toRefrigerantLabel(gasType === undefined ? existing.gasType : cleanText(gasType, 60));
+  if (!normalizedGasType) {
     return NextResponse.json({ error: 'Unsupported gas type' }, { status: 400 });
   }
   const parsedQuantity = quantity === undefined ? existing.quantity : positiveNumber(quantity);
@@ -46,7 +46,8 @@ export async function PUT(
     },
   });
 
-  await auditServiceAction(session, 'update_gas_stock', `Updated gas stock ${stockItem.id} (${stockItem.gasType})`);
+  const correctionReason = cleanText(reason, 500);
+  await auditServiceAction(session, 'update_gas_stock', `Updated gas stock ${stockItem.id} (${stockItem.gasType})${correctionReason ? ` — ${correctionReason}` : ''}`);
 
   return NextResponse.json(stockItem);
 }

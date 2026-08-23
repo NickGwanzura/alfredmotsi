@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { GasStockItem, User } from '@/app/types';
 import { SectionTitle, ContextBanner } from './ui';
 import { canManageGasStock } from '@/app/lib/permissions';
+import { REFRIGERANT_TYPES } from '@/app/lib/config';
 import { Package, Weight, AlertTriangle, RefreshCcw, Plus } from 'lucide-react';
 
 interface GasStockProps {
@@ -39,19 +40,36 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   const canManage = canManageGasStock(currentUser.role);
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustVal, setAdjustVal] = useState('');
+  const [adjustGasType, setAdjustGasType] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
+  const [adjustError, setAdjustError] = useState('');
   const [adjusting, setAdjusting] = useState(false);
 
   const handleAdjust = async (item: GasStockItem) => {
-    if (!adjustVal) return;
+    if (!adjustVal || !adjustGasType) {
+      setAdjustError('Select the refrigerant type and enter the corrected remaining quantity.');
+      return;
+    }
+    setAdjustError('');
     setAdjusting(true);
     try {
       const res = await fetch(`/api/gas-stock/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ remaining: parseFloat(adjustVal), reason: adjustReason || 'Manual adjustment' }),
+        body: JSON.stringify({ gasType: adjustGasType, remaining: parseFloat(adjustVal), reason: adjustReason || 'Manual stock correction' }),
       });
-      if (res.ok) { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); onRefresh?.(); }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setAdjustError(data?.error || `Could not update stock (server error ${res.status})`);
+        return;
+      }
+      setAdjustId(null);
+      setAdjustVal('');
+      setAdjustGasType('');
+      setAdjustReason('');
+      onRefresh?.();
+    } catch {
+      setAdjustError('Network error — the stock correction was not saved.');
     } finally { setAdjusting(false); }
   };
 
@@ -129,7 +147,9 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                   const lowStock = isLowStock(item);
                   return (
                     <tr key={item.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${lowStock ? 'bg-red-50' : ''}`}>
-                      <td className="px-4 py-3"><span className="font-semibold text-sm text-gray-900">{item.gasType}</span></td>
+                      <td className="px-4 py-3">
+                        <span className={`font-semibold text-sm ${item.gasType ? 'text-gray-900' : 'text-red-600'}`}>{item.gasType || 'Needs correction'}</span>
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.brand}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-mono">{item.quantity} {item.unit}</td>
                       <td className="px-4 py-3">
@@ -152,15 +172,20 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                       <td className="px-4 py-3">
                         {adjustId === item.id ? (
                           <div className="flex flex-col gap-1.5 min-w-[220px] py-1">
-                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" type="number" step="0.1" placeholder={`New remaining (was ${item.remaining})`} value={adjustVal} onChange={e => setAdjustVal(e.target.value)} />
+                            <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" value={adjustGasType} onChange={e => setAdjustGasType(e.target.value)}>
+                              <option value="">Select gas type</option>
+                              {REFRIGERANT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                            </select>
+                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" type="number" step="0.1" min="0" max={item.quantity} placeholder={`New remaining (was ${item.remaining})`} value={adjustVal} onChange={e => setAdjustVal(e.target.value)} />
                             <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Reason (optional)" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
+                            {adjustError && <p className="text-xs font-medium text-red-600" role="alert">{adjustError}</p>}
                             <div className="flex gap-1.5">
                               <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50" disabled={adjusting} onClick={() => handleAdjust(item)}>{adjusting ? 'Saving...' : 'Save'}</button>
-                              <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustReason(''); }}>Cancel</button>
+                              <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustGasType(''); setAdjustReason(''); setAdjustError(''); }}>Cancel</button>
                             </div>
                           </div>
                         ) : canManage ? (
-                          <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); }}>Adjust Stock</button>
+                          <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustError(''); }}>Correct Stock</button>
                         ) : null}
                       </td>
                     </tr>

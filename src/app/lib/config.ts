@@ -1,4 +1,5 @@
 import { StatusConfig, TypeConfig, TechStatusConfig, AlertConfig, PriorityTagConfig, JobStatus, JobType, TechStatus, AlertType, JobPriority } from '@/app/types';
+import { REFRIGERANT_LABELS } from '@/app/lib/refrigerantType';
 
 export const STATUS_CFG: Record<JobStatus, StatusConfig> = {
   draft: { label: "Draft", bg: "#f3f4f6", txt: "#4b5563" },
@@ -53,7 +54,4 @@ export const INVENTORY_CATEGORIES = [
   'Installation Materials', 'Parts', 'Tools', 'Refrigerants', 'Filters', 'Consumables', 'Other',
 ] as const;
 
-export const REFRIGERANT_TYPES = [
-  // Keep this list aligned with the Prisma RefrigerantType enum used by gas usage.
-  "R-32", "R-410A", "R-22", "R-134a", "R-407C", "R-600A", "R-290",
-];
+export const REFRIGERANT_TYPES = REFRIGERANT_LABELS;

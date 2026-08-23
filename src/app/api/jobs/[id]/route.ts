@@ -4,8 +4,9 @@ import type { Prisma } from '@prisma/client';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
-import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
+import { auditServiceAction, boundedNumber, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
+import { toPrismaRefrigerantType, toPrismaSystemStatus } from '@/app/lib/refrigerantType';
 
 // Valid status transitions
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -182,6 +183,35 @@ export async function PUT(
       }
     }
 
+    let diagnosticData: Record<string, unknown> | null = null;
+    if (diagnostics !== undefined && diagnostics !== null) {
+      if (typeof diagnostics !== 'object' || Array.isArray(diagnostics)) {
+        return NextResponse.json({ error: 'Diagnostics must be an object' }, { status: 400 });
+      }
+      diagnosticData = {};
+      const diagnosticInput = diagnostics as Record<string, unknown>;
+      for (const key of ['voltage', 'current', 'avgTemp', 'maxTemp', 'suction', 'discharge', 'deltaT', 'brand', 'serial'] as const) {
+        if (diagnosticInput[key] !== undefined) diagnosticData[key] = cleanText(diagnosticInput[key], 120) || null;
+      }
+      if (diagnosticInput.notes !== undefined) diagnosticData.notes = cleanText(diagnosticInput.notes, 5_000) || null;
+      if (diagnosticInput.refrigerantType !== undefined) {
+        const refrigerantType = toPrismaRefrigerantType(diagnosticInput.refrigerantType);
+        if (!refrigerantType) return NextResponse.json({ error: 'Invalid refrigerant type' }, { status: 400 });
+        diagnosticData.refrigerantType = refrigerantType;
+      }
+      if (diagnosticInput.status !== undefined) {
+        const diagnosticStatus = toPrismaSystemStatus(diagnosticInput.status);
+        if (!diagnosticStatus) return NextResponse.json({ error: 'Invalid diagnostics status' }, { status: 400 });
+        diagnosticData.status = diagnosticStatus;
+      }
+      for (const key of ['refrigerantRecovered', 'refrigerantUsed', 'refrigerantReused'] as const) {
+        if (diagnosticInput[key] === undefined) continue;
+        const value = boundedNumber(diagnosticInput[key], 0, 100_000);
+        if (value === null) return NextResponse.json({ error: `${key} must be a valid non-negative number` }, { status: 400 });
+        diagnosticData[key] = value;
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const whereClause: any = { id };
       if (_version !== undefined) whereClause.version = _version;
@@ -200,12 +230,7 @@ export async function PUT(
         },
       });
 
-      if (diagnostics) {
-        const diagnosticData = Object.fromEntries(
-          ['voltage', 'current', 'avgTemp', 'maxTemp', 'suction', 'discharge', 'refrigerantType', 'refrigerantRecovered', 'refrigerantUsed', 'refrigerantReused', 'status', 'notes', 'deltaT', 'brand', 'serial']
-            .filter((key) => diagnostics[key] !== undefined)
-            .map((key) => [key, diagnostics[key]])
-        );
+      if (diagnosticData) {
         await tx.diagnostics.upsert({
           where: { jobId: id },
           update: diagnosticData,

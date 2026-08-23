@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GasUsageRecord, GasStockItem, Customer, Job } from '@/app/types';
 import { X } from 'lucide-react';
 
@@ -17,17 +17,10 @@ interface AddGasUsageModalProps {
 export default function AddGasUsageModal({ usage, stock, customers, jobs, onChange, onSave, onClose }: AddGasUsageModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedStock, setSelectedStock] = useState<GasStockItem | null>(null);
-
-  useEffect(() => {
-    if (usage.stockId) {
-      const found = stock.find(s => s.id === usage.stockId);
-      setSelectedStock(found || null);
-      if (found && !usage.gasType) {
-        onChange({ ...usage, gasType: found.gasType });
-      }
-    }
-  }, [usage.stockId, stock]);
+  const selectedStock = useMemo(
+    () => stock.find((item) => item.id === usage.stockId) ?? null,
+    [stock, usage.stockId],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +47,8 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
 
     try {
       await onSave();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to record gas usage');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to record gas usage');
     } finally {
       setLoading(false);
     }

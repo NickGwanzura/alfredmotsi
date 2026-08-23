@@ -244,26 +244,43 @@ export default function Home() {
   const unallocatedCount = jobs.filter((j) => j.status === 'unallocated').length;
 
   const updateJob = async (updatedJob: Job) => {
-    try {
-      const prevJob = jobs.find((j) => j.id === updatedJob.id);
-      const res = await fetch(`/api/jobs/${updatedJob.id}`, {
-        method: 'PUT',
+    const prevJob = jobs.find((j) => j.id === updatedJob.id);
+    const res = await fetch(`/api/jobs/${updatedJob.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedJob),
+    });
+    const response = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(response?.error || `Failed to save job card (server error ${res.status})`);
+    }
+    const savedJob = response as Job;
+    setJobs((prev) => prev.map((j) => (j.id === savedJob.id ? savedJob : j)));
+    setSelectedJob(savedJob);
+    if (savedJob.status === 'completed' && prevJob?.status !== 'completed') {
+      fetch('/api/notifications/job-complete', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedJob),
-      });
-      if (res.ok) {
-        setJobs((prev) => prev.map((j) => (j.id === updatedJob.id ? updatedJob : j)));
-        setSelectedJob(updatedJob);
-        if (updatedJob.status === 'completed' && prevJob?.status !== 'completed') {
-          fetch('/api/notifications/job-complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: updatedJob.id }),
-          }).catch(() => {});
-        }
+        body: JSON.stringify({ jobId: savedJob.id }),
+      }).catch(() => {});
+    }
+  };
+
+  const refreshAfterGasUsage = async (usage: GasUsageRecord) => {
+    setGasUsage((prev) => [usage, ...prev.filter((record) => record.id !== usage.id)]);
+    try {
+      const [stockRes, jobRes] = await Promise.all([
+        fetch('/api/gas-stock'),
+        fetch(`/api/jobs/${usage.jobId}`),
+      ]);
+      if (stockRes.ok) setGasStock(await stockRes.json());
+      if (jobRes.ok) {
+        const refreshedJob = await jobRes.json() as Job;
+        setJobs((prev) => prev.map((job) => job.id === refreshedJob.id ? refreshedJob : job));
+        setSelectedJob((current) => current?.id === refreshedJob.id ? refreshedJob : current);
       }
     } catch (error) {
-      console.error('Error updating job:', error);
+      console.error('Gas usage saved, but refreshed data could not be loaded:', error);
     }
   };
 
@@ -749,6 +766,7 @@ export default function Home() {
           gasUsage={gasUsage}
           onClose={() => setSelectedJob(null)}
           onUpdate={updateJob}
+          onGasUsageRecorded={refreshAfterGasUsage}
           onDelete={perm.canManageJobs ? deleteJob : undefined}
           onPrint={(job) => {
             setPrintJob(job);

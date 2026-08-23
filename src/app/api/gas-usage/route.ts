@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { Prisma, RefrigerantType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { canAccessJob, cleanText } from '@/app/lib/serviceAuth';
+import { toPrismaRefrigerantType, toRefrigerantLabel } from '@/app/lib/refrigerantType';
 
 type StockUsageError = Error & { code?: 'STOCK_NOT_FOUND' | 'INSUFFICIENT_STOCK'; remaining?: number; unit?: string };
 
@@ -41,11 +42,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (forbidden) return forbidden;
 
     const body = await request.json();
-    const { stockId, gasType, quantityUsed, jobId, purpose } = body;
+    const { stockId, quantityUsed, jobId, purpose } = body;
 
-    if (!stockId || !gasType || !jobId) {
+    if (!stockId || !jobId) {
       return NextResponse.json(
-        { error: 'Stock ID, gas type, quantity used, and job ID are required' },
+        { error: 'Stock ID, quantity used, and job ID are required' },
         { status: 400 }
       );
     }
@@ -68,10 +69,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     if (!stock) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
     const canonicalCustomer = job.customer.name;
-    if (!Object.values(RefrigerantType).includes(stock.gasType as RefrigerantType)) {
+    const canonicalGasType = toRefrigerantLabel(stock.gasType);
+    const diagnosticGasType = toPrismaRefrigerantType(stock.gasType);
+    if (!canonicalGasType || !diagnosticGasType) {
       return NextResponse.json({ error: 'Gas stock item has an unsupported refrigerant type' }, { status: 400 });
     }
-    const canonicalGasType = stock.gasType as RefrigerantType;
 
     let usageRecord: unknown;
     try {
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const update: Prisma.DiagnosticsUncheckedUpdateInput = {};
         if (shouldSetType) {
-          update.refrigerantType = canonicalGasType;
+          update.refrigerantType = diagnosticGasType;
         }
 
         if (diagKind === 'recovered') {
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const create: Prisma.DiagnosticsUncheckedCreateInput = {
           jobId,
-          refrigerantType: canonicalGasType,
+          refrigerantType: diagnosticGasType,
         };
 
         if (diagKind === 'recovered') {

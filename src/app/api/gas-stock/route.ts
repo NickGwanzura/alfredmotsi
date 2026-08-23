@@ -3,7 +3,7 @@ import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 import { canManageGasStock } from '@/app/lib/permissions';
-import { RefrigerantType } from '@prisma/client';
+import { toRefrigerantLabel } from '@/app/lib/refrigerantType';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -40,10 +40,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { gasType, brand, quantity, unit, supplier, supplierRef, notes } = body;
 
     const parsedQuantity = positiveNumber(quantity);
-    const normalizedGasType = cleanText(gasType, 60);
+    const normalizedGasType = toRefrigerantLabel(cleanText(gasType, 60));
     const normalizedBrand = cleanText(brand, 120);
     const normalizedSupplier = cleanText(supplier, 180);
-    if (!Object.values(RefrigerantType).includes(normalizedGasType as RefrigerantType) || !normalizedBrand || parsedQuantity === null || !normalizedSupplier) {
+    if (!normalizedGasType || !normalizedBrand || parsedQuantity === null || !normalizedSupplier) {
       return NextResponse.json(
         { error: 'Select a supported gas type and provide brand, positive quantity, and supplier' },
         { status: 400 }
