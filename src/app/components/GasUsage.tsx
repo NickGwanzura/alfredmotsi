@@ -3,10 +3,12 @@
 import React, { useState, useMemo } from 'react';
 import { GasUsageRecord, User } from '@/app/types';
 import { SectionTitle, ContextBanner } from './ui';
-import { Beaker, CalendarDays, TrendingUp, Plus, Download, FileText, Search } from 'lucide-react';
+import { Beaker, CalendarDays, TrendingUp, Plus, Download, FileText, Search, X } from 'lucide-react';
 import { useToast } from './Toast';
 import { makeCsv } from '@/app/lib/csv';
 import { isAdmin } from '@/app/lib/permissions';
+import { formatHarareDateTime } from '@/app/lib/gasUnits';
+import { isActiveServiceMovement, isReversibleMovement } from '@/app/lib/gasLedger';
 
 interface GasUsageProps {
   usage: GasUsageRecord[];
@@ -22,6 +24,8 @@ const GAS_TYPE_COLORS: Record<string, string> = {
   'R-22': 'bg-red-100 text-red-700', 'R-134a': 'bg-cyan-100 text-cyan-700',
   'R-407C': 'bg-amber-100 text-amber-700', 'R-600A': 'bg-emerald-100 text-emerald-700',
   'R-290': 'bg-orange-100 text-orange-700',
+  'R-404A': 'bg-indigo-100 text-indigo-700', 'R-507A': 'bg-fuchsia-100 text-fuchsia-700',
+  'R-1234yf': 'bg-lime-100 text-lime-700', 'R-438A': 'bg-rose-100 text-rose-700',
 };
 
 function getGasTypePill(type: string): string {
@@ -36,19 +40,26 @@ function getJobRef(jobId: string | null, jobs?: { id: string; jobCardRef: string
 
 function getTechName(usedBy: string | null, usedByName: string, techs?: { id: string; name: string }[]): string {
   const t = techs?.find(t => t.id === usedBy);
-  return t?.name || usedByName || 'Unknown';
+  return usedByName || t?.name || 'Unknown';
 }
 
 export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRefresh }: GasUsageProps) {
   const { success, warning } = useToast();
   const [gasFilter, setGasFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [reverseTarget, setReverseTarget] = useState<GasUsageRecord | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
+  const [reversing, setReversing] = useState(false);
 
   const gasTypes = useMemo(() => Array.from(new Set(usage.map(u => u.gasType))).sort(), [usage]);
 
   const filteredUsage = useMemo(() => {
     let result = gasFilter === 'all' ? usage : usage.filter(u => u.gasType === gasFilter);
+    if (fromDate) result = result.filter(u => u.date >= fromDate);
+    if (toDate) result = result.filter(u => u.date <= toDate);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(u =>
@@ -60,13 +71,13 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
       );
     }
     return result;
-  }, [usage, gasFilter, search, jobs, techs]);
+  }, [usage, gasFilter, search, fromDate, toDate, jobs, techs]);
 
-  const activeServiceMovements = useMemo(() => filteredUsage.filter(u => !u.reversedAt && ['used', 'reused', 'recovered'].includes(u.movementType)), [filteredUsage]);
+  const activeServiceMovements = useMemo(() => filteredUsage.filter(isActiveServiceMovement), [filteredUsage]);
   const totalUsage = useMemo(() => activeServiceMovements.filter(u => u.movementType !== 'recovered').reduce((sum, u) => sum + u.quantityKg, 0), [activeServiceMovements]);
   const thisMonthUsage = useMemo(() => {
-    const now = new Date();
-    return activeServiceMovements.filter(u => u.movementType !== 'recovered' && (() => { const d = new Date(`${u.date}T00:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })()).reduce((sum, u) => sum + u.quantityKg, 0);
+    const month = formatHarareDateTime().date.slice(0, 7);
+    return activeServiceMovements.filter(u => u.movementType !== 'recovered' && u.date.startsWith(month)).reduce((sum, u) => sum + u.quantityKg, 0);
   }, [activeServiceMovements]);
   const topGasType = useMemo(() => {
     const byType: Record<string, number> = {};
@@ -79,9 +90,9 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
   const sortedUsage = useMemo(() => [...filteredUsage].sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime()), [filteredUsage]);
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Time', 'Movement', 'Gas Type', 'Entered Quantity', 'Unit', 'Quantity (kg)', 'Stock Delta', 'Balance After', 'Technician', 'Customer', 'Job Ref', 'Purpose', 'Reversed'];
+    const headers = ['Date', 'Time', 'Movement', 'Gas Type', 'Cylinder Serial', 'Entered Quantity', 'Unit', 'Quantity (kg)', 'Stock Delta', 'Balance After', 'Technician', 'Customer', 'Job Ref', 'Purpose', 'Reversed'];
     const rows = sortedUsage.map(u => [
-      u.date, u.time, u.movementType, u.gasType, u.quantityUsed, u.unit, u.quantityKg.toFixed(3), u.stockDelta,
+      u.date, u.time, u.movementType, u.gasType, u.stockSerialNumber || '', u.quantityUsed, u.unit, u.quantityKg.toFixed(3), u.stockDelta,
       u.stockBalanceAfter ?? '', getTechName(u.usedBy, u.usedByName, techs), u.customer,
       getJobRef(u.jobId, jobs), u.purpose, u.reversedAt ? `Yes: ${u.reversalReason || ''}` : 'No',
     ]);
@@ -96,22 +107,28 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
     success('CSV exported', `${rows.length} records downloaded`);
   };
 
-  const reverseMovement = async (record: GasUsageRecord) => {
-    const reason = window.prompt('Reason for reversing this movement:')?.trim();
+  const reverseMovement = async () => {
+    const record = reverseTarget;
+    const reason = reverseReason.trim();
+    if (!record) return;
     if (!reason) return;
+    setReversing(true);
     const response = await fetch(`/api/gas-usage/${record.id}/reverse`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
     });
     const data = await response.json().catch(() => null);
-    if (!response.ok) { warning('Reversal failed', data?.error || `Server error ${response.status}`); return; }
+    if (!response.ok) { warning('Reversal failed', data?.error || `Server error ${response.status}`); setReversing(false); return; }
     success('Movement reversed', 'Stock and ODS totals were restored.');
+    setReverseTarget(null);
+    setReverseReason('');
+    setReversing(false);
     onRefresh?.();
   };
 
   const handleExportPDF = async () => {
     setGeneratingPdf(true);
     try {
-      const res = await fetch('/api/gas-usage/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: sortedUsage.map(({ id }) => ({ id })) }) });
+      const res = await fetch('/api/gas-usage/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usage: sortedUsage.map(({ id }) => ({ id })), fromDate: fromDate || null, toDate: toDate || null }) });
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -152,7 +169,7 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
           {onAdd && (
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
               onClick={() => {
-                onAdd({ id: '', stockId: null, gasType: '', quantityUsed: 0, quantityKg: 0, unit: 'kg', stockDelta: 0, movementType: 'used', usedBy: currentUser.id || null, usedByName: currentUser.name, jobId: null, customer: '', date: '', time: '', purpose: '' });
+                onAdd({ id: '', stockId: null, gasType: '', quantityUsed: 0, quantityKg: 0, unit: 'kg', stockDelta: 0, movementType: 'used', usedBy: currentUser.id || null, usedByName: currentUser.name, jobId: null, customer: '', date: '', time: '', purpose: '', clientRequestId: crypto.randomUUID() });
               }}>
               <Plus size={16} /> Record Usage
             </button>
@@ -180,7 +197,9 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <SectionTitle>Usage Records</SectionTitle>
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-3 items-end flex-wrap">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">From<input type="date" value={fromDate} max={toDate || undefined} onChange={event => setFromDate(event.target.value)} className="mt-1 block h-9 rounded-lg border border-gray-200 px-2 text-xs font-normal normal-case" /></label>
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">To<input type="date" value={toDate} min={fromDate || undefined} onChange={event => setToDate(event.target.value)} className="mt-1 block h-9 rounded-lg border border-gray-200 px-2 text-xs font-normal normal-case" /></label>
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input className="w-48 h-9 pl-8 pr-3 text-xs border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Search by customer, gas, tech..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -204,6 +223,7 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
                 <tr className="bg-gray-50">
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Date / Time</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Gas Type</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Cylinder</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Movement</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Quantity</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Technician</th>
@@ -223,13 +243,14 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${getGasTypePill(u.gasType)}`}>{u.gasType}</span>
                     </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{u.stockSerialNumber || '—'}</td>
                     <td className="px-4 py-3 text-sm font-semibold capitalize text-gray-700">{u.movementType}</td>
                     <td className="px-4 py-3"><span className="font-mono text-sm font-semibold text-gray-900">{u.quantityUsed.toFixed(2)} {u.unit}</span><div className="text-xs text-gray-400">{u.quantityKg.toFixed(3)} kg</div></td>
                     <td className="px-4 py-3 text-sm text-gray-500">{getTechName(u.usedBy, u.usedByName, techs)}</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{u.customer}</td>
                     <td className="px-4 py-3"><span className="font-mono text-xs text-brand-600 font-semibold">{getJobRef(u.jobId, jobs)}</span></td>
                     <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px]">{u.purpose || '—'}</td>
-                    <td className="px-4 py-3 text-sm">{u.reversedAt ? <span className="text-red-600">Reversed</span> : isAdmin(currentUser.role) && !['reversal'].includes(u.movementType) ? <button className="text-xs text-red-600 bg-transparent border-none cursor-pointer" onClick={() => reverseMovement(u)}>Reverse</button> : <span className="text-emerald-600">Active</span>}</td>
+                    <td className="px-4 py-3 text-sm">{u.reversedAt ? <span className="text-red-600">Reversed</span> : isAdmin(currentUser.role) && isReversibleMovement(u) ? <button className="text-xs text-red-600 bg-transparent border-none cursor-pointer" onClick={() => { setReverseTarget(u); setReverseReason(''); }}>Reverse</button> : u.quantityUsed <= 0 || u.quantityKg <= 0 ? <span className="text-gray-500">Legacy</span> : <span className="text-emerald-600">Active</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -237,6 +258,25 @@ export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRef
           </div>
         )}
       </div>
+      {reverseTarget && (
+        <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="reverse-title" onClick={() => !reversing && setReverseTarget(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+              <div><p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Audit correction</p><h2 id="reverse-title" className="mt-1 text-xl font-bold text-gray-900">Reverse movement</h2></div>
+              <button type="button" aria-label="Close" disabled={reversing} className="border-none bg-transparent p-1 text-gray-400" onClick={() => setReverseTarget(null)}><X size={20} /></button>
+            </div>
+            <div className="space-y-4 px-6 py-5">
+              <p className="text-sm text-gray-600">This creates an opposite ledger entry and restores the stock balance. The original record remains visible.</p>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">Reason *</label>
+              <textarea autoFocus rows={3} maxLength={500} value={reverseReason} onChange={event => setReverseReason(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" placeholder="Explain why this movement is being reversed" />
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+              <button type="button" disabled={reversing} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm" onClick={() => setReverseTarget(null)}>Cancel</button>
+              <button type="button" disabled={reversing || !reverseReason.trim()} className="rounded-lg border-none bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={reverseMovement}>{reversing ? 'Reversing…' : 'Reverse movement'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

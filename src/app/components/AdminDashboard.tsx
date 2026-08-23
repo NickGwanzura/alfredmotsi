@@ -5,6 +5,7 @@ import { Job, User, Customer, GasStockItem, GasUsageRecord } from '@/app/types';
 import { TYPE_CFG, ALERT_CFG, TECH_STATUS, STATUS_CFG } from '@/app/lib/config';
 import { StatusTag, SectionTitle, Avatar, ContextBanner } from './ui';
 import { Mail, AlertTriangle, CalendarDays, Clock, UserCheck, Wrench, ClipboardList, BarChart3, RefreshCcw, Fuel, TrendingUp, DollarSign, FileText, Users, Plus, X } from 'lucide-react';
+import { isActiveServiceMovement } from '@/app/lib/gasLedger';
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -26,7 +27,7 @@ function hasDiagnosticData(job: Job): boolean {
 }
 
 function hasRecordedGas(job: Job, gasUsage: GasUsageRecord[]): boolean {
-  if (gasUsage.some(record => record.jobId === job.id)) return true;
+  if (gasUsage.some(record => record.jobId === job.id && isActiveServiceMovement(record))) return true;
   const diag = job.diagnostics;
   return Boolean(diag?.refrigerantUsed || diag?.refrigerantRecovered || diag?.refrigerantReused);
 }

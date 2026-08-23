@@ -25,6 +25,8 @@ export async function mergeUserRecords(tx: Prisma.TransactionClient, duplicateId
     tx.pushSubscription.updateMany({ where: { userId: duplicateId }, data: { userId: keepId } }),
     tx.technicianAvailability.updateMany({ where: { userId: duplicateId }, data: { userId: keepId } }),
     tx.auditLog.updateMany({ where: { userId: duplicateId }, data: { userId: keepId } }),
+    // Preserve the immutable usedByName snapshot while moving the live FK so the
+    // duplicate account can be safely removed.
     tx.gasUsageRecord.updateMany({ where: { usedBy: duplicateId }, data: { usedBy: keepId } }),
     tx.consumable.updateMany({ where: { recordedBy: duplicateId }, data: { recordedBy: keepId } }),
     tx.jobAttachment.updateMany({ where: { uploadedBy: duplicateId }, data: { uploadedBy: keepId } }),

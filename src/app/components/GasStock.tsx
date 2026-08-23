@@ -46,13 +46,24 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustVal, setAdjustVal] = useState('');
   const [adjustGasType, setAdjustGasType] = useState('');
+  const [adjustKind, setAdjustKind] = useState<GasStockItem['stockKind']>('virgin');
+  const [adjustSerial, setAdjustSerial] = useState('');
+  const [adjustCertification, setAdjustCertification] = useState('');
+  const [adjustTare, setAdjustTare] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustError, setAdjustError] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+  const [lifecycleItem, setLifecycleItem] = useState<GasStockItem | null>(null);
+  const [lifecycleAction, setLifecycleAction] = useState<'lost' | 'disposed' | 'transfer' | 'retire'>('lost');
+  const [lifecycleQuantity, setLifecycleQuantity] = useState('');
+  const [lifecycleDestination, setLifecycleDestination] = useState('');
+  const [lifecycleReason, setLifecycleReason] = useState('');
+  const [lifecycleError, setLifecycleError] = useState('');
+  const [lifecycleSaving, setLifecycleSaving] = useState(false);
 
   const handleAdjust = async (item: GasStockItem) => {
-    if (!adjustVal || !adjustGasType || !adjustReason.trim()) {
-      setAdjustError('Select the refrigerant type, enter the corrected balance, and provide a reason.');
+    if (!adjustVal || !adjustGasType || !adjustSerial.trim() || !adjustReason.trim()) {
+      setAdjustError('Select the refrigerant and cylinder type, enter its serial and corrected balance, and provide a reason.');
       return;
     }
     setAdjustError('');
@@ -61,7 +72,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
       const res = await fetch(`/api/gas-stock/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gasType: adjustGasType, remaining: parseFloat(adjustVal), reason: adjustReason, expectedVersion: item.version }),
+        body: JSON.stringify({ gasType: adjustGasType, stockKind: adjustKind, serialNumber: adjustSerial, certificationExpiresAt: adjustCertification || null, tareWeightKg: adjustTare === '' ? null : Number(adjustTare), remaining: parseFloat(adjustVal), reason: adjustReason, expectedVersion: item.version }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -71,11 +82,31 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
       setAdjustId(null);
       setAdjustVal('');
       setAdjustGasType('');
+      setAdjustKind('virgin'); setAdjustSerial(''); setAdjustCertification(''); setAdjustTare('');
       setAdjustReason('');
       onRefresh?.();
     } catch {
       setAdjustError('Network error — the stock correction was not saved.');
     } finally { setAdjusting(false); }
+  };
+
+  const handleLifecycle = async () => {
+    if (!lifecycleItem || !lifecycleReason.trim() || (lifecycleAction !== 'retire' && (!Number(lifecycleQuantity) || Number(lifecycleQuantity) <= 0))) {
+      setLifecycleError('Provide a positive quantity and audit reason.'); return;
+    }
+    if (lifecycleAction === 'transfer' && !lifecycleDestination) { setLifecycleError('Select a destination cylinder.'); return; }
+    setLifecycleSaving(true); setLifecycleError('');
+    try {
+      const response = await fetch(`/api/gas-stock/${lifecycleItem.id}/lifecycle`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: lifecycleAction, quantity: Number(lifecycleQuantity), destinationStockId: lifecycleDestination || null, reason: lifecycleReason, expectedVersion: lifecycleItem.version, clientRequestId: crypto.randomUUID() }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) { setLifecycleError(data?.error || `Server error ${response.status}`); return; }
+      setLifecycleItem(null); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason('');
+      onRefresh?.();
+    } catch { setLifecycleError('Network error — lifecycle movement was not saved.'); }
+    finally { setLifecycleSaving(false); }
   };
 
   const totalCylinders = calculateTotalCylinders(stock);
@@ -106,7 +137,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
           )}
           {onAdd && canManage && (
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
-              onClick={() => onAdd({ id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg', supplier: '', supplierRef: '', addedBy: '', date: new Date().toISOString().split('T')[0], notes: '', stockKind: 'virgin', version: 0 })}>
+              onClick={() => onAdd({ id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg', supplier: '', supplierRef: '', addedBy: '', date: new Date().toISOString().split('T')[0], notes: '', stockKind: 'virgin', version: 0, serialNumber: '', certificationExpiresAt: null, tareWeightKg: null, retiredAt: null })}>
               <Plus size={16} /> Add Stock
             </button>
           )}
@@ -157,7 +188,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                         <span className={`font-semibold text-sm ${item.gasType ? 'text-gray-900' : 'text-red-600'}`}>{item.gasType || 'Needs correction'}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.brand}</td>
-                      <td className="px-4 py-3 text-sm capitalize text-gray-500">{item.stockKind}</td>
+                      <td className="px-4 py-3 text-sm capitalize text-gray-500"><div>{item.stockKind}{item.retiredAt ? ' · retired' : ''}</div><div className="text-xs normal-case text-gray-400">{item.serialNumber || 'Serial needed'}</div>{item.certificationExpiresAt && <div className={`text-xs normal-case ${new Date(item.certificationExpiresAt) < new Date() ? 'font-semibold text-red-600' : 'text-gray-400'}`}>Cert: {new Date(item.certificationExpiresAt).toLocaleDateString('en-ZA')}</div>}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-mono">{item.quantity} {item.unit}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -183,16 +214,20 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                               <option value="">Select gas type</option>
                               {REFRIGERANT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                             </select>
+                            <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white" value={adjustKind} onChange={e => setAdjustKind(e.target.value as GasStockItem['stockKind'])}><option value="virgin">Virgin</option><option value="recovered">Recovered</option><option value="waste">Waste</option></select>
+                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white" placeholder="Cylinder serial *" value={adjustSerial} onChange={e => setAdjustSerial(e.target.value)} />
+                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white" type="date" aria-label="Certification expiry" value={adjustCertification} onChange={e => setAdjustCertification(e.target.value)} />
+                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white" type="number" min="0" step="0.01" placeholder="Tare kg" value={adjustTare} onChange={e => setAdjustTare(e.target.value)} />
                             <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" type="number" step="0.1" min="0" max={item.quantity} placeholder={`New remaining (was ${item.remaining})`} value={adjustVal} onChange={e => setAdjustVal(e.target.value)} />
                             <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Correction reason *" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
                             {adjustError && <p className="text-xs font-medium text-red-600" role="alert">{adjustError}</p>}
                             <div className="flex gap-1.5">
                               <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50" disabled={adjusting} onClick={() => handleAdjust(item)}>{adjusting ? 'Saving...' : 'Save'}</button>
-                              <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustGasType(''); setAdjustReason(''); setAdjustError(''); }}>Cancel</button>
+                              <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustGasType(''); setAdjustKind('virgin'); setAdjustSerial(''); setAdjustCertification(''); setAdjustTare(''); setAdjustReason(''); setAdjustError(''); }}>Cancel</button>
                             </div>
                           </div>
                         ) : canCorrect ? (
-                          <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustReason(''); setAdjustError(''); }}>Correct Stock</button>
+                          <div className="flex flex-wrap gap-1.5"><button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustKind(item.stockKind); setAdjustSerial(item.serialNumber || ''); setAdjustCertification(item.certificationExpiresAt?.slice(0, 10) || ''); setAdjustTare(item.tareWeightKg == null ? '' : String(item.tareWeightKg)); setAdjustReason(''); setAdjustError(''); }}>Correct</button><button disabled={!!item.retiredAt} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40" onClick={() => { setLifecycleItem(item); setLifecycleAction('lost'); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason(''); setLifecycleError(''); }}>Lifecycle</button></div>
                         ) : null}
                       </td>
                     </tr>
@@ -212,6 +247,21 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
           </div>
         )}
       </div>
+      {lifecycleItem && (
+        <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-gray-100 px-6 py-5"><p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Cylinder {lifecycleItem.serialNumber || lifecycleItem.id}</p><h2 className="mt-1 text-xl font-bold">Lifecycle movement</h2></div>
+            <div className="space-y-4 px-6 py-5">
+              {lifecycleError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{lifecycleError}</p>}
+              <select className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" value={lifecycleAction} onChange={event => setLifecycleAction(event.target.value as typeof lifecycleAction)}><option value="lost">Loss / leak</option><option value="disposed">Disposed / destroyed</option><option value="transfer">Transfer to another cylinder</option><option value="retire">Retire empty cylinder</option></select>
+              {lifecycleAction !== 'retire' && <input className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" type="number" min="0.01" step="0.01" max={lifecycleItem.remaining} value={lifecycleQuantity} onChange={event => setLifecycleQuantity(event.target.value)} placeholder={`Quantity (${lifecycleItem.unit})`} />}
+              {lifecycleAction === 'transfer' && <select className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" value={lifecycleDestination} onChange={event => setLifecycleDestination(event.target.value)}><option value="">Destination cylinder</option>{stock.filter(item => item.id !== lifecycleItem.id && !item.retiredAt && item.gasType === lifecycleItem.gasType && item.unit === lifecycleItem.unit && item.remaining < item.quantity).map(item => <option key={item.id} value={item.id}>{item.serialNumber || item.id} · {item.stockKind} · {item.remaining}/{item.quantity} {item.unit}</option>)}</select>}
+              <textarea className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" rows={3} maxLength={500} value={lifecycleReason} onChange={event => setLifecycleReason(event.target.value)} placeholder="Audit reason *" />
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4"><button type="button" disabled={lifecycleSaving} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm" onClick={() => setLifecycleItem(null)}>Cancel</button><button type="button" disabled={lifecycleSaving || !lifecycleReason.trim()} className="rounded-lg border-none bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={handleLifecycle}>{lifecycleSaving ? 'Saving…' : 'Record movement'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

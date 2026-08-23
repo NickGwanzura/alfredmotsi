@@ -27,8 +27,8 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
     setError('');
     setLoading(true);
 
-    if (!usage.stockId || !usage.customer || !usage.jobId || !usage.movementType) {
-      setError('Gas stock, customer, and job are required');
+    if (!usage.stockId || !usage.jobId || !usage.movementType) {
+      setError('Gas stock and job are required');
       setLoading(false);
       return;
     }
@@ -65,7 +65,8 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
 
   const movementType = usage.movementType || 'used';
   const availableStock = stock.filter(s => {
-    if (!s.gasType) return false;
+    if (!s.gasType || !s.serialNumber) return false;
+    if (s.retiredAt || (s.certificationExpiresAt && new Date(s.certificationExpiresAt) < new Date())) return false;
     if (movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
     if (movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
     return s.stockKind === 'recovered' && s.remaining < s.quantity;
@@ -154,18 +155,10 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Customer *</label>
-                <select
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
-                  value={usage.customer || ''}
-                  onChange={e => onChange({ ...usage, customer: e.target.value })}
-                  required
-                >
-                  <option value="">Select customer</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Customer</label>
+                <div className="min-h-9 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                  {usage.customer || 'Select a job below'}
+                </div>
               </div>
             </div>
 
@@ -174,7 +167,11 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
               <select
                 className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 value={usage.jobId || ''}
-                onChange={e => onChange({ ...usage, jobId: e.target.value })}
+                onChange={e => {
+                  const selectedJob = jobs.find(job => job.id === e.target.value);
+                  const customer = customers.find(item => item.id === selectedJob?.customerId);
+                  onChange({ ...usage, jobId: e.target.value, customer: customer?.name || '' });
+                }}
                 required
               >
                 <option value="">Select job</option>

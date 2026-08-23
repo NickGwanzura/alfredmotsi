@@ -118,18 +118,27 @@ export async function POST(req: NextRequest) {
   const { session, error } = await serviceSession(FIELD_ROLES);
   if (error) return error;
 
-  const { usage } = await req.json();
+  const { usage, fromDate, toDate } = await req.json();
   const ids = Array.isArray(usage)
     ? [...new Set(usage.map((record: unknown) => (record && typeof record === 'object' && 'id' in record ? record.id : null)).filter((id): id is string => typeof id === 'string' && id.trim().length > 0))]
     : [];
   if (ids.length === 0) {
     return NextResponse.json({ error: 'No usage data provided' }, { status: 400 });
   }
+  if (ids.length > 1000) {
+    return NextResponse.json({ error: 'A single PDF is limited to 1,000 records. Select a shorter reporting period.' }, { status: 413 });
+  }
+  const from = typeof fromDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null;
+  const to = typeof toDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null;
+  if ((fromDate && !from) || (toDate && !to) || (from && to && from > to)) {
+    return NextResponse.json({ error: 'Invalid reporting period' }, { status: 400 });
+  }
 
   const role = session!.user.role as string;
   const records = await prisma.gasUsageRecord.findMany({
     where: {
       id: { in: ids },
+      ...(from || to ? { date: { ...(from && { gte: from }), ...(to && { lte: to }) } } : {}),
       ...(role === 'tech' ? {
         job: { OR: [{ technicians: { some: { id: session!.user.id } } }, { coTechnicians: { some: { id: session!.user.id } } }] },
       } : {}),
@@ -138,8 +147,9 @@ export async function POST(req: NextRequest) {
       id: true, gasType: true, quantityUsed: true, quantityKg: true, unit: true,
       movementType: true, usedByName: true, customer: true, date: true, time: true,
       purpose: true, reversedAt: true,
+      stockSerialNumber: true,
       job: { select: { jobCardRef: true } },
-      stockItem: { select: { supplierRef: true } },
+      stockItem: { select: { serialNumber: true, supplierRef: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -149,7 +159,7 @@ export async function POST(req: NextRequest) {
     ...record,
     movementType: record.movementType,
     jobRef: job?.jobCardRef || '—',
-    stockRef: stockItem?.supplierRef || '—',
+    stockRef: record.stockSerialNumber || stockItem?.serialNumber || stockItem?.supplierRef || '—',
   }));
 
   const dateStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' });

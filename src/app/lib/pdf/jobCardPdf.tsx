@@ -76,7 +76,8 @@ export interface JobForPdf {
     notes?: string | null;
   } | null;
   gasUsageRecords?: {
-    gasType: string; quantityUsed: number; purpose?: string | null; date?: string | null;
+    gasType: string; quantityUsed: number; quantityKg: number; unit: string; movementType: string;
+    usedByName: string; stockSerialNumber?: string | null; purpose?: string | null; date?: string | null; reversedAt?: Date | string | null;
   }[];
   consumables?: {
     name: string; quantity: number; unit?: string | null;
@@ -109,7 +110,8 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
   const leadTech = job.technicians?.[0]?.name || 'Not assigned';
   const coTechs = job.coTechnicians?.map(t => t.name).join(', ') || '';
   const co = c || { name: COMPANY.name, address: COMPANY.address, phone: COMPANY_PHONE_LINE, email: '', website: '', vatRate: 15.5, vatNumber: '', logoUrl: '', tagline: 'Air Conditioning & Refrigeration', services: COMPANY_SERVICES_LINE };
-  const hasSupplement = Boolean(job.gasUsageRecords?.length || job.consumables?.length);
+  const activeGas = job.gasUsageRecords?.filter(g => !g.reversedAt && ['used', 'recovered', 'reused'].includes(g.movementType)) || [];
+  const hasSupplement = Boolean(activeGas.length || job.consumables?.length);
 
   return (
     <Document>
@@ -203,7 +205,7 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
         )}
 
         {/* ───── Gas Usage ───── */}
-        {!hasSupplement && job.gasUsageRecords && job.gasUsageRecords.length > 0 && (
+        {!hasSupplement && activeGas.length > 0 && (
           <View style={styles.section} wrap={false}>
             <Text style={styles.secTitle}>Refrigerant Usage</Text>
             <View style={styles.tblHead}>
@@ -212,10 +214,10 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
               <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
               <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Date</Text>
             </View>
-            {job.gasUsageRecords.map((g, i) => (
+            {activeGas.map((g, i) => (
               <View key={i} style={styles.tblRow}>
-                <Text style={[styles.tblCell, { flex: 1 }]}>{g.gasType}</Text>
-                <Text style={[styles.tblCell, { width: 80 }]}>{g.quantityUsed}</Text>
+                <Text style={[styles.tblCell, { flex: 1 }]}>{g.gasType}{g.stockSerialNumber ? ` · ${g.stockSerialNumber}` : ''}</Text>
+                <Text style={[styles.tblCell, { width: 80 }]}>{g.quantityKg.toFixed(3)}</Text>
                 <Text style={[styles.tblCell, { flex: 2 }]}>{g.purpose || '—'}</Text>
                 <Text style={[styles.tblCell, { width: 80 }]}>{g.date || '—'}</Text>
               </View>
@@ -276,19 +278,21 @@ export function JobCardPdfDoc({ job, company: c }: { job: JobForPdf; company?: C
         <Text style={[styles.title, { fontSize: 17 }]}>Service & Materials Record</Text>
         <Text style={styles.ref}>Job card: {job.jobCardRef}</Text>
 
-        {job.gasUsageRecords && job.gasUsageRecords.length > 0 && (
+        {activeGas.length > 0 && (
           <View style={styles.section} wrap={false}>
             <Text style={styles.secTitle}>Refrigerant Usage</Text>
             <View style={styles.tblHead}>
               <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Gas type</Text>
-              <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Quantity (kg)</Text>
+              <Text style={[styles.tblCell, { width: 60, fontWeight: 700, color: '#fff' }]}>Movement</Text>
+              <Text style={[styles.tblCell, { width: 70, fontWeight: 700, color: '#fff' }]}>Quantity (kg)</Text>
               <Text style={[styles.tblCell, { flex: 2, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
               <Text style={[styles.tblCell, { width: 80, fontWeight: 700, color: '#fff' }]}>Date</Text>
             </View>
-            {job.gasUsageRecords.map((g, i) => (
+            {activeGas.map((g, i) => (
               <View key={i} style={styles.tblRow}>
-                <Text style={[styles.tblCell, { flex: 1 }]}>{g.gasType}</Text>
-                <Text style={[styles.tblCell, { width: 80 }]}>{g.quantityUsed}</Text>
+                <Text style={[styles.tblCell, { flex: 1 }]}>{g.gasType}{g.stockSerialNumber ? ` · ${g.stockSerialNumber}` : ''}</Text>
+                <Text style={[styles.tblCell, { width: 60 }]}>{humanise(g.movementType)}</Text>
+                <Text style={[styles.tblCell, { width: 70 }]}>{g.quantityKg.toFixed(3)}</Text>
                 <Text style={[styles.tblCell, { flex: 2 }]}>{g.purpose || '—'}</Text>
                 <Text style={[styles.tblCell, { width: 80 }]}>{g.date || '—'}</Text>
               </View>

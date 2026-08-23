@@ -6,6 +6,10 @@ export const REFRIGERANT_TYPE_MAP = {
   'R-407C': 'R_407C',
   'R-600A': 'R_600A',
   'R-290': 'R_290',
+  'R-404A': 'R_404A',
+  'R-507A': 'R_507A',
+  'R-1234yf': 'R_1234yf',
+  'R-438A': 'R_438A',
 } as const;
 
 export type RefrigerantLabel = keyof typeof REFRIGERANT_TYPE_MAP;

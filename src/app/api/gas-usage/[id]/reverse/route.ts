@@ -5,7 +5,7 @@ import { prisma } from '@/app/lib/db';
 import { cleanText } from '@/app/lib/serviceAuth';
 import { formatHarareDateTime } from '@/app/lib/gasUnits';
 
-type ReversalError = Error & { code?: 'NOT_FOUND' | 'ALREADY_REVERSED' | 'STOCK_CONFLICT' };
+type ReversalError = Error & { code?: 'NOT_FOUND' | 'ALREADY_REVERSED' | 'STOCK_CONFLICT' | 'INVALID_LEGACY' };
 
 export async function POST(
   request: NextRequest,
@@ -28,7 +28,7 @@ export async function POST(
   const userAgent = request.headers.get('user-agent') || null;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const execute = () => prisma.$transaction(async (tx) => {
       const original = await tx.gasUsageRecord.findUnique({ where: { id } });
       if (!original) {
         const error = new Error('Movement not found') as ReversalError;
@@ -38,6 +38,11 @@ export async function POST(
       if (original.movementType === 'reversal' || original.reversedAt) {
         const error = new Error('Movement already reversed') as ReversalError;
         error.code = 'ALREADY_REVERSED';
+        throw error;
+      }
+      if (original.quantityUsed <= 0 || original.quantityKg <= 0 || original.stockDelta === 0) {
+        const error = new Error('Legacy zero-value movements cannot be reversed') as ReversalError;
+        error.code = 'INVALID_LEGACY';
         throw error;
       }
       if (!original.stockId) {
@@ -83,11 +88,12 @@ export async function POST(
           time,
           purpose: `Reversal: ${reason}`,
           reversalOfId: original.id,
+          stockSerialNumber: original.stockSerialNumber,
         },
       });
       const reversed = await tx.gasUsageRecord.update({
         where: { id: original.id },
-        data: { reversedAt: new Date(), reversedBy: session.user.id!, reversalReason: reason },
+        data: { reversedAt: new Date(), reversedBy: session.user.id!, reversedByName: actorName, reversalReason: reason },
       });
 
       if (original.jobId && ['used', 'reused', 'recovered'].includes(original.movementType)) {
@@ -113,6 +119,17 @@ export async function POST(
       return { original: reversed, reversal };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
+    let result: Awaited<ReturnType<typeof execute>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        result = await execute();
+        break;
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2034' || attempt === 2) throw error;
+      }
+    }
+    if (!result) throw new Error('Reversal transaction did not complete');
+
     return NextResponse.json(result);
   } catch (error) {
     const reversalError = error as ReversalError;
@@ -120,6 +137,9 @@ export async function POST(
     if (reversalError.code === 'ALREADY_REVERSED') return NextResponse.json({ error: 'Movement has already been reversed' }, { status: 409 });
     if (reversalError.code === 'STOCK_CONFLICT') {
       return NextResponse.json({ error: 'Current stock balance cannot accept this reversal. Correct the stock first.' }, { status: 409 });
+    }
+    if (reversalError.code === 'INVALID_LEGACY') {
+      return NextResponse.json({ error: 'This legacy zero-value record cannot be reversed. It is retained for audit history only.' }, { status: 409 });
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: 'Movement has already been reversed' }, { status: 409 });

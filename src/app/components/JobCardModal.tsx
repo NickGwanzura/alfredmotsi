@@ -94,9 +94,9 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [newConsumable, setNewConsumable] = useState({ type: 'part' as ConsumableType, name: '', brand: '', quantity: '', unit: 'unit', notes: '' });
 
   const [showGasLog, setShowGasLog] = useState(false);
-  const [gasStock, setGasStock] = useState<{ id: string; gasType: string; brand: string; quantity: number; remaining: number; unit: string; stockKind: 'virgin' | 'recovered' | 'waste' }[]>([]);
+  const [gasStock, setGasStock] = useState<{ id: string; gasType: string; brand: string; quantity: number; remaining: number; unit: string; stockKind: 'virgin' | 'recovered' | 'waste'; serialNumber?: string | null; retiredAt?: string | null; certificationExpiresAt?: string | null }[]>([]);
   const [gasStockLoading, setGasStockLoading] = useState(false);
-  const [gasForm, setGasForm] = useState<{ stockId: string; quantityUsed: string; purpose: string; movementType: RefrigerantMovementType }>({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used' });
+  const [gasForm, setGasForm] = useState<{ stockId: string; quantityUsed: string; purpose: string; movementType: RefrigerantMovementType; clientRequestId: string }>({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used', clientRequestId: crypto.randomUUID() });
   const [gasSubmitting, setGasSubmitting] = useState(false);
   const [gasSuccess, setGasSuccess] = useState<string | null>(null);
   const [gasError, setGasError] = useState<string | null>(null);
@@ -204,7 +204,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           const loggedType = (selected.gasType || '').trim();
           if (currentType && currentType !== loggedType) setGasMismatchWarning(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`);
         }
-        setGasForm({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used' });
+        setGasForm({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used', clientRequestId: crypto.randomUUID() });
         setShowGasLog(false);
         const delta = gasForm.movementType === 'recovered' ? qty : -qty;
         setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining + delta } : s));
@@ -874,7 +874,8 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
                 {showGasLog && (() => {
                   const compatibleStock = gasStock.filter(s => {
-                    if (!s.gasType) return false;
+                    if (!s.gasType || !s.serialNumber) return false;
+                    if (s.retiredAt || (s.certificationExpiresAt && new Date(s.certificationExpiresAt) < new Date())) return false;
                     if (gasForm.movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
                     if (gasForm.movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
                     return s.stockKind === 'recovered' && s.remaining < s.quantity;

@@ -6,6 +6,7 @@ import { canManageGasStock } from '@/app/lib/permissions';
 import { toRefrigerantLabel } from '@/app/lib/refrigerantType';
 import { formatHarareDateTime, normalizeGasUnit } from '@/app/lib/gasUnits';
 import type { GasStockKind } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 const STOCK_KINDS = new Set<GasStockKind>(['virgin', 'recovered', 'waste']);
 
@@ -49,7 +50,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const normalizedSupplier = cleanText(supplier, 180);
     const normalizedUnit = normalizeGasUnit(unit || 'kg');
     const stockKind = cleanText(body.stockKind || 'virgin', 20) as GasStockKind;
-    if (!normalizedGasType || !normalizedBrand || parsedQuantity === null || !normalizedSupplier || !normalizedUnit || !STOCK_KINDS.has(stockKind)) {
+    const serialNumber = cleanText(body.serialNumber, 120);
+    const tareWeightKg = body.tareWeightKg === undefined || body.tareWeightKg === '' ? null : Number(body.tareWeightKg);
+    const certificationExpiresAt = body.certificationExpiresAt ? new Date(String(body.certificationExpiresAt)) : null;
+    if (!normalizedGasType || !normalizedBrand || parsedQuantity === null || !normalizedSupplier || !normalizedUnit || !STOCK_KINDS.has(stockKind)
+      || !serialNumber || (tareWeightKg !== null && (!Number.isFinite(tareWeightKg) || tareWeightKg < 0))
+      || (certificationExpiresAt && Number.isNaN(certificationExpiresAt.getTime()))) {
       return NextResponse.json(
         { error: 'Select supported gas type, cylinder type, and unit, then provide brand, positive capacity, and supplier' },
         { status: 400 }
@@ -72,6 +78,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           addedBy: user.name || 'Admin',
           date,
           notes: cleanText(notes, 2_000) || null,
+          serialNumber,
+          tareWeightKg,
+          certificationExpiresAt,
         },
       });
       await tx.auditLog.create({
@@ -90,6 +99,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(stockItem, { status: 201 });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'Cylinder serial number is already in use' }, { status: 409 });
+    }
     console.error('Error creating gas stock:', error);
     return NextResponse.json({ error: 'Failed to create gas stock' }, { status: 500 });
   }

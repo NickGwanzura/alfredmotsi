@@ -81,13 +81,17 @@ enum UnitType {
 }
 
 enum RefrigerantType {
-  R_32   @map("R-32")
-  R_410A @map("R-410A")
-  R_22   @map("R-22")
-  R_134a @map("R-134a")
-  R_407C @map("R-407C")
-  R_600A @map("R-600A")
-  R_290  @map("R-290")
+  R_32     @map("R-32")
+  R_410A   @map("R-410A")
+  R_22     @map("R-22")
+  R_134a   @map("R-134a")
+  R_407C   @map("R-407C")
+  R_600A   @map("R-600A")
+  R_290    @map("R-290")
+  R_404A   @map("R-404A")
+  R_507A   @map("R-507A")
+  R_1234yf @map("R-1234yf")
+  R_438A   @map("R-438A")
 }
 
 enum SystemStatus {
@@ -203,6 +207,10 @@ enum RefrigerantMovementType {
   used
   recovered
   reused
+  disposed
+  lost
+  transfer_out
+  transfer_in
   adjustment
   reversal
 }
@@ -626,21 +634,25 @@ model RecurringSchedule {
 }
 
 model GasStockItem {
-  id          String       @id @default(cuid())
-  gasType     String       @map("gas_type")
-  brand       String
-  quantity    Float
-  remaining   Float
-  unit        String
-  supplier    String
-  supplierRef String       @map("supplier_ref")
-  addedBy     String       @map("added_by")
-  date        String
-  notes       String?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  stockKind   GasStockKind @default(virgin) @map("stock_kind")
-  version     Int          @default(0)
+  id                     String       @id @default(cuid())
+  gasType                String       @map("gas_type")
+  brand                  String
+  quantity               Float
+  remaining              Float
+  unit                   String
+  supplier               String
+  supplierRef            String       @map("supplier_ref")
+  addedBy                String       @map("added_by")
+  date                   String
+  notes                  String?
+  createdAt              DateTime     @default(now()) @map("created_at")
+  updatedAt              DateTime     @updatedAt @map("updated_at")
+  stockKind              GasStockKind @default(virgin) @map("stock_kind")
+  version                Int          @default(0)
+  serialNumber           String?      @unique @map("serial_number")
+  certificationExpiresAt DateTime?    @map("certification_expires_at")
+  tareWeightKg           Float?       @map("tare_weight_kg")
+  retiredAt              DateTime?    @map("retired_at")
 
   usageRecords GasUsageRecord[] @relation("GasUsageRecords")
   // CHECK constraints added via migration
@@ -672,6 +684,9 @@ model GasUsageRecord {
   reversedAt        DateTime?               @map("reversed_at")
   reversedBy        String?                 @map("reversed_by")
   reversalReason    String?                 @map("reversal_reason")
+  reversedByName    String?                 @map("reversed_by_name")
+  clientRequestId   String?                 @unique @map("client_request_id")
+  stockSerialNumber String?                 @map("stock_serial_number")
 
   stockItem  GasStockItem?   @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: SetNull)
   user       User?           @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
@@ -682,7 +697,9 @@ model GasUsageRecord {
   // CHECK constraints added via migration
   // @@check([quantityUsed >= 0])
   @@index([jobId])
+  @@index([jobId, createdAt])
   @@index([stockId])
+  @@index([stockId, createdAt])
   @@index([usedBy])
   @@index([movementType, createdAt])
   @@index([createdAt])

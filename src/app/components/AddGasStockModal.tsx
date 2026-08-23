@@ -21,8 +21,8 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
     setError('');
     setLoading(true);
 
-    if (!stock.gasType || !stock.brand || !stock.quantity || !stock.supplier) {
-      setError('Gas type, brand, quantity, and supplier are required');
+    if (!stock.gasType || !stock.brand || !stock.quantity || !stock.supplier || !stock.serialNumber) {
+      setError('Gas type, cylinder serial, brand, quantity, and supplier are required');
       setLoading(false);
       return;
     }
@@ -74,6 +74,17 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Cylinder Serial *</label>
+                <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={stock.serialNumber || ''} onChange={e => onChange({ ...stock, serialNumber: e.target.value })} placeholder="e.g. CYL-001" required />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Certification Expiry</label>
+                <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="date" value={stock.certificationExpiresAt?.slice(0, 10) || ''} onChange={e => onChange({ ...stock, certificationExpiresAt: e.target.value || null })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Gas Type *</label>
                 <select
                   className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
@@ -97,6 +108,11 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Tare Weight (kg)</label>
+              <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="number" min="0" step="0.01" value={stock.tareWeightKg ?? ''} onChange={e => onChange({ ...stock, tareWeightKg: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Empty cylinder weight" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

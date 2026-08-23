@@ -23,7 +23,7 @@ test('normalizes the R-410A label used by gas stock and job cards', () => {
 
 test('rejects blank and unsupported refrigerant values', () => {
   assert.equal(toPrismaRefrigerantType(''), null);
-  assert.equal(toPrismaRefrigerantType('R-404A'), null);
+  assert.equal(toPrismaRefrigerantType('R-12'), null);
   assert.equal(toRefrigerantLabel(null), null);
 });
 

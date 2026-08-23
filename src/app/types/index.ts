@@ -30,7 +30,7 @@ export type JobStatus = 'draft' | 'scheduled' | 'dispatched' | 'on-route' | 'in-
 export type JobPriority = 'emergency' | 'urgent' | 'high' | 'normal' | 'medium' | 'low';
 export type IssueType = 'install' | 'repair' | 'service' | 'quote';
 export type UnitType = 'Split System' | 'Ducted' | 'Package Unit' | 'Multi-Head' | 'Cassette' | 'VRV/VRF' | 'Refrigeration System' | 'Chiller' | 'Heat Pump' | 'Precision Cooling';
-export type RefrigerantType = 'R-32' | 'R-410A' | 'R-22' | 'R-134a' | 'R-407C' | 'R-600A' | 'R-290';
+export type RefrigerantType = 'R-32' | 'R-410A' | 'R-22' | 'R-134a' | 'R-407C' | 'R-600A' | 'R-290' | 'R-404A' | 'R-507A' | 'R-1234yf' | 'R-438A';
 export type SystemStatus = 'optimal' | 'sub-optimal' | 'critical';
 export type AlertType = 'HIGH_CURRENT' | 'LOW_VOLTAGE' | 'HIGH_TEMP' | 'PRESSURE_LEAK';
 export type JobSource = 'admin' | 'portal' | 'phone' | 'whatsapp' | 'website' | 'referral' | 'facebook' | 'google' | 'walk-in' | 'repeat';
@@ -132,9 +132,13 @@ export interface GasStockItem {
   notes: string | null;
   stockKind: 'virgin' | 'recovered' | 'waste';
   version: number;
+  serialNumber?: string | null;
+  certificationExpiresAt?: string | null;
+  tareWeightKg?: number | null;
+  retiredAt?: string | null;
 }
 
-export type RefrigerantMovementType = 'used' | 'recovered' | 'reused' | 'adjustment' | 'reversal';
+export type RefrigerantMovementType = 'used' | 'recovered' | 'reused' | 'disposed' | 'lost' | 'transfer_out' | 'transfer_in' | 'adjustment' | 'reversal';
 
 export interface GasUsageRecord {
   id: string;
@@ -157,6 +161,9 @@ export interface GasUsageRecord {
   reversedAt?: string | null;
   reversedBy?: string | null;
   reversalReason?: string | null;
+  reversedByName?: string | null;
+  clientRequestId?: string | null;
+  stockSerialNumber?: string | null;
 }
 
 export type CRMType = 'call' | 'visit' | 'complaint' | 'email' | 'quote';

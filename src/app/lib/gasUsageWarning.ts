@@ -1,4 +1,5 @@
 import { Job, GasUsageRecord, JobType, JobStatus } from '@/app/types';
+import { isActiveServiceMovement } from '@/app/lib/gasLedger';
 
 /** Job types that commonly involve refrigerant work. */
 const GAS_RELEVANT_TYPES: JobType[] = ['installation', 'maintenance', 'repair'];
@@ -22,13 +23,16 @@ export interface GasUsageWarning {
  */
 export function getGasUsageWarning(
   job: Pick<Job, 'type' | 'status' | 'diagnostics'>,
-  gasUsage: Pick<GasUsageRecord, 'jobId'>[],
+  gasUsage: Pick<GasUsageRecord, 'jobId' | 'movementType' | 'reversedAt' | 'quantityKg'>[],
   jobId: string
 ): GasUsageWarning | null {
   if (!GAS_RELEVANT_TYPES.includes(job.type)) return null;
   if (!LOGGABLE_STATUSES.includes(job.status)) return null;
 
-  const hasGasRecord = gasUsage.some(g => g.jobId === jobId);
+  const hasGasRecord = gasUsage.some(g =>
+    g.jobId === jobId
+    && isActiveServiceMovement(g)
+  );
   if (hasGasRecord) return null;
 
   if (job.status === 'completed') {

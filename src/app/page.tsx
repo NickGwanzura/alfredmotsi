@@ -34,6 +34,7 @@ import ServiceOperations from '@/app/components/ServiceOperations';
 
 import { captureAudit } from '@/app/lib/audit/capture';
 import { useToast } from '@/app/components/Toast';
+import { fetchAllCursorPages } from '@/app/lib/clientPagination';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage, canManageInventory,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
@@ -127,16 +128,16 @@ export default function Home() {
       setFetchErrors([]);
       const errors: string[] = [];
 
-      const [jobsRes, customersRes, techsRes, gasStockRes, gasUsageRes, crmRes] = await Promise.all([
-        fetch('/api/jobs'),
+      const [jobsResult, customersRes, techsRes, gasStockRes, gasUsageResult, crmRes] = await Promise.all([
+        fetchAllCursorPages<Job>('/api/jobs').then(data => ({ data })).catch(error => ({ error })),
         fetch('/api/customers'),
         fetch('/api/users?role=tech'),
         fetch('/api/gas-stock'),
-        fetch('/api/gas-usage'),
+        fetchAllCursorPages<GasUsageRecord>('/api/gas-usage').then(data => ({ data })).catch(error => ({ error })),
         fetch('/api/crm'),
       ]);
 
-      if (jobsRes.ok) setJobs(await jobsRes.json());
+      if ('data' in jobsResult) setJobs(jobsResult.data);
       else errors.push('Failed to load jobs');
 
       if (customersRes.ok) setCustomers(await customersRes.json());
@@ -145,7 +146,7 @@ export default function Home() {
       if (gasStockRes.ok) setGasStock(await gasStockRes.json());
       else errors.push('Failed to load gas stock');
 
-      if (gasUsageRes.ok) setGasUsage(await gasUsageRes.json());
+      if ('data' in gasUsageResult) setGasUsage(gasUsageResult.data);
       else errors.push('Failed to load gas usage');
 
       if (crmRes.ok) setCrmRecords(await crmRes.json());
@@ -371,8 +372,13 @@ export default function Home() {
       const stockRes = await fetch('/api/gas-stock');
       if (stockRes.ok) setGasStock(await stockRes.json());
 
-      const jobsRes = await fetch('/api/jobs');
-      if (jobsRes.ok) setJobs(await jobsRes.json());
+      if (createdUsage.jobId) {
+        const jobRes = await fetch(`/api/jobs/${createdUsage.jobId}`);
+        if (jobRes.ok) {
+          const refreshed = await jobRes.json() as Job;
+          setJobs(prev => prev.map(job => job.id === refreshed.id ? refreshed : job));
+        }
+      }
 
       setShowAddGasUsage(false);
       setNewGasUsage({});

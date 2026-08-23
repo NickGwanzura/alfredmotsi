@@ -5,6 +5,7 @@ import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
 import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
+import { JobStatus, Prisma } from '@prisma/client';
 
 function minutes(value: string): number {
   const [hours, mins] = value.split(':').map(Number);
@@ -18,14 +19,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = (session.user as any).role;
-    const userId = (session.user as any).id;
+    const userRole = session.user.role;
+    const userId = session.user.id;
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const techId = searchParams.get('techId');
     const customerId = searchParams.get('customerId');
+    const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 250, 1), 500);
+    const cursor = cleanText(searchParams.get('cursor'), 100);
 
-    const where: any = {};
+    const where: Prisma.JobWhereInput = {};
 
     if (!['owner', 'admin', 'dispatcher', 'accounts', 'sales'].includes(userRole)) {
       where.OR = [
@@ -35,7 +38,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      where.status = status;
+      if (!Object.values(JobStatus).includes(status as JobStatus)) {
+        return NextResponse.json({ error: 'Invalid job status filter' }, { status: 400 });
+      }
+      where.status = status as JobStatus;
     }
 
     if (techId) {
@@ -61,13 +67,19 @@ export async function GET(request: NextRequest) {
         coTechnicians: { select: { id: true, name: true, email: true } },
         diagnostics: true,
       },
-      orderBy: { date: 'asc' },
+      orderBy: [{ date: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    const clientJobs = jobs.map(j => jobToClient(j as Record<string, unknown>));
+    const hasMore = jobs.length > limit;
+    const page = hasMore ? jobs.slice(0, limit) : jobs;
+    const clientJobs = page.map(j => jobToClient(j as Record<string, unknown>));
     const filtered = filterFinancialArray(session, clientJobs);
 
-    return NextResponse.json(filtered);
+    const response = NextResponse.json(filtered);
+    if (hasMore) response.headers.set('X-Next-Cursor', page.at(-1)!.id);
+    return response;
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return NextResponse.json(
@@ -154,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     const job = await prisma.job.create({
       data: {
-        ...(prismaData as any),
+        ...(prismaData as Prisma.JobUncheckedCreateInput),
         technicians: techIds?.length ? { connect: techIds.map((tid: string) => ({ id: tid })) } : undefined,
         coTechnicians: coTechIds?.length ? { connect: coTechIds.map((tid: string) => ({ id: tid })) } : undefined,
       },
