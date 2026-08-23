@@ -28,6 +28,7 @@ export async function PUT(
     include: { usageRecords: { where: { quantityKg: { gt: 0 } }, select: { id: true }, take: 1 } },
   });
   if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+  if (existing.retiredAt) return NextResponse.json({ error: 'Retired cylinders are immutable and cannot be corrected' }, { status: 409 });
 
   const expectedVersion = Number(body.expectedVersion);
   if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
@@ -104,7 +105,7 @@ export async function PUT(
     await tx.auditLog.create({
       data: {
         userId: session.user.id!, userName: actorName, action: 'update_gas_stock',
-        reason: `Stock ${id}: ${existing.remaining} → ${remaining} ${unit}; ${existing.gasType || 'unset'} → ${gasType}; ${existing.stockKind} → ${stockKind}; ${reason}`,
+        reason: `Stock ${id}: balance ${existing.remaining} → ${remaining} ${unit}; gas ${existing.gasType || 'unset'} → ${gasType}; kind ${existing.stockKind} → ${stockKind}; serial ${existing.serialNumber || 'unset'} → ${serialNumber}; certification ${existing.certificationExpiresAt?.toISOString() || 'unset'} → ${certificationExpiresAt?.toISOString() || 'unset'}; tare ${existing.tareWeightKg ?? 'unset'} → ${tareWeightKg ?? 'unset'}; ${reason}`,
         ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null,
         userAgent: request.headers.get('user-agent') || null,
       },
@@ -137,25 +138,41 @@ export async function DELETE(
   if (forbidden) return forbidden;
 
   const { id } = await params;
-  const existing = await prisma.gasStockItem.findUnique({
-    where: { id },
-    include: { _count: { select: { usageRecords: true } } },
-  });
-  if (!existing) return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
-  if (existing._count.usageRecords > 0) {
-    return NextResponse.json({ error: 'This cylinder has movement history and cannot be deleted' }, { status: 409 });
+  try {
+    const execute = () => prisma.$transaction(async (tx) => {
+      const existing = await tx.gasStockItem.findUnique({
+        where: { id },
+        include: { _count: { select: { usageRecords: true } } },
+      });
+      if (!existing) return { status: 'not_found' as const };
+      if (existing._count.usageRecords > 0) return { status: 'has_history' as const };
+      await tx.gasStockItem.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id!, userName: session.user.name || 'Unknown', action: 'delete_gas_stock',
+          reason: `Deleted unused gas stock ${existing.id} (${existing.gasType})`,
+          ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null,
+          userAgent: request.headers.get('user-agent') || null,
+        },
+      });
+      return { status: 'deleted' as const };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    let result: Awaited<ReturnType<typeof execute>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try { result = await execute(); break; }
+      catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2034' || attempt === 2) throw error;
+      }
+    }
+    if (result?.status === 'not_found') return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+    if (result?.status === 'has_history') return NextResponse.json({ error: 'This cylinder has movement history and cannot be deleted' }, { status: 409 });
+    if (result?.status !== 'deleted') throw new Error('Cylinder deletion did not complete');
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      return NextResponse.json({ error: 'This cylinder gained movement history and cannot be deleted' }, { status: 409 });
+    }
+    console.error('Error deleting gas stock:', error);
+    return NextResponse.json({ error: 'Failed to delete gas stock' }, { status: 500 });
   }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.gasStockItem.delete({ where: { id } });
-    await tx.auditLog.create({
-      data: {
-        userId: session.user.id!, userName: session.user.name || 'Unknown', action: 'delete_gas_stock',
-        reason: `Deleted unused gas stock ${existing.id} (${existing.gasType})`,
-        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null,
-        userAgent: request.headers.get('user-agent') || null,
-      },
-    });
-  });
-  return NextResponse.json({ success: true });
 }

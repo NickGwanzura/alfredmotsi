@@ -164,6 +164,7 @@ export interface GasUsageRecord {
   reversedByName?: string | null;
   clientRequestId?: string | null;
   stockSerialNumber?: string | null;
+  transferGroupId?: string | null;
 }
 
 export type CRMType = 'call' | 'visit' | 'complaint' | 'email' | 'quote';

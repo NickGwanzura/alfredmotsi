@@ -7,6 +7,7 @@ import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/render
 import { FALLBACK, loadCompany } from '@/app/lib/pdf/company';
 import type { CompanyData } from '@/app/lib/pdf/company';
 import { PDF_BRAND_BLUE, PDF_BRAND_BLUE_DARK, PDF_BRAND_BLUE_LIGHT, PDF_FONT_FAMILY, pdfLogoSource } from '@/app/lib/pdf/brand';
+import { summarizeGasReport } from '@/app/lib/gasStockRules';
 
 interface GasUsageRecord {
   id: string;
@@ -44,8 +45,7 @@ const styles = StyleSheet.create({
 });
 
 export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: CompanyData }) {
-  const active = usage.filter(r => !r.reversedAt && ['used', 'reused', 'recovered'].includes(r.movementType));
-  const totalKg = active.reduce((s, r) => s + r.quantityKg, 0);
+  const totals = summarizeGasReport(usage);
   const co = c || FALLBACK;
   return (
     <Document>
@@ -64,7 +64,7 @@ export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsage
         </View>
 
         <Text style={styles.title}>Refrigerant Gas Usage Log</Text>
-        <Text style={styles.subtitle}>{usage.length} records · {totalKg.toFixed(2)} kg total</Text>
+        <Text style={styles.subtitle}>{usage.length} records · {totals.chargedKg.toFixed(2)} kg charged · {totals.recoveredKg.toFixed(2)} kg recovered</Text>
 
         {/* Summary stats */}
         <View style={{ flexDirection: 'row', marginBottom: 12, gap: 24 }}>
@@ -73,12 +73,12 @@ export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsage
             <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{usage.length}</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: PDF_BRAND_BLUE_LIGHT, padding: 9 }}>
-            <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Total Quantity</Text>
-            <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{totalKg.toFixed(2)} kg</Text>
+            <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Charged (New + Reused)</Text>
+            <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{totals.chargedKg.toFixed(2)} kg</Text>
           </View>
           <View style={{ flex: 1, backgroundColor: PDF_BRAND_BLUE_LIGHT, padding: 9 }}>
-            <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Unique Customers</Text>
-            <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{new Set(usage.map(r => r.customer)).size}</Text>
+            <Text style={{ fontSize: 8, color: '#6f6f6f', marginBottom: 2 }}>Recovered</Text>
+            <Text style={{ fontSize: 14, fontWeight: 700, color: '#093a68' }}>{totals.recoveredKg.toFixed(2)} kg</Text>
           </View>
         </View>
 

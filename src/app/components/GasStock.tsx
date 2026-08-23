@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { GasStockItem, User } from '@/app/types';
 import { SectionTitle, ContextBanner } from './ui';
 import { canManageGasStock, isAdmin } from '@/app/lib/permissions';
-import { gasQuantityToKg, normalizeGasUnit } from '@/app/lib/gasUnits';
+import { formatHarareDateTime, gasQuantityToKg, normalizeGasUnit } from '@/app/lib/gasUnits';
 import { REFRIGERANT_TYPES } from '@/app/lib/config';
+import { isCertificationExpired, isLowGasStock, stockNeedsPhysicalVerification } from '@/app/lib/gasStockRules';
 import { Package, Weight, AlertTriangle, RefreshCcw, Plus } from 'lucide-react';
 
 interface GasStockProps {
@@ -27,14 +28,14 @@ function calculateTotalKg(stock: GasStockItem[]): number {
   }, 0);
 }
 function calculateLowStockCount(stock: GasStockItem[]): number {
-  return stock.filter(item => getRemainingPercentage(item) < LOW_STOCK_THRESHOLD).length;
+  return stock.filter(isLowGasStock).length;
 }
 function getRemainingPercentage(item: GasStockItem): number {
   if (item.quantity === 0) return 0;
   return Math.max(0, Math.min(100, Math.round((item.remaining / item.quantity) * 100)));
 }
 function isLowStock(item: GasStockItem): boolean {
-  return getRemainingPercentage(item) < LOW_STOCK_THRESHOLD;
+  return isLowGasStock(item);
 }
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -60,6 +61,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   const [lifecycleReason, setLifecycleReason] = useState('');
   const [lifecycleError, setLifecycleError] = useState('');
   const [lifecycleSaving, setLifecycleSaving] = useState(false);
+  const [lifecycleRequestId, setLifecycleRequestId] = useState('');
 
   const handleAdjust = async (item: GasStockItem) => {
     if (!adjustVal || !adjustGasType || !adjustSerial.trim() || !adjustReason.trim()) {
@@ -99,11 +101,11 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
     try {
       const response = await fetch(`/api/gas-stock/${lifecycleItem.id}/lifecycle`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: lifecycleAction, quantity: Number(lifecycleQuantity), destinationStockId: lifecycleDestination || null, reason: lifecycleReason, expectedVersion: lifecycleItem.version, clientRequestId: crypto.randomUUID() }),
+        body: JSON.stringify({ action: lifecycleAction, quantity: lifecycleAction === 'retire' ? null : Number(lifecycleQuantity), destinationStockId: lifecycleDestination || null, reason: lifecycleReason, expectedVersion: lifecycleItem.version, clientRequestId: lifecycleRequestId }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) { setLifecycleError(data?.error || `Server error ${response.status}`); return; }
-      setLifecycleItem(null); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason('');
+      setLifecycleItem(null); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason(''); setLifecycleRequestId('');
       onRefresh?.();
     } catch { setLifecycleError('Network error — lifecycle movement was not saved.'); }
     finally { setLifecycleSaving(false); }
@@ -112,6 +114,9 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   const totalCylinders = calculateTotalCylinders(stock);
   const totalKg = calculateTotalKg(stock);
   const lowStockCount = calculateLowStockCount(stock);
+  const verificationCount = stock.filter(item => !item.retiredAt && stockNeedsPhysicalVerification(item)).length;
+  const invalidBalanceCount = stock.filter(item => item.remaining < 0 || item.remaining > item.quantity).length;
+  const today = formatHarareDateTime().date;
   const stats = [
     { label: 'Total Cylinders', v: totalCylinders, icon: Package, color: 'from-blue-500 to-blue-600' },
     { label: 'Total kg', v: totalKg.toFixed(1), icon: Weight, color: 'from-violet-500 to-violet-600' },
@@ -121,7 +126,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   return (
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <ContextBanner title="Refrigerant Gas Stock" icon={<Package size={18} />}>
-        <p>Track your refrigerant cylinder inventory. When gas is used on a job, stock levels update automatically. Items below <strong>20% remaining</strong> trigger a low-stock alert.</p>
+        <p>Track your refrigerant cylinder inventory. When gas is used on a job, stock levels update automatically. Active verified virgin-stock cylinders at or below <strong>20% remaining</strong> trigger a low-stock alert.</p>
         <p className="mt-1">Click <strong>Add Stock</strong> for new deliveries. Use <strong>Adjust Stock</strong> to correct levels with an audit reason.</p>
       </ContextBanner>
       <div className="flex items-center justify-between mb-8">
@@ -158,6 +163,14 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <SectionTitle>Stock Inventory</SectionTitle>
+        {(verificationCount > 0 || invalidBalanceCount > 0) && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
+            <strong>Physical verification required.</strong>{' '}
+            {verificationCount > 0 && `${verificationCount} active cylinder${verificationCount === 1 ? '' : 's'} need a verified serial number. `}
+            {invalidBalanceCount > 0 && `${invalidBalanceCount} cylinder${invalidBalanceCount === 1 ? '' : 's'} need a capacity correction. `}
+            These cylinders remain quarantined from job usage until corrected.
+          </div>
+        )}
         {stock.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-gray-400">
             <Package size={40} className="mb-3 opacity-30" />
@@ -188,7 +201,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                         <span className={`font-semibold text-sm ${item.gasType ? 'text-gray-900' : 'text-red-600'}`}>{item.gasType || 'Needs correction'}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.brand}</td>
-                      <td className="px-4 py-3 text-sm capitalize text-gray-500"><div>{item.stockKind}{item.retiredAt ? ' · retired' : ''}</div><div className="text-xs normal-case text-gray-400">{item.serialNumber || 'Serial needed'}</div>{item.certificationExpiresAt && <div className={`text-xs normal-case ${new Date(item.certificationExpiresAt) < new Date() ? 'font-semibold text-red-600' : 'text-gray-400'}`}>Cert: {new Date(item.certificationExpiresAt).toLocaleDateString('en-ZA')}</div>}</td>
+                      <td className="px-4 py-3 text-sm capitalize text-gray-500"><div>{item.stockKind}{item.retiredAt ? ' · retired' : ''}</div><div className={`text-xs normal-case ${stockNeedsPhysicalVerification(item) ? 'font-semibold text-red-600' : 'text-gray-400'}`}>{item.serialNumber || 'Serial verification required'}</div>{item.certificationExpiresAt && <div className={`text-xs normal-case ${isCertificationExpired(item.certificationExpiresAt, today) ? 'font-semibold text-red-600' : 'text-gray-400'}`}>Cert: {new Date(item.certificationExpiresAt).toLocaleDateString('en-ZA')}</div>}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-mono">{item.quantity} {item.unit}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -227,7 +240,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                             </div>
                           </div>
                         ) : canCorrect ? (
-                          <div className="flex flex-wrap gap-1.5"><button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustKind(item.stockKind); setAdjustSerial(item.serialNumber || ''); setAdjustCertification(item.certificationExpiresAt?.slice(0, 10) || ''); setAdjustTare(item.tareWeightKg == null ? '' : String(item.tareWeightKg)); setAdjustReason(''); setAdjustError(''); }}>Correct</button><button disabled={!!item.retiredAt} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40" onClick={() => { setLifecycleItem(item); setLifecycleAction('lost'); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason(''); setLifecycleError(''); }}>Lifecycle</button></div>
+                          <div className="flex flex-wrap gap-1.5"><button disabled={!!item.retiredAt} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustKind(item.stockKind); setAdjustSerial(item.serialNumber || ''); setAdjustCertification(item.certificationExpiresAt?.slice(0, 10) || ''); setAdjustTare(item.tareWeightKg == null ? '' : String(item.tareWeightKg)); setAdjustReason(''); setAdjustError(''); }}>Correct</button><button disabled={!!item.retiredAt} className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-40" onClick={() => { setLifecycleItem(item); setLifecycleAction('lost'); setLifecycleQuantity(''); setLifecycleDestination(''); setLifecycleReason(''); setLifecycleError(''); setLifecycleRequestId(crypto.randomUUID()); }}>Lifecycle</button></div>
                         ) : null}
                       </td>
                     </tr>
@@ -242,7 +255,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
             <div className="p-1.5 rounded-full bg-amber-100 text-amber-600 shrink-0 mt-0.5"><AlertTriangle size={14} /></div>
             <div>
               <div className="font-semibold text-sm text-amber-800">Low Stock Alert</div>
-              <div className="text-sm text-amber-700">{lowStockCount} item{lowStockCount !== 1 ? 's' : ''} below {LOW_STOCK_THRESHOLD}% remaining.</div>
+              <div className="text-sm text-amber-700">{lowStockCount} verified virgin cylinder{lowStockCount !== 1 ? 's' : ''} at or below {LOW_STOCK_THRESHOLD}% remaining.</div>
             </div>
           </div>
         )}
@@ -255,10 +268,10 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
               {lifecycleError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{lifecycleError}</p>}
               <select className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" value={lifecycleAction} onChange={event => setLifecycleAction(event.target.value as typeof lifecycleAction)}><option value="lost">Loss / leak</option><option value="disposed">Disposed / destroyed</option><option value="transfer">Transfer to another cylinder</option><option value="retire">Retire empty cylinder</option></select>
               {lifecycleAction !== 'retire' && <input className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" type="number" min="0.01" step="0.01" max={lifecycleItem.remaining} value={lifecycleQuantity} onChange={event => setLifecycleQuantity(event.target.value)} placeholder={`Quantity (${lifecycleItem.unit})`} />}
-              {lifecycleAction === 'transfer' && <select className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" value={lifecycleDestination} onChange={event => setLifecycleDestination(event.target.value)}><option value="">Destination cylinder</option>{stock.filter(item => item.id !== lifecycleItem.id && !item.retiredAt && item.gasType === lifecycleItem.gasType && item.unit === lifecycleItem.unit && item.remaining < item.quantity).map(item => <option key={item.id} value={item.id}>{item.serialNumber || item.id} · {item.stockKind} · {item.remaining}/{item.quantity} {item.unit}</option>)}</select>}
+              {lifecycleAction === 'transfer' && <select className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm" value={lifecycleDestination} onChange={event => setLifecycleDestination(event.target.value)}><option value="">Destination cylinder</option>{stock.filter(item => item.id !== lifecycleItem.id && !item.retiredAt && !!item.serialNumber && item.gasType === lifecycleItem.gasType && item.unit === lifecycleItem.unit && item.stockKind === lifecycleItem.stockKind && !isCertificationExpired(item.certificationExpiresAt, today) && item.remaining < item.quantity).map(item => <option key={item.id} value={item.id}>{item.serialNumber} · {item.stockKind} · {item.remaining}/{item.quantity} {item.unit}</option>)}</select>}
               <textarea className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" rows={3} maxLength={500} value={lifecycleReason} onChange={event => setLifecycleReason(event.target.value)} placeholder="Audit reason *" />
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4"><button type="button" disabled={lifecycleSaving} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm" onClick={() => setLifecycleItem(null)}>Cancel</button><button type="button" disabled={lifecycleSaving || !lifecycleReason.trim()} className="rounded-lg border-none bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={handleLifecycle}>{lifecycleSaving ? 'Saving…' : 'Record movement'}</button></div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4"><button type="button" disabled={lifecycleSaving} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm" onClick={() => { setLifecycleItem(null); setLifecycleRequestId(''); }}>Cancel</button><button type="button" disabled={lifecycleSaving || !lifecycleReason.trim() || !lifecycleRequestId} className="rounded-lg border-none bg-brand-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" onClick={handleLifecycle}>{lifecycleSaving ? 'Saving…' : 'Record movement'}</button></div>
           </div>
         </div>
       )}

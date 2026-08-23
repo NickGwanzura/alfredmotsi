@@ -35,6 +35,7 @@ import ServiceOperations from '@/app/components/ServiceOperations';
 import { captureAudit } from '@/app/lib/audit/capture';
 import { useToast } from '@/app/components/Toast';
 import { fetchAllCursorPages } from '@/app/lib/clientPagination';
+import { isLowGasStock } from '@/app/lib/gasStockRules';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage, canManageInventory,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
@@ -241,7 +242,9 @@ export default function Home() {
     canManageFunds: canManageFunds(user.role),
   };
 
-  const alertCount = jobs.filter((j) => j.alerts && j.alerts.length > 0 && j.status !== 'completed').length;
+  const jobAlertCount = jobs.filter((j) => j.alerts && j.alerts.length > 0 && j.status !== 'completed').length;
+  const gasAlertCount = gasStock.filter(isLowGasStock).length;
+  const alertCount = jobAlertCount + gasAlertCount;
   const unallocatedCount = jobs.filter((j) => j.status === 'unallocated').length;
 
   const updateJob = async (updatedJob: Job) => {

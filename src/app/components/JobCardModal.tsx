@@ -22,6 +22,8 @@ import {
 } from '@/app/types';
 import { SEED_USERS } from '@/app/data/seed';
 import { STATUS_CFG, TYPE_CFG, ALERT_CFG, REFRIGERANT_TYPES } from '@/app/lib/config';
+import { isCertificationExpired } from '@/app/lib/gasStockRules';
+import { formatHarareDateTime } from '@/app/lib/gasUnits';
 import { fmtDate, nowTime, runAlerts, formatDuration, buildWA, buildMail, reminderMsg, DIAG_THRESHOLDS, num, deriveSystemStatus } from '@/app/lib/utils';
 import { REFRIGERANT_INFO, getPressureThresholds } from '@/app/lib/refrigerants';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
@@ -875,7 +877,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 {showGasLog && (() => {
                   const compatibleStock = gasStock.filter(s => {
                     if (!s.gasType || !s.serialNumber) return false;
-                    if (s.retiredAt || (s.certificationExpiresAt && new Date(s.certificationExpiresAt) < new Date())) return false;
+                    if (s.retiredAt || isCertificationExpired(s.certificationExpiresAt, formatHarareDateTime().date)) return false;
                     if (gasForm.movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
                     if (gasForm.movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
                     return s.stockKind === 'recovered' && s.remaining < s.quantity;

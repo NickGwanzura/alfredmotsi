@@ -3,6 +3,8 @@
 import React, { useMemo, useState } from 'react';
 import { GasUsageRecord, GasStockItem, Customer, Job } from '@/app/types';
 import { X } from 'lucide-react';
+import { isCertificationExpired } from '@/app/lib/gasStockRules';
+import { formatHarareDateTime } from '@/app/lib/gasUnits';
 
 interface AddGasUsageModalProps {
   usage: Partial<GasUsageRecord>;
@@ -64,9 +66,10 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
   };
 
   const movementType = usage.movementType || 'used';
+  const today = formatHarareDateTime().date;
   const availableStock = stock.filter(s => {
     if (!s.gasType || !s.serialNumber) return false;
-    if (s.retiredAt || (s.certificationExpiresAt && new Date(s.certificationExpiresAt) < new Date())) return false;
+    if (s.retiredAt || isCertificationExpired(s.certificationExpiresAt, today)) return false;
     if (movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
     if (movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
     return s.stockKind === 'recovered' && s.remaining < s.quantity;

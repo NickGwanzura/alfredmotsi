@@ -687,8 +687,9 @@ model GasUsageRecord {
   reversedByName    String?                 @map("reversed_by_name")
   clientRequestId   String?                 @unique @map("client_request_id")
   stockSerialNumber String?                 @map("stock_serial_number")
+  transferGroupId   String?                 @map("transfer_group_id")
 
-  stockItem  GasStockItem?   @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: SetNull)
+  stockItem  GasStockItem?   @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: Restrict)
   user       User?           @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
   job        Job?            @relation("GasUsageOfJob", fields: [jobId], references: [id], onDelete: SetNull)
   reversalOf GasUsageRecord? @relation("GasUsageReversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
@@ -702,8 +703,24 @@ model GasUsageRecord {
   @@index([stockId, createdAt])
   @@index([usedBy])
   @@index([movementType, createdAt])
+  @@index([transferGroupId])
   @@index([createdAt])
   @@map("gas_usage")
+}
+
+model GasLifecycleRequest {
+  id                 String   @id @default(cuid())
+  clientRequestId    String   @unique @map("client_request_id")
+  action             String
+  sourceStockId      String   @map("source_stock_id")
+  destinationStockId String?  @map("destination_stock_id")
+  quantity           Float?
+  reason             String
+  movementId         String?  @map("movement_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([sourceStockId, createdAt])
+  @@map("gas_lifecycle_requests")
 }
 
 model CRMRecord {
