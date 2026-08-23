@@ -1,6 +1,17 @@
 CREATE TYPE "GasStockKind" AS ENUM ('virgin', 'recovered', 'waste');
 CREATE TYPE "RefrigerantMovementType" AS ENUM ('used', 'recovered', 'reused', 'adjustment', 'reversal');
 
+-- Adding defaulted ledger columns may rewrite legacy rows. Temporarily remove
+-- the NOT VALID guards so the three known zero-quantity/blank-type historical
+-- records can remain untouched, then restore the guards below.
+ALTER TABLE "gas_usage"
+  DROP CONSTRAINT IF EXISTS "gas_usage_type_required",
+  DROP CONSTRAINT IF EXISTS "gas_usage_quantity_positive";
+ALTER TABLE "gas_stock"
+  DROP CONSTRAINT IF EXISTS "gas_stock_type_required",
+  DROP CONSTRAINT IF EXISTS "gas_stock_quantity_positive",
+  DROP CONSTRAINT IF EXISTS "gas_stock_remaining_valid";
+
 ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'create_gas_movement';
 ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'reverse_gas_movement';
 
@@ -48,4 +59,11 @@ ALTER TABLE "gas_usage"
   ADD CONSTRAINT "gas_usage_quantity_kg_positive" CHECK ("quantity_kg" > 0) NOT VALID;
 
 ALTER TABLE "gas_stock"
-  ADD CONSTRAINT "gas_stock_unit_supported" CHECK ("unit" IN ('kg', 'g', 'lb')) NOT VALID;
+  ADD CONSTRAINT "gas_stock_unit_supported" CHECK ("unit" IN ('kg', 'g', 'lb')) NOT VALID,
+  ADD CONSTRAINT "gas_stock_type_required" CHECK (length(btrim("gas_type")) > 0) NOT VALID,
+  ADD CONSTRAINT "gas_stock_quantity_positive" CHECK ("quantity" > 0) NOT VALID,
+  ADD CONSTRAINT "gas_stock_remaining_valid" CHECK ("remaining" >= 0 AND "remaining" <= "quantity") NOT VALID;
+
+ALTER TABLE "gas_usage"
+  ADD CONSTRAINT "gas_usage_type_required" CHECK (length(btrim("gas_type")) > 0) NOT VALID,
+  ADD CONSTRAINT "gas_usage_quantity_positive" CHECK ("quantity_used" > 0) NOT VALID;
