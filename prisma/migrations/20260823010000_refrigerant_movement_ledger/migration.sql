@@ -30,12 +30,12 @@ SET
   END,
   "stock_delta" = -gu."quantity_used"
 FROM "gas_stock" gs
-WHERE gu."stock_id" = gs."id";
+WHERE gu."stock_id" = gs."id" AND gu."quantity_used" > 0;
 
 UPDATE "gas_usage" gu
 SET "used_by_name" = COALESCE(NULLIF(u."name", ''), 'Unknown')
 FROM "users" u
-WHERE gu."used_by" = u."id" AND gu."used_by_name" = 'Unknown';
+WHERE gu."used_by" = u."id" AND gu."used_by_name" = 'Unknown' AND gu."quantity_used" > 0;
 
 CREATE UNIQUE INDEX "gas_usage_reversal_of_id_key" ON "gas_usage"("reversal_of_id");
 CREATE INDEX "gas_usage_movement_type_created_at_idx" ON "gas_usage"("movement_type", "created_at");
