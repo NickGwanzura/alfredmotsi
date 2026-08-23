@@ -654,7 +654,9 @@ model GasStockItem {
   tareWeightKg           Float?       @map("tare_weight_kg")
   retiredAt              DateTime?    @map("retired_at")
 
-  usageRecords GasUsageRecord[] @relation("GasUsageRecords")
+  usageRecords                 GasUsageRecord[]      @relation("GasUsageRecords")
+  lifecycleSourceRequests      GasLifecycleRequest[] @relation("GasLifecycleSourceStock")
+  lifecycleDestinationRequests GasLifecycleRequest[] @relation("GasLifecycleDestinationStock")
   // CHECK constraints added via migration
   // @@check([remaining >= 0])
   // @@check([quantity >= 0])
@@ -718,6 +720,9 @@ model GasLifecycleRequest {
   reason             String
   movementId         String?  @map("movement_id")
   createdAt          DateTime @default(now()) @map("created_at")
+
+  sourceStock      GasStockItem  @relation("GasLifecycleSourceStock", fields: [sourceStockId], references: [id], onDelete: Restrict)
+  destinationStock GasStockItem? @relation("GasLifecycleDestinationStock", fields: [destinationStockId], references: [id], onDelete: Restrict)
 
   @@index([sourceStockId, createdAt])
   @@map("gas_lifecycle_requests")

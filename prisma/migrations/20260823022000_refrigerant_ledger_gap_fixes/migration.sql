@@ -28,6 +28,16 @@ CREATE UNIQUE INDEX "gas_lifecycle_requests_client_request_id_key"
   ON "gas_lifecycle_requests"("client_request_id");
 CREATE INDEX "gas_lifecycle_requests_source_stock_id_created_at_idx"
   ON "gas_lifecycle_requests"("source_stock_id", "created_at");
+CREATE INDEX "gas_lifecycle_requests_destination_stock_id_idx"
+  ON "gas_lifecycle_requests"("destination_stock_id");
+
+-- Lifecycle requests are audit history. Keep both the source and destination
+-- cylinders attached so a retired or transferred cylinder cannot be deleted.
+ALTER TABLE "gas_lifecycle_requests"
+  ADD CONSTRAINT "gas_lifecycle_requests_source_stock_id_fkey"
+    FOREIGN KEY ("source_stock_id") REFERENCES "gas_stock"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT "gas_lifecycle_requests_destination_stock_id_fkey"
+    FOREIGN KEY ("destination_stock_id") REFERENCES "gas_stock"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- Preserve recorded inventory while repairing imported rows whose capacity was
 -- lower than their recorded balance. Physical serials are intentionally not
@@ -35,6 +45,19 @@ CREATE INDEX "gas_lifecycle_requests_source_stock_id_created_at_idx"
 UPDATE "gas_stock"
 SET "quantity" = "remaining", "version" = "version" + 1, "updated_at" = NOW()
 WHERE "remaining" > "quantity";
+
+-- Older transfer rows were written before transfer_group_id existed. Reuse
+-- their request id (and strip the :in suffix on the destination side) so the
+-- migration remains deployable. Rows without a request id receive their own
+-- group and remain safely non-reversible until manually paired.
+UPDATE "gas_usage"
+SET "transfer_group_id" = CASE
+  WHEN "movement_type" = 'transfer_in' AND "client_request_id" IS NOT NULL
+    THEN regexp_replace("client_request_id", ':in$', '')
+  ELSE COALESCE("client_request_id", "id")
+END
+WHERE "movement_type" IN ('transfer_out', 'transfer_in')
+  AND "transfer_group_id" IS NULL;
 
 -- Three imported cylinders predate physical identity capture. Keep them visibly
 -- quarantined without inventing a refrigerant or serial number, while requiring

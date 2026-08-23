@@ -145,7 +145,12 @@ export async function DELETE(
         include: { _count: { select: { usageRecords: true } } },
       });
       if (!existing) return { status: 'not_found' as const };
+      if (existing.retiredAt) return { status: 'retired' as const };
       if (existing._count.usageRecords > 0) return { status: 'has_history' as const };
+      const lifecycleCount = await tx.gasLifecycleRequest.count({
+        where: { OR: [{ sourceStockId: id }, { destinationStockId: id }] },
+      });
+      if (lifecycleCount > 0) return { status: 'has_history' as const };
       await tx.gasStockItem.delete({ where: { id } });
       await tx.auditLog.create({
         data: {
@@ -165,6 +170,7 @@ export async function DELETE(
       }
     }
     if (result?.status === 'not_found') return NextResponse.json({ error: 'Gas stock item not found' }, { status: 404 });
+    if (result?.status === 'retired') return NextResponse.json({ error: 'Retired cylinders are immutable and cannot be deleted' }, { status: 409 });
     if (result?.status === 'has_history') return NextResponse.json({ error: 'This cylinder has movement history and cannot be deleted' }, { status: 409 });
     if (result?.status !== 'deleted') throw new Error('Cylinder deletion did not complete');
     return NextResponse.json({ success: true });

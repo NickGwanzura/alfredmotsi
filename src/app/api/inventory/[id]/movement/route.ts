@@ -32,6 +32,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: { itemId: id, type, quantity: amount, reference: cleanText(reference, 200) || null, notes: cleanText(notes, 1000) || null, recordedBy: session.user.id },
     });
     const updated = await tx.inventoryItem.findUniqueOrThrow({ where: { id } });
+    await tx.auditLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || 'Unknown',
+        action: 'adjust_stock',
+        reason: `Inventory ${type}: ${amount} ${updated.unit} of ${updated.name}; ${cleanText(reference, 200) || 'no reference'}`,
+      },
+    });
     if (delta > 0) {
       await tx.inventoryStockAlarm.updateMany({ where: { itemId: id, status: 'open', requested: { lte: updated.stockLevel } }, data: { status: 'resolved', resolvedAt: new Date() } });
     }
