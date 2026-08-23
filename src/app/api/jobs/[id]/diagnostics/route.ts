@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
-import { boundedNumber, cleanText } from '@/app/lib/serviceAuth';
+import { cleanText } from '@/app/lib/serviceAuth';
 import { diagnosticsToClient } from '@/app/lib/jobTransform';
 import { toPrismaRefrigerantType, toPrismaSystemStatus } from '@/app/lib/refrigerantType';
 
@@ -68,7 +68,7 @@ export async function POST(
 
     const {
       voltage, current, avgTemp, maxTemp, suction, discharge,
-      refrigerantType, refrigerantRecovered, refrigerantUsed, refrigerantReused,
+      refrigerantType,
       status, notes, deltaT, brand, serial
     } = body;
 
@@ -84,13 +84,7 @@ export async function POST(
       if (!normalized) return NextResponse.json({ error: 'Invalid refrigerant type' }, { status: 400 });
       data.refrigerantType = normalized;
     }
-    for (const [key, value] of [['refrigerantRecovered', refrigerantRecovered], ['refrigerantUsed', refrigerantUsed], ['refrigerantReused', refrigerantReused]] as const) {
-      if (value !== undefined) {
-        const parsed = boundedNumber(value, 0, 100_000);
-        if (parsed === null) return NextResponse.json({ error: `${key} must be a valid non-negative number` }, { status: 400 });
-        data[key] = parsed;
-      }
-    }
+    // Refrigerant movement totals are maintained only by the movement ledger.
     if (status !== undefined) {
       const normalized = toPrismaSystemStatus(status);
       if (!normalized) return NextResponse.json({ error: 'Invalid diagnostics status' }, { status: 400 });

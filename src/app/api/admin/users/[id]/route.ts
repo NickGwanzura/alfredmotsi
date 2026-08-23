@@ -94,11 +94,10 @@ export async function DELETE(
     return NextResponse.json({ error: 'Only an owner can delete an owner account' }, { status: 403 });
   }
 
-  // Reassign related records to the deleting admin before removing the user
+  // Preserve immutable gas/audit actor snapshots. Their nullable foreign keys
+  // are cleared by the database instead of falsifying the historical actor.
   const adminId = session.user.id;
   await prisma.$transaction([
-    prisma.auditLog.updateMany({ where: { userId: id }, data: { userId: adminId } }),
-    prisma.gasUsageRecord.updateMany({ where: { usedBy: id }, data: { usedBy: adminId } }),
     prisma.consumable.updateMany({ where: { recordedBy: id }, data: { recordedBy: adminId } }),
   ]);
 

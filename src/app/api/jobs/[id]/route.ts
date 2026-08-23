@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { auth, authorizeRole, filterFinancialData } from '@/app/lib/auth/auth';
 import { jobToClient, jobFromClient } from '@/app/lib/jobTransform';
 import { sendPushToUsers } from '@/app/lib/push/server';
-import { auditServiceAction, boundedNumber, cleanText } from '@/app/lib/serviceAuth';
+import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
 import { toPrismaRefrigerantType, toPrismaSystemStatus } from '@/app/lib/refrigerantType';
 
@@ -204,12 +204,8 @@ export async function PUT(
         if (!diagnosticStatus) return NextResponse.json({ error: 'Invalid diagnostics status' }, { status: 400 });
         diagnosticData.status = diagnosticStatus;
       }
-      for (const key of ['refrigerantRecovered', 'refrigerantUsed', 'refrigerantReused'] as const) {
-        if (diagnosticInput[key] === undefined) continue;
-        const value = boundedNumber(diagnosticInput[key], 0, 100_000);
-        if (value === null) return NextResponse.json({ error: `${key} must be a valid non-negative number` }, { status: 400 });
-        diagnosticData[key] = value;
-      }
+      // Refrigerant movement totals are ledger-derived and cannot be edited
+      // through the general job-card update path.
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -329,9 +325,15 @@ export async function DELETE(
       );
     }
 
-    const existing = await prisma.job.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.job.findUnique({
+      where: { id },
+      select: { id: true, _count: { select: { gasUsageRecords: true } } },
+    });
     if (!existing) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    if (existing._count.gasUsageRecords > 0) {
+      return NextResponse.json({ error: 'This job has refrigerant movement history and cannot be deleted. Cancel it instead.' }, { status: 409 });
     }
 
     const user = session.user as { id: string; name?: string | null };

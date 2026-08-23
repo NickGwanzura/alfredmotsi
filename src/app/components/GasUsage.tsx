@@ -5,14 +5,16 @@ import { GasUsageRecord, User } from '@/app/types';
 import { SectionTitle, ContextBanner } from './ui';
 import { Beaker, CalendarDays, TrendingUp, Plus, Download, FileText, Search } from 'lucide-react';
 import { useToast } from './Toast';
+import { makeCsv } from '@/app/lib/csv';
+import { isAdmin } from '@/app/lib/permissions';
 
 interface GasUsageProps {
   usage: GasUsageRecord[];
   currentUser: User;
   onAdd?: (record: GasUsageRecord) => void;
-  stock?: { id: string; gasType: string; remaining: number; unit: string }[];
   jobs?: { id: string; title: string; jobCardRef: string }[];
   techs?: { id: string; name: string }[];
+  onRefresh?: () => void;
 }
 
 const GAS_TYPE_COLORS: Record<string, string> = {
@@ -26,17 +28,18 @@ function getGasTypePill(type: string): string {
   return GAS_TYPE_COLORS[type] || 'bg-gray-100 text-gray-700';
 }
 
-function getJobRef(jobId: string, jobs?: { id: string; jobCardRef: string }[]): string {
+function getJobRef(jobId: string | null, jobs?: { id: string; jobCardRef: string }[]): string {
+  if (!jobId) return 'Stock only';
   const j = jobs?.find(j => j.id === jobId);
   return j?.jobCardRef || jobId.slice(0, 8);
 }
 
-function getTechName(usedBy: string, techs?: { id: string; name: string }[]): string {
+function getTechName(usedBy: string | null, usedByName: string, techs?: { id: string; name: string }[]): string {
   const t = techs?.find(t => t.id === usedBy);
-  return t?.name || usedBy;
+  return t?.name || usedByName || 'Unknown';
 }
 
-export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs }: GasUsageProps) {
+export default function GasUsage({ usage, currentUser, onAdd, jobs, techs, onRefresh }: GasUsageProps) {
   const { success, warning } = useToast();
   const [gasFilter, setGasFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -49,39 +52,40 @@ export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(u =>
-        u.customer.toLowerCase().includes(q) ||
-        u.purpose.toLowerCase().includes(q) ||
+        (u.customer || '').toLowerCase().includes(q) ||
+        (u.purpose || '').toLowerCase().includes(q) ||
         getJobRef(u.jobId, jobs).toLowerCase().includes(q) ||
-        getTechName(u.usedBy, techs).toLowerCase().includes(q) ||
+        getTechName(u.usedBy, u.usedByName, techs).toLowerCase().includes(q) ||
         u.gasType.toLowerCase().includes(q)
       );
     }
     return result;
   }, [usage, gasFilter, search, jobs, techs]);
 
-  const totalUsage = useMemo(() => filteredUsage.reduce((sum, u) => sum + u.quantityUsed, 0), [filteredUsage]);
+  const activeServiceMovements = useMemo(() => filteredUsage.filter(u => !u.reversedAt && ['used', 'reused', 'recovered'].includes(u.movementType)), [filteredUsage]);
+  const totalUsage = useMemo(() => activeServiceMovements.filter(u => u.movementType !== 'recovered').reduce((sum, u) => sum + u.quantityKg, 0), [activeServiceMovements]);
   const thisMonthUsage = useMemo(() => {
     const now = new Date();
-    return filteredUsage.filter(u => { const d = new Date(u.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((sum, u) => sum + u.quantityUsed, 0);
-  }, [filteredUsage]);
+    return activeServiceMovements.filter(u => u.movementType !== 'recovered' && (() => { const d = new Date(`${u.date}T00:00:00`); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })()).reduce((sum, u) => sum + u.quantityKg, 0);
+  }, [activeServiceMovements]);
   const topGasType = useMemo(() => {
     const byType: Record<string, number> = {};
-    filteredUsage.forEach(u => { byType[u.gasType] = (byType[u.gasType] || 0) + u.quantityUsed; });
+    activeServiceMovements.filter(u => u.movementType !== 'recovered').forEach(u => { byType[u.gasType] = (byType[u.gasType] || 0) + u.quantityKg; });
     let maxType = '—', maxQty = 0;
     Object.entries(byType).forEach(([type, qty]) => { if (qty > maxQty) { maxQty = qty; maxType = type; } });
     return maxType;
-  }, [filteredUsage]);
+  }, [activeServiceMovements]);
 
   const sortedUsage = useMemo(() => [...filteredUsage].sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime()), [filteredUsage]);
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Time', 'Gas Type', 'Quantity (kg)', 'Technician', 'Customer', 'Job Ref', 'Purpose'];
+    const headers = ['Date', 'Time', 'Movement', 'Gas Type', 'Entered Quantity', 'Unit', 'Quantity (kg)', 'Stock Delta', 'Balance After', 'Technician', 'Customer', 'Job Ref', 'Purpose', 'Reversed'];
     const rows = sortedUsage.map(u => [
-      u.date, u.time, u.gasType, u.quantityUsed.toFixed(2),
-      getTechName(u.usedBy, techs), u.customer,
-      getJobRef(u.jobId, jobs), u.purpose
+      u.date, u.time, u.movementType, u.gasType, u.quantityUsed, u.unit, u.quantityKg.toFixed(3), u.stockDelta,
+      u.stockBalanceAfter ?? '', getTechName(u.usedBy, u.usedByName, techs), u.customer,
+      getJobRef(u.jobId, jobs), u.purpose, u.reversedAt ? `Yes: ${u.reversalReason || ''}` : 'No',
     ]);
-    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const csv = makeCsv([headers, ...rows]);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -90,6 +94,18 @@ export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs
     a.click();
     URL.revokeObjectURL(url);
     success('CSV exported', `${rows.length} records downloaded`);
+  };
+
+  const reverseMovement = async (record: GasUsageRecord) => {
+    const reason = window.prompt('Reason for reversing this movement:')?.trim();
+    if (!reason) return;
+    const response = await fetch(`/api/gas-usage/${record.id}/reverse`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) { warning('Reversal failed', data?.error || `Server error ${response.status}`); return; }
+    success('Movement reversed', 'Stock and ODS totals were restored.');
+    onRefresh?.();
   };
 
   const handleExportPDF = async () => {
@@ -136,7 +152,7 @@ export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs
           {onAdd && (
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
               onClick={() => {
-                onAdd({ id: '', stockId: stock?.[0]?.id || '', gasType: stock?.[0]?.gasType || '', quantityUsed: 0, usedBy: currentUser.id || '', jobId: '', customer: '', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }), purpose: '' });
+                onAdd({ id: '', stockId: null, gasType: '', quantityUsed: 0, quantityKg: 0, unit: 'kg', stockDelta: 0, movementType: 'used', usedBy: currentUser.id || null, usedByName: currentUser.name, jobId: null, customer: '', date: '', time: '', purpose: '' });
               }}>
               <Plus size={16} /> Record Usage
             </button>
@@ -188,11 +204,13 @@ export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs
                 <tr className="bg-gray-50">
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Date / Time</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Gas Type</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Movement</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Quantity</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Technician</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Customer</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Job Ref</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Purpose</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,11 +223,13 @@ export default function GasUsage({ usage, currentUser, onAdd, stock, jobs, techs
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${getGasTypePill(u.gasType)}`}>{u.gasType}</span>
                     </td>
-                    <td className="px-4 py-3"><span className="font-mono text-sm font-semibold text-gray-900">{u.quantityUsed.toFixed(2)} kg</span></td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{getTechName(u.usedBy, techs)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold capitalize text-gray-700">{u.movementType}</td>
+                    <td className="px-4 py-3"><span className="font-mono text-sm font-semibold text-gray-900">{u.quantityUsed.toFixed(2)} {u.unit}</span><div className="text-xs text-gray-400">{u.quantityKg.toFixed(3)} kg</div></td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{getTechName(u.usedBy, u.usedByName, techs)}</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{u.customer}</td>
                     <td className="px-4 py-3"><span className="font-mono text-xs text-brand-600 font-semibold">{getJobRef(u.jobId, jobs)}</span></td>
                     <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px]">{u.purpose || '—'}</td>
+                    <td className="px-4 py-3 text-sm">{u.reversedAt ? <span className="text-red-600">Reversed</span> : isAdmin(currentUser.role) && !['reversal'].includes(u.movementType) ? <button className="text-xs text-red-600 bg-transparent border-none cursor-pointer" onClick={() => reverseMovement(u)}>Reverse</button> : <span className="text-emerald-600">Active</span>}</td>
                   </tr>
                 ))}
               </tbody>

@@ -4,6 +4,10 @@ import { prisma } from '@/app/lib/db';
 import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 import { canManageGasStock } from '@/app/lib/permissions';
 import { toRefrigerantLabel } from '@/app/lib/refrigerantType';
+import { formatHarareDateTime, normalizeGasUnit } from '@/app/lib/gasUnits';
+import type { GasStockKind } from '@prisma/client';
+
+const STOCK_KINDS = new Set<GasStockKind>(['virgin', 'recovered', 'waste']);
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -43,41 +47,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const normalizedGasType = toRefrigerantLabel(cleanText(gasType, 60));
     const normalizedBrand = cleanText(brand, 120);
     const normalizedSupplier = cleanText(supplier, 180);
-    if (!normalizedGasType || !normalizedBrand || parsedQuantity === null || !normalizedSupplier) {
+    const normalizedUnit = normalizeGasUnit(unit || 'kg');
+    const stockKind = cleanText(body.stockKind || 'virgin', 20) as GasStockKind;
+    if (!normalizedGasType || !normalizedBrand || parsedQuantity === null || !normalizedSupplier || !normalizedUnit || !STOCK_KINDS.has(stockKind)) {
       return NextResponse.json(
-        { error: 'Select a supported gas type and provide brand, positive quantity, and supplier' },
+        { error: 'Select supported gas type, cylinder type, and unit, then provide brand, positive capacity, and supplier' },
         { status: 400 }
       );
     }
 
-    const stockItem = await prisma.gasStockItem.create({
-      data: {
-        gasType: normalizedGasType,
-        brand: normalizedBrand,
-        quantity: parsedQuantity,
-        remaining: parsedQuantity,
-        unit: cleanText(unit, 20) || 'kg',
-        supplier: normalizedSupplier,
-        supplierRef: cleanText(supplierRef, 120),
-        addedBy: session.user.name || 'Admin',
-        date: new Date().toISOString().split('T')[0],
-        notes: cleanText(notes, 2_000) || null,
-      },
-    });
-
     const user = session.user as { id: string; name?: string | null };
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        userName: user.name || 'Unknown',
-        action: 'create_gas_stock',
-        jobId: null,
-        reason: `Gas stock added: ${quantity} ${unit || 'kg'} of ${gasType} ${brand} from ${supplier}`,
-        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-                  request.headers.get('x-real-ip') || null,
-        userAgent: request.headers.get('user-agent') || null,
-      },
-    }).catch(() => {});
+    const { date } = formatHarareDateTime();
+    const stockItem = await prisma.$transaction(async (tx) => {
+      const created = await tx.gasStockItem.create({
+        data: {
+          gasType: normalizedGasType,
+          brand: normalizedBrand,
+          quantity: parsedQuantity,
+          remaining: stockKind === 'virgin' ? parsedQuantity : 0,
+          unit: normalizedUnit,
+          stockKind,
+          supplier: normalizedSupplier,
+          supplierRef: cleanText(supplierRef, 120),
+          addedBy: user.name || 'Admin',
+          date,
+          notes: cleanText(notes, 2_000) || null,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          userName: user.name || 'Unknown',
+          action: 'create_gas_stock',
+          jobId: null,
+          reason: `${stockKind} cylinder added: ${parsedQuantity} ${normalizedUnit} ${normalizedGasType} ${normalizedBrand} from ${normalizedSupplier}`,
+          ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null,
+          userAgent: request.headers.get('user-agent') || null,
+        },
+      });
+      return created;
+    });
 
     return NextResponse.json(stockItem, { status: 201 });
   } catch (error) {

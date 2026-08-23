@@ -15,6 +15,7 @@ import {
   Consumable,
   ConsumableType,
   GasUsageRecord,
+  RefrigerantMovementType,
   JobAttachment,
   FundExpense,
   FundAllocation,
@@ -81,7 +82,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
   const blankDiag: Diagnostics = { 
     voltage: "", current: "", avgTemp: "", maxTemp: "", suction: "", discharge: "",
-    refrigerantType: "R-410A", refrigerantRecovered: 0, refrigerantUsed: 0, refrigerantReused: 0,
+    refrigerantType: "", refrigerantRecovered: 0, refrigerantUsed: 0, refrigerantReused: 0,
     status: "optimal", notes: "", deltaT: "", brand: "", serial: "", unitType: undefined 
   };
   
@@ -93,9 +94,9 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const [newConsumable, setNewConsumable] = useState({ type: 'part' as ConsumableType, name: '', brand: '', quantity: '', unit: 'unit', notes: '' });
 
   const [showGasLog, setShowGasLog] = useState(false);
-  const [gasStock, setGasStock] = useState<{ id: string; gasType: string; brand: string; remaining: number; unit: string }[]>([]);
+  const [gasStock, setGasStock] = useState<{ id: string; gasType: string; brand: string; quantity: number; remaining: number; unit: string; stockKind: 'virgin' | 'recovered' | 'waste' }[]>([]);
   const [gasStockLoading, setGasStockLoading] = useState(false);
-  const [gasForm, setGasForm] = useState({ stockId: '', quantityUsed: '', purpose: '' });
+  const [gasForm, setGasForm] = useState<{ stockId: string; quantityUsed: string; purpose: string; movementType: RefrigerantMovementType }>({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used' });
   const [gasSubmitting, setGasSubmitting] = useState(false);
   const [gasSuccess, setGasSuccess] = useState<string | null>(null);
   const [gasError, setGasError] = useState<string | null>(null);
@@ -116,10 +117,14 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   useEffect(() => {
     if (tab !== 'ods' && !showGasLog) return;
     setGasStockLoading(true);
+    setGasError(null);
     fetch('/api/gas-stock')
-      .then(r => r.json())
-      .then(d => Array.isArray(d) ? setGasStock(d) : null)
-      .catch(() => null)
+      .then(async r => {
+        const data = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(data?.error || 'Failed to load refrigerant stock.');
+        if (Array.isArray(data)) setGasStock(data);
+      })
+      .catch(error => setGasError(error instanceof Error ? error.message : 'Failed to load refrigerant stock.'))
       .finally(() => setGasStockLoading(false));
   }, [tab, showGasLog]);
 
@@ -173,29 +178,36 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     const qty = parseFloat(gasForm.quantityUsed);
     if (isNaN(qty) || qty <= 0) { setGasError('Quantity must be a positive number.'); return; }
     const selected = gasStock.find(s => s.id === gasForm.stockId);
-    if (selected && qty > selected.remaining) { setGasError(`Only ${selected.remaining} ${selected.unit} remaining in stock.`); return; }
+    const available = gasForm.movementType === 'recovered' && selected
+      ? selected.quantity - selected.remaining
+      : selected?.remaining;
+    if (selected && available !== undefined && qty > available) {
+      setGasError(gasForm.movementType === 'recovered'
+        ? `Only ${available} ${selected.unit} of recovery capacity remains.`
+        : `Only ${available} ${selected.unit} remains in stock.`);
+      return;
+    }
     setGasSubmitting(true);
     try {
       const res = await fetch('/api/gas-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockId: gasForm.stockId, quantityUsed: qty, jobId: job.id, purpose: gasForm.purpose || '' }),
+        body: JSON.stringify({ ...gasForm, quantityUsed: qty, jobId: job.id }),
       });
       const data = await res.json();
       if (res.ok) {
         await onGasUsageRecorded?.(data as GasUsageRecord);
-        setGasSuccess(`${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
+        setGasSuccess(`${gasForm.movementType} ${qty} ${selected?.unit || 'kg'} of ${selected?.gasType} logged successfully.`);
         setGasError(null); setGasMismatchWarning(null);
         if (selected) {
           const currentType = (diag.refrigerantType || '').trim();
           const loggedType = (selected.gasType || '').trim();
-          if (!currentType) { setD('refrigerantType', loggedType); setD('refrigerantUsed', (diag.refrigerantUsed || 0) + qty); }
-          else if (currentType === loggedType) { setD('refrigerantUsed', (diag.refrigerantUsed || 0) + qty); }
-          else { setGasMismatchWarning(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`); }
+          if (currentType && currentType !== loggedType) setGasMismatchWarning(`Logged ${loggedType} but system refrigerant is ${currentType} — verify before sign-off.`);
         }
-        setGasForm({ stockId: '', quantityUsed: '', purpose: '' });
+        setGasForm({ stockId: '', quantityUsed: '', purpose: '', movementType: 'used' });
         setShowGasLog(false);
-        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining - qty } : s));
+        const delta = gasForm.movementType === 'recovered' ? qty : -qty;
+        setGasStock(prev => prev.map(s => s.id === gasForm.stockId ? { ...s, remaining: s.remaining + delta } : s));
       } else { setGasError(data.error || 'Failed to record gas usage.'); }
     } catch { setGasError('Network error — please try again.'); }
     finally { setGasSubmitting(false); }
@@ -329,11 +341,11 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     finally { setDeleting(false); }
   };
 
-  const toNum = (v: unknown): number => {
-    const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
-    return Number.isFinite(n) ? n : 0;
-  };
-  const refrigerantNet = toNum(diag.refrigerantUsed) - toNum(diag.refrigerantRecovered);
+  const activeJobMovements = gasUsage.filter(record => record.jobId === job.id && !record.reversedAt && record.movementType !== 'reversal' && record.movementType !== 'adjustment');
+  const ledgerRecoveredKg = activeJobMovements.filter(record => record.movementType === 'recovered').reduce((sum, record) => sum + record.quantityKg, 0);
+  const ledgerUsedKg = activeJobMovements.filter(record => record.movementType === 'used').reduce((sum, record) => sum + record.quantityKg, 0);
+  const ledgerReusedKg = activeJobMovements.filter(record => record.movementType === 'reused').reduce((sum, record) => sum + record.quantityKg, 0);
+  const refrigerantNet = ledgerUsedKg + ledgerReusedKg - ledgerRecoveredKg;
 
   const inputBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
   const selectBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
@@ -846,7 +858,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">Records refrigerant used and deducts from your gas stock inventory.</p>
+                <p className="text-sm text-gray-600 mb-2">Record new gas used, recovered gas collected, or recovered gas reused. Stock moves in the correct direction automatically.</p>
 
                 {gasSuccess && (
                   <div className="flex items-start gap-3 p-4 mb-3 bg-green-50 border-l-4 border-l-emerald-500 rounded-lg">
@@ -861,49 +873,62 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
                 )}
 
                 {showGasLog && (() => {
-                  const sortedStock = [...gasStock].sort((a, b) => { const aE = a.remaining <= 0 ? 1 : 0; const bE = b.remaining <= 0 ? 1 : 0; return aE - bE; });
-                  const allDepleted = gasStock.length > 0 && gasStock.every(s => s.remaining <= 0);
+                  const compatibleStock = gasStock.filter(s => {
+                    if (!s.gasType) return false;
+                    if (gasForm.movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
+                    if (gasForm.movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
+                    return s.stockKind === 'recovered' && s.remaining < s.quantity;
+                  });
+                  const sortedStock = [...compatibleStock].sort((a, b) => b.remaining - a.remaining);
                   const selectedStock = gasStock.find(s => s.id === gasForm.stockId);
-                  const selectedDepleted = !!selectedStock && selectedStock.remaining <= 0;
+                  const maxQuantity = selectedStock
+                    ? (gasForm.movementType === 'recovered' ? selectedStock.quantity - selectedStock.remaining : selectedStock.remaining)
+                    : undefined;
                   return (
                     <div className="p-4 border-2 border-brand-200 rounded-xl bg-white animate-fade-in">
                       {gasStockLoading && <p className="text-sm text-gray-500">Loading stock…</p>}
-                      {!gasStockLoading && gasStock.length === 0 && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
-                          <div><div className="font-semibold text-sm text-gray-900">No stock available</div><div className="text-sm text-gray-600">No gas stock items exist in inventory. Contact admin to add stock.</div></div>
+                      {gasError && (
+                        <div className="flex items-start gap-3 p-4 mb-3 bg-red-50 border-l-4 border-l-red-500 rounded-lg">
+                          <div><div className="font-semibold text-sm text-gray-900">Notice</div><div className="text-sm text-gray-600">{gasError}</div></div>
                         </div>
                       )}
-                      {!gasStockLoading && allDepleted && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
-                          <div><div className="font-semibold text-sm text-gray-900">All stock depleted</div><div className="text-sm text-gray-600">Every gas stock item is at zero. Contact admin to top up before logging usage.</div></div>
+                      {!gasStockLoading && (
+                        <div className="mb-3">
+                          <FormItem label="Movement Type *">
+                            <select className={selectBase} value={gasForm.movementType} onChange={e => setGasForm(f => ({ ...f, movementType: e.target.value as RefrigerantMovementType, stockId: '' }))}>
+                              <option value="used">Used — new refrigerant added to system</option>
+                              <option value="recovered">Recovered — refrigerant collected into cylinder</option>
+                              <option value="reused">Reused — recovered refrigerant returned to system</option>
+                            </select>
+                          </FormItem>
                         </div>
                       )}
-                      {!gasStockLoading && gasStock.length > 0 && (
+                      {!gasStockLoading && compatibleStock.length === 0 && (
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 border-l-4 border-l-amber-500 rounded-lg">
+                          <div><div className="font-semibold text-sm text-gray-900">No compatible cylinder</div><div className="text-sm text-gray-600">Add or correct a suitable {gasForm.movementType === 'used' ? 'virgin' : 'recovered-gas'} cylinder first.</div></div>
+                        </div>
+                      )}
+                      {!gasStockLoading && compatibleStock.length > 0 && (
                         <div className="flex flex-col gap-3">
-                          {gasError && (
-                            <div className="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-l-red-500 rounded-lg">
-                              <div><div className="font-semibold text-sm text-gray-900">Notice</div><div className="text-sm text-gray-600">{gasError}</div></div>
-                            </div>
-                          )}
                           <FormItem label="Gas Stock *">
                             <select className={selectBase} value={gasForm.stockId} onChange={e => setGasForm(f => ({ ...f, stockId: e.target.value }))}>
                               <option value="">Select gas…</option>
                               {sortedStock.map(s => (
-                                <option key={s.id} value={s.id} disabled={s.remaining <= 0}>{s.gasType} — {s.brand} ({s.remaining} {s.unit} remaining){s.remaining <= 0 ? ' (empty)' : ''}</option>
+                                <option key={s.id} value={s.id}>{s.gasType} — {s.brand} ({s.remaining}/{s.quantity} {s.unit}, {s.stockKind})</option>
                               ))}
                             </select>
                           </FormItem>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormItem label={`Quantity Used (${selectedStock?.unit || 'kg'}) *`}>
-                              <input className={inputBase} type="number" step="0.1" min="0.1" max={selectedStock?.remaining} placeholder="e.g. 2.5" value={gasForm.quantityUsed} onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))} disabled={!gasForm.stockId || selectedDepleted} />
+                            <FormItem label={`Quantity (${selectedStock?.unit || 'kg'}) *`} helper={maxQuantity === undefined ? undefined : `Maximum ${maxQuantity} ${selectedStock?.unit}`}>
+                              <input className={inputBase} type="number" step="0.1" min="0.1" max={maxQuantity} placeholder="e.g. 2.5" value={gasForm.quantityUsed} onChange={e => setGasForm(f => ({ ...f, quantityUsed: e.target.value }))} disabled={!gasForm.stockId} />
                             </FormItem>
-                            <FormItem label="Purpose (optional)">
+                            <FormItem label="Purpose / service reason *">
                               <input className={inputBase} placeholder="e.g. System recharge" value={gasForm.purpose} onChange={e => setGasForm(f => ({ ...f, purpose: e.target.value }))} />
                             </FormItem>
                           </div>
                           <div className="flex justify-end">
-                            <button className={btnPrimary + " text-xs disabled:opacity-50"} onClick={submitGasUsage} disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed || selectedDepleted}>
-                              {gasSubmitting ? 'Saving…' : 'Record Usage'}
+                            <button className={btnPrimary + " text-xs disabled:opacity-50"} onClick={submitGasUsage} disabled={gasSubmitting || !gasForm.stockId || !gasForm.quantityUsed || !gasForm.purpose.trim()}>
+                              {gasSubmitting ? 'Saving…' : 'Record Movement'}
                             </button>
                           </div>
                         </div>
@@ -915,30 +940,32 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
 
               <div className={cardBase}>
                 <SectionTitle>Refrigerant Movement Log</SectionTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {[
-                    { key: 'refrigerantRecovered' as const, label: 'Refrigerant Recovered (kg)', helper: 'Amount recovered from system' },
-                    { key: 'refrigerantUsed' as const, label: 'Refrigerant Used (kg)', helper: 'New refrigerant added' },
-                    { key: 'refrigerantReused' as const, label: 'Refrigerant Reused (kg)', helper: 'Recovered refrigerant recharged' },
-                  ].map(f => (
-                    <FormItem key={f.key} label={f.label} helper={f.helper}>
-                      <input className={inputBase} type="number" step="0.1" placeholder="0.0" value={diag[f.key] || ""} onChange={e => setD(f.key, parseFloat(e.target.value) || 0)} />
-                    </FormItem>
-                  ))}
-                </div>
+                {activeJobMovements.length === 0 ? <p className="text-sm text-gray-500">No ledger movements recorded for this job.</p> : (
+                  <div className="space-y-2">
+                    {activeJobMovements.map(record => (
+                      <div key={record.id} className="flex flex-wrap justify-between gap-2 p-3 rounded-lg bg-gray-50 border border-gray-100 text-sm">
+                        <span className="font-semibold capitalize text-gray-900">{record.movementType}</span>
+                        <span>{record.quantityUsed} {record.unit} ({record.quantityKg.toFixed(3)} kg)</span>
+                        <span className="text-gray-500">{record.usedByName}</span>
+                        <span className="text-gray-500">{record.date} {record.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className={cardBase}>
                 <SectionTitle>Summary</SectionTitle>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{toNum(diag.refrigerantRecovered).toFixed(1)} kg</p>
+                    <p className="text-2xl font-bold text-gray-900">{ledgerRecoveredKg.toFixed(2)} kg</p>
                     <p className="text-xs text-gray-500">Total Recovered</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{toNum(diag.refrigerantUsed).toFixed(1)} kg</p>
+                    <p className="text-2xl font-bold text-gray-900">{ledgerUsedKg.toFixed(2)} kg</p>
                     <p className="text-xs text-gray-500">Total Used</p>
                   </div>
+                  <div className="text-center"><p className="text-2xl font-bold text-gray-900">{ledgerReusedKg.toFixed(2)} kg</p><p className="text-xs text-gray-500">Total Reused</p></div>
                   <div className="text-center">
                     <p className="text-2xl font-bold" style={{ color: refrigerantNet >= 0 ? '#16a34a' : '#dc2626' }}>
                       {refrigerantNet >= 0 ? '+' : ''}{refrigerantNet.toFixed(1)} kg

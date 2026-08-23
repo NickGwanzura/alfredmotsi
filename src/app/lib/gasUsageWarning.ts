@@ -31,12 +31,6 @@ export function getGasUsageWarning(
   const hasGasRecord = gasUsage.some(g => g.jobId === jobId);
   if (hasGasRecord) return null;
 
-  // If diagnostics already captured refrigerant use, trust that and skip warning
-  const diag = job.diagnostics;
-  if (diag && (diag.refrigerantUsed || diag.refrigerantRecovered || diag.refrigerantReused)) {
-    return null;
-  }
-
   if (job.status === 'completed') {
     return {
       level: 'overdue',

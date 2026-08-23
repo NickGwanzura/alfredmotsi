@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { GasStockItem, User } from '@/app/types';
 import { SectionTitle, ContextBanner } from './ui';
-import { canManageGasStock } from '@/app/lib/permissions';
+import { canManageGasStock, isAdmin } from '@/app/lib/permissions';
+import { gasQuantityToKg, normalizeGasUnit } from '@/app/lib/gasUnits';
 import { REFRIGERANT_TYPES } from '@/app/lib/config';
 import { Package, Weight, AlertTriangle, RefreshCcw, Plus } from 'lucide-react';
 
@@ -20,14 +21,17 @@ function calculateTotalCylinders(stock: GasStockItem[]): number {
   return stock.length;
 }
 function calculateTotalKg(stock: GasStockItem[]): number {
-  return stock.reduce((total, item) => total + item.remaining, 0);
+  return stock.reduce((total, item) => {
+    const unit = normalizeGasUnit(item.unit);
+    return total + (unit ? gasQuantityToKg(item.remaining, unit) : 0);
+  }, 0);
 }
 function calculateLowStockCount(stock: GasStockItem[]): number {
   return stock.filter(item => getRemainingPercentage(item) < LOW_STOCK_THRESHOLD).length;
 }
 function getRemainingPercentage(item: GasStockItem): number {
   if (item.quantity === 0) return 0;
-  return Math.round((item.remaining / item.quantity) * 100);
+  return Math.max(0, Math.min(100, Math.round((item.remaining / item.quantity) * 100)));
 }
 function isLowStock(item: GasStockItem): boolean {
   return getRemainingPercentage(item) < LOW_STOCK_THRESHOLD;
@@ -38,6 +42,7 @@ function formatDate(dateStr: string): string {
 
 export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasStockProps) {
   const canManage = canManageGasStock(currentUser.role);
+  const canCorrect = isAdmin(currentUser.role);
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustVal, setAdjustVal] = useState('');
   const [adjustGasType, setAdjustGasType] = useState('');
@@ -46,8 +51,8 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
   const [adjusting, setAdjusting] = useState(false);
 
   const handleAdjust = async (item: GasStockItem) => {
-    if (!adjustVal || !adjustGasType) {
-      setAdjustError('Select the refrigerant type and enter the corrected remaining quantity.');
+    if (!adjustVal || !adjustGasType || !adjustReason.trim()) {
+      setAdjustError('Select the refrigerant type, enter the corrected balance, and provide a reason.');
       return;
     }
     setAdjustError('');
@@ -56,7 +61,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
       const res = await fetch(`/api/gas-stock/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gasType: adjustGasType, remaining: parseFloat(adjustVal), reason: adjustReason || 'Manual stock correction' }),
+        body: JSON.stringify({ gasType: adjustGasType, remaining: parseFloat(adjustVal), reason: adjustReason, expectedVersion: item.version }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -101,7 +106,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
           )}
           {onAdd && canManage && (
             <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
-              onClick={() => onAdd({ id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg', supplier: '', supplierRef: '', addedBy: '', date: new Date().toISOString().split('T')[0], notes: '' })}>
+              onClick={() => onAdd({ id: '', gasType: '', brand: '', quantity: 0, remaining: 0, unit: 'kg', supplier: '', supplierRef: '', addedBy: '', date: new Date().toISOString().split('T')[0], notes: '', stockKind: 'virgin', version: 0 })}>
               <Plus size={16} /> Add Stock
             </button>
           )}
@@ -134,6 +139,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                 <tr className="bg-gray-50">
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Gas Type</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Brand</th>
+                  <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Cylinder</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Quantity</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Remaining</th>
                   <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Supplier</th>
@@ -151,6 +157,7 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                         <span className={`font-semibold text-sm ${item.gasType ? 'text-gray-900' : 'text-red-600'}`}>{item.gasType || 'Needs correction'}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">{item.brand}</td>
+                      <td className="px-4 py-3 text-sm capitalize text-gray-500">{item.stockKind}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-mono">{item.quantity} {item.unit}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -177,15 +184,15 @@ export default function GasStock({ stock, currentUser, onAdd, onRefresh }: GasSt
                               {REFRIGERANT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                             </select>
                             <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" type="number" step="0.1" min="0" max={item.quantity} placeholder={`New remaining (was ${item.remaining})`} value={adjustVal} onChange={e => setAdjustVal(e.target.value)} />
-                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Reason (optional)" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
+                            <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Correction reason *" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} />
                             {adjustError && <p className="text-xs font-medium text-red-600" role="alert">{adjustError}</p>}
                             <div className="flex gap-1.5">
                               <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50" disabled={adjusting} onClick={() => handleAdjust(item)}>{adjusting ? 'Saving...' : 'Save'}</button>
                               <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(null); setAdjustVal(''); setAdjustGasType(''); setAdjustReason(''); setAdjustError(''); }}>Cancel</button>
                             </div>
                           </div>
-                        ) : canManage ? (
-                          <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustError(''); }}>Correct Stock</button>
+                        ) : canCorrect ? (
+                          <button className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors border-none cursor-pointer" onClick={() => { setAdjustId(item.id); setAdjustVal(String(item.remaining)); setAdjustGasType(item.gasType); setAdjustReason(''); setAdjustError(''); }}>Correct Stock</button>
                         ) : null}
                       </td>
                     </tr>

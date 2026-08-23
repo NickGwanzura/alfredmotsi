@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
         diagnostics: true,
       },
       orderBy: { date: 'asc' },
-      take: 500,
     });
 
     const clientJobs = jobs.map(j => jobToClient(j as Record<string, unknown>));

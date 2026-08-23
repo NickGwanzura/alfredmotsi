@@ -189,6 +189,22 @@ enum AuditAction {
   create_equipment
   update_checklist
   use_job_part
+  create_gas_movement
+  reverse_gas_movement
+}
+
+enum GasStockKind {
+  virgin
+  recovered
+  waste
+}
+
+enum RefrigerantMovementType {
+  used
+  recovered
+  reused
+  adjustment
+  reversal
 }
 
 enum EmailDeliveryStatus {
@@ -610,19 +626,21 @@ model RecurringSchedule {
 }
 
 model GasStockItem {
-  id          String   @id @default(cuid())
-  gasType     String   @map("gas_type")
+  id          String       @id @default(cuid())
+  gasType     String       @map("gas_type")
   brand       String
   quantity    Float
   remaining   Float
   unit        String
   supplier    String
-  supplierRef String   @map("supplier_ref")
-  addedBy     String   @map("added_by")
+  supplierRef String       @map("supplier_ref")
+  addedBy     String       @map("added_by")
   date        String
   notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  stockKind   GasStockKind @default(virgin) @map("stock_kind")
+  version     Int          @default(0)
 
   usageRecords GasUsageRecord[] @relation("GasUsageRecords")
   // CHECK constraints added via migration
@@ -633,27 +651,41 @@ model GasStockItem {
 }
 
 model GasUsageRecord {
-  id           String   @id @default(cuid())
-  stockId      String?  @map("stock_id")
-  gasType      String   @map("gas_type")
-  quantityUsed Float    @map("quantity_used")
-  usedBy       String?  @map("used_by")
-  jobId        String?  @map("job_id")
-  customer     String
-  date         String
-  time         String
-  purpose      String
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                String                  @id @default(cuid())
+  stockId           String?                 @map("stock_id")
+  gasType           String                  @map("gas_type")
+  quantityUsed      Float                   @map("quantity_used")
+  usedBy            String?                 @map("used_by")
+  jobId             String?                 @map("job_id")
+  customer          String
+  date              String
+  time              String
+  purpose           String
+  createdAt         DateTime                @default(now()) @map("created_at")
+  movementType      RefrigerantMovementType @default(used) @map("movement_type")
+  unit              String                  @default("kg")
+  quantityKg        Float                   @default(0) @map("quantity_kg")
+  stockDelta        Float                   @default(0) @map("stock_delta")
+  stockBalanceAfter Float?                  @map("stock_balance_after")
+  usedByName        String                  @default("Unknown") @map("used_by_name")
+  reversalOfId      String?                 @unique @map("reversal_of_id")
+  reversedAt        DateTime?               @map("reversed_at")
+  reversedBy        String?                 @map("reversed_by")
+  reversalReason    String?                 @map("reversal_reason")
 
-  stockItem GasStockItem? @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: SetNull)
-  user      User?         @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
-  job       Job?          @relation("GasUsageOfJob", fields: [jobId], references: [id], onDelete: SetNull)
+  stockItem  GasStockItem?   @relation("GasUsageRecords", fields: [stockId], references: [id], onDelete: SetNull)
+  user       User?           @relation("GasUsageByUser", fields: [usedBy], references: [id], onDelete: SetNull)
+  job        Job?            @relation("GasUsageOfJob", fields: [jobId], references: [id], onDelete: SetNull)
+  reversalOf GasUsageRecord? @relation("GasUsageReversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversal   GasUsageRecord? @relation("GasUsageReversals")
 
   // CHECK constraints added via migration
   // @@check([quantityUsed >= 0])
   @@index([jobId])
   @@index([stockId])
   @@index([usedBy])
+  @@index([movementType, createdAt])
+  @@index([createdAt])
   @@map("gas_usage")
 }
 

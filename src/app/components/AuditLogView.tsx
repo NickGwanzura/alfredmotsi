@@ -30,6 +30,8 @@ const ACTION_CONFIG: Record<AuditAction, { label: string; color: string; bg: str
   create_gas_stock: { label: 'Created Gas Stock',  color: '#007d79', bg: 'bg-teal-100', group: 'Stock' },
   update_gas_stock: { label: 'Updated Gas Stock',  color: '#005d5d', bg: 'bg-teal-100', group: 'Stock' },
   delete_gas_stock: { label: 'Deleted Gas Stock',  color: '#da1e28', bg: 'bg-red-100', group: 'Stock' },
+  create_gas_movement: { label: 'Gas Movement',     color: '#007d79', bg: 'bg-teal-100', group: 'Stock' },
+  reverse_gas_movement:{ label: 'Reversed Gas Movement', color: '#da1e28', bg: 'bg-red-100', group: 'Stock' },
   create_consumable:{ label: 'Added Consumable',   color: '#007d79', bg: 'bg-teal-100', group: 'Consumables' },
   delete_consumable:{ label: 'Deleted Consumable', color: '#da1e28', bg: 'bg-red-100', group: 'Consumables' },
   create_user:      { label: 'Created User',       color: '#6929c4', bg: 'bg-purple-100', group: 'Users' },

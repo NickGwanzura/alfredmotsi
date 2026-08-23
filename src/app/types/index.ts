@@ -130,19 +130,33 @@ export interface GasStockItem {
   addedBy: string;
   date: string;
   notes: string | null;
+  stockKind: 'virgin' | 'recovered' | 'waste';
+  version: number;
 }
+
+export type RefrigerantMovementType = 'used' | 'recovered' | 'reused' | 'adjustment' | 'reversal';
 
 export interface GasUsageRecord {
   id: string;
-  stockId: string;
+  stockId: string | null;
   gasType: string;
   quantityUsed: number;
-  usedBy: string;
-  jobId: string;
+  usedBy: string | null;
+  usedByName: string;
+  jobId: string | null;
   customer: string;
   date: string;
   time: string;
   purpose: string;
+  movementType: RefrigerantMovementType;
+  unit: 'kg' | 'g' | 'lb';
+  quantityKg: number;
+  stockDelta: number;
+  stockBalanceAfter?: number | null;
+  reversalOfId?: string | null;
+  reversedAt?: string | null;
+  reversedBy?: string | null;
+  reversalReason?: string | null;
 }
 
 export type CRMType = 'call' | 'visit' | 'complaint' | 'email' | 'quote';
@@ -241,7 +255,7 @@ export interface Consumable {
   recordedAt: string;
 }
 
-export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user' | 'allocate_fund' | 'update_fund' | 'close_fund' | 'record_expense' | 'update_expense' | 'delete_expense' | 'password_reset' | 'password_change' | 'failed_login';
+export type AuditAction = 'login' | 'view_job' | 'edit_job' | 'complete_job' | 'delete_job' | 'adjust_stock' | 'create_customer' | 'update_customer' | 'delete_customer' | 'create_gas_stock' | 'update_gas_stock' | 'delete_gas_stock' | 'create_gas_movement' | 'reverse_gas_movement' | 'create_consumable' | 'delete_consumable' | 'create_user' | 'update_user' | 'delete_user' | 'allocate_fund' | 'update_fund' | 'close_fund' | 'record_expense' | 'update_expense' | 'delete_expense' | 'password_reset' | 'password_change' | 'failed_login';
 
 export interface AuditLogEntry {
   id: string;

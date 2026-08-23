@@ -58,6 +58,20 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               </div>
             )}
 
+            <div>
+              <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Cylinder Type *</label>
+              <select
+                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                value={stock.stockKind || 'virgin'}
+                onChange={e => onChange({ ...stock, stockKind: e.target.value as GasStockItem['stockKind'] })}
+              >
+                <option value="virgin">Virgin stock — supplied full</option>
+                <option value="recovered">Recovered-gas cylinder — starts empty</option>
+                <option value="waste">Waste cylinder — quarantine only</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">Recovered and waste cylinders use quantity as their safe maximum capacity.</p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Gas Type *</label>
@@ -87,7 +101,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Quantity (kg) *</label>
+                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Capacity / supplied quantity *</label>
                 <input
                   className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   type="number"

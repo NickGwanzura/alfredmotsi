@@ -12,12 +12,17 @@ interface GasUsageRecord {
   id: string;
   gasType: string;
   quantityUsed: number;
-  usedBy: string;
-  jobId: string;
+  quantityKg: number;
+  unit: string;
+  movementType: string;
+  usedByName: string;
+  jobRef: string;
+  stockRef: string;
   customer: string;
   date: string;
   time: string;
   purpose: string;
+  reversedAt: Date | null;
 }
 
 const styles = StyleSheet.create({
@@ -39,7 +44,8 @@ const styles = StyleSheet.create({
 });
 
 export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: CompanyData }) {
-  const totalKg = usage.reduce((s, r) => s + r.quantityUsed, 0);
+  const active = usage.filter(r => !r.reversedAt && ['used', 'reused', 'recovered'].includes(r.movementType));
+  const totalKg = active.reduce((s, r) => s + r.quantityKg, 0);
   const co = c || FALLBACK;
   return (
     <Document>
@@ -79,18 +85,24 @@ export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsage
         {/* Table */}
         <View style={styles.tblHead}>
           <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700, color: '#fff' }]}>Date</Text>
-          <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Gas Type</Text>
-          <Text style={[styles.tblCell, { width: 60, fontWeight: 700, color: '#fff' }]}>Qty (kg)</Text>
-          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700, color: '#fff' }]}>Customer</Text>
-          <Text style={[styles.tblCell, { flex: 1.5, fontWeight: 700, color: '#fff' }]}>Purpose</Text>
+          <Text style={[styles.tblCell, { width: 52, fontWeight: 700, color: '#fff' }]}>Movement</Text>
+          <Text style={[styles.tblCell, { width: 46, fontWeight: 700, color: '#fff' }]}>Gas</Text>
+          <Text style={[styles.tblCell, { width: 45, fontWeight: 700, color: '#fff' }]}>kg</Text>
+          <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Technician</Text>
+          <Text style={[styles.tblCell, { width: 58, fontWeight: 700, color: '#fff' }]}>Job</Text>
+          <Text style={[styles.tblCell, { flex: 1, fontWeight: 700, color: '#fff' }]}>Customer</Text>
+          <Text style={[styles.tblCell, { flex: 1.2, fontWeight: 700, color: '#fff' }]}>Purpose / Stock</Text>
         </View>
         {usage.map(r => (
           <View key={r.id} style={styles.tblRow} wrap={false}>
             <Text style={[styles.tblCell, { flex: 1.2 }]}>{r.date} {r.time}</Text>
-            <Text style={[styles.tblCell, { flex: 1 }]}>{r.gasType}</Text>
-            <Text style={[styles.tblCell, { width: 60 }]}>{r.quantityUsed.toFixed(2)}</Text>
-            <Text style={[styles.tblCell, { flex: 1.2 }]}>{r.customer}</Text>
-            <Text style={[styles.tblCell, { flex: 1.5 }]}>{r.purpose || '—'}</Text>
+            <Text style={[styles.tblCell, { width: 52 }]}>{r.movementType}{r.reversedAt ? ' (reversed)' : ''}</Text>
+            <Text style={[styles.tblCell, { width: 46 }]}>{r.gasType}</Text>
+            <Text style={[styles.tblCell, { width: 45 }]}>{r.quantityKg.toFixed(3)}</Text>
+            <Text style={[styles.tblCell, { flex: 1 }]}>{r.usedByName}</Text>
+            <Text style={[styles.tblCell, { width: 58 }]}>{r.jobRef}</Text>
+            <Text style={[styles.tblCell, { flex: 1 }]}>{r.customer}</Text>
+            <Text style={[styles.tblCell, { flex: 1.2 }]}>{r.purpose || '—'} · {r.stockRef}</Text>
           </View>
         ))}
 
@@ -108,7 +120,7 @@ export async function POST(req: NextRequest) {
 
   const { usage } = await req.json();
   const ids = Array.isArray(usage)
-    ? [...new Set(usage.map((record: unknown) => (record && typeof record === 'object' && 'id' in record ? record.id : null)).filter((id): id is string => typeof id === 'string' && id.trim().length > 0))].slice(0, 500)
+    ? [...new Set(usage.map((record: unknown) => (record && typeof record === 'object' && 'id' in record ? record.id : null)).filter((id): id is string => typeof id === 'string' && id.trim().length > 0))]
     : [];
   if (ids.length === 0) {
     return NextResponse.json({ error: 'No usage data provided' }, { status: 400 });
@@ -122,15 +134,22 @@ export async function POST(req: NextRequest) {
         job: { OR: [{ technicians: { some: { id: session!.user.id } } }, { coTechnicians: { some: { id: session!.user.id } } }] },
       } : {}),
     },
-    select: { id: true, gasType: true, quantityUsed: true, usedBy: true, jobId: true, customer: true, date: true, time: true, purpose: true },
+    select: {
+      id: true, gasType: true, quantityUsed: true, quantityKg: true, unit: true,
+      movementType: true, usedByName: true, customer: true, date: true, time: true,
+      purpose: true, reversedAt: true,
+      job: { select: { jobCardRef: true } },
+      stockItem: { select: { supplierRef: true } },
+    },
     orderBy: { createdAt: 'desc' },
   });
   if (records.length === 0) return NextResponse.json({ error: 'No accessible usage records found' }, { status: 404 });
 
-  const reportUsage: GasUsageRecord[] = records.map((record) => ({
+  const reportUsage: GasUsageRecord[] = records.map(({ job, stockItem, ...record }) => ({
     ...record,
-    usedBy: record.usedBy || 'Unknown',
-    jobId: record.jobId || '—',
+    movementType: record.movementType,
+    jobRef: job?.jobCardRef || '—',
+    stockRef: stockItem?.supplierRef || '—',
   }));
 
   const dateStr = new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' });

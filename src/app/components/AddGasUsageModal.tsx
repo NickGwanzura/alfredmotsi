@@ -27,7 +27,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
     setError('');
     setLoading(true);
 
-    if (!usage.stockId || !usage.customer || !usage.jobId) {
+    if (!usage.stockId || !usage.customer || !usage.jobId || !usage.movementType) {
       setError('Gas stock, customer, and job are required');
       setLoading(false);
       return;
@@ -39,8 +39,17 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
       return;
     }
 
-    if (selectedStock && usage.quantityUsed > selectedStock.remaining) {
-      setError(`Insufficient stock. Only ${selectedStock.remaining} ${selectedStock.unit} remaining`);
+    if (!usage.purpose?.trim()) {
+      setError('A purpose or service reason is required');
+      setLoading(false);
+      return;
+    }
+
+    const available = selectedStock && usage.movementType === 'recovered'
+      ? selectedStock.quantity - selectedStock.remaining
+      : selectedStock?.remaining;
+    if (available !== undefined && usage.quantityUsed > available) {
+      setError(`Only ${available} ${selectedStock?.unit} is available for this movement`);
       setLoading(false);
       return;
     }
@@ -54,7 +63,16 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
     }
   };
 
-  const availableStock = stock.filter(s => s.remaining > 0);
+  const movementType = usage.movementType || 'used';
+  const availableStock = stock.filter(s => {
+    if (!s.gasType) return false;
+    if (movementType === 'used') return s.stockKind === 'virgin' && s.remaining > 0;
+    if (movementType === 'reused') return s.stockKind === 'recovered' && s.remaining > 0;
+    return s.stockKind === 'recovered' && s.remaining < s.quantity;
+  });
+  const maxQuantity = selectedStock
+    ? (movementType === 'recovered' ? selectedStock.quantity - selectedStock.remaining : selectedStock.remaining)
+    : undefined;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={onClose}>
@@ -81,9 +99,22 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
             {availableStock.length === 0 && (
               <div className="p-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="font-semibold">No Stock Available</p>
-                <p>Please add gas stock first before recording usage.</p>
+                <p>Please add a compatible {movementType === 'used' ? 'virgin' : 'recovered-gas'} cylinder first.</p>
               </div>
             )}
+
+            <div>
+              <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Movement Type *</label>
+              <select
+                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                value={movementType}
+                onChange={e => onChange({ ...usage, movementType: e.target.value as GasUsageRecord['movementType'], stockId: '' })}
+              >
+                <option value="used">Used — new refrigerant</option>
+                <option value="recovered">Recovered — collected into cylinder</option>
+                <option value="reused">Reused — recovered refrigerant recharged</option>
+              </select>
+            </div>
 
             <div>
               <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Gas Stock *</label>
@@ -97,7 +128,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
                 <option value="">Select gas stock</option>
                 {availableStock.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.gasType} - {s.brand} ({s.remaining} {s.unit} remaining)
+                    {s.gasType} - {s.brand} ({s.remaining}/{s.quantity} {s.unit}, {s.stockKind})
                   </option>
                 ))}
               </select>
@@ -105,13 +136,13 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Quantity Used ({selectedStock?.unit || 'kg'}) *</label>
+                <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Quantity ({selectedStock?.unit || 'kg'}) *</label>
                 <input
                   className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   type="number"
                   step="0.1"
                   min="0.1"
-                  max={selectedStock?.remaining}
+                  max={maxQuantity}
                   value={usage.quantityUsed || ''}
                   onChange={e => onChange({ ...usage, quantityUsed: parseFloat(e.target.value) })}
                   placeholder="e.g. 2.5"
@@ -119,7 +150,7 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
                   disabled={!usage.stockId}
                 />
                 {selectedStock && (
-                  <p className="text-xs text-gray-400 mt-1">Max: {selectedStock.remaining} {selectedStock.unit}</p>
+                  <p className="text-xs text-gray-400 mt-1">Max: {maxQuantity} {selectedStock.unit}</p>
                 )}
               </div>
               <div>
@@ -156,12 +187,13 @@ export default function AddGasUsageModal({ usage, stock, customers, jobs, onChan
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Purpose (optional)</label>
+              <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Purpose / service reason *</label>
               <input
                 className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 value={usage.purpose || ''}
                 onChange={e => onChange({ ...usage, purpose: e.target.value })}
                 placeholder="e.g. Leak repair, System recharge"
+                required
               />
             </div>
           </div>

@@ -271,10 +271,10 @@ export default function Home() {
     try {
       const [stockRes, jobRes] = await Promise.all([
         fetch('/api/gas-stock'),
-        fetch(`/api/jobs/${usage.jobId}`),
+        usage.jobId ? fetch(`/api/jobs/${usage.jobId}`) : Promise.resolve(null),
       ]);
       if (stockRes.ok) setGasStock(await stockRes.json());
-      if (jobRes.ok) {
+      if (jobRes?.ok && usage.jobId) {
         const refreshedJob = await jobRes.json() as Job;
         setJobs((prev) => prev.map((job) => job.id === refreshedJob.id ? refreshedJob : job));
         setSelectedJob((current) => current?.id === refreshedJob.id ? refreshedJob : current);
@@ -704,9 +704,9 @@ export default function Home() {
                 <GasUsage
                   usage={gasUsage}
                   currentUser={currentUser}
-                  stock={gasStock.map((s) => ({ id: s.id, gasType: s.gasType, remaining: s.remaining, unit: s.unit }))}
                   jobs={jobs.map((j) => ({ id: j.id, title: j.title, jobCardRef: j.jobCardRef }))}
                   techs={techs.map((t) => ({ id: t.id, name: t.name }))}
+                  onRefresh={fetchData}
                   onAdd={(record) => {
                     setNewGasUsage(record);
                     setShowAddGasUsage(true);
@@ -726,7 +726,7 @@ export default function Home() {
               )}
 
               {!showAddJob && page === 'ods-report' && perm.canViewODSReport && (
-                <ODSReport jobs={jobs} customers={customers} currentUser={currentUser} />
+                <ODSReport jobs={jobs} movements={gasUsage} />
               )}
 
               {!showAddJob && page === 'users' && perm.canManageUsers && (
