@@ -45,7 +45,7 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Customer Database</p>
             <h2 id="customer-modal-title" className="text-xl font-bold text-gray-900 mt-1">{customer.id ? 'Edit Customer' : 'Add New Customer'}</h2>
           </div>
-          <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
+          <button className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close customer dialog">
             <X size={20} />
           </button>
         </div>
@@ -82,8 +82,8 @@ export default function AddCustomerModal({ customer, onChange, onSave, onClose }
           </div>
 
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-            <button type="button" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>Cancel</button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer disabled:opacity-50" disabled={loading}>
+            <button type="button" className="min-h-[44px] px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>Cancel</button>
+            <button type="submit" className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer disabled:opacity-50" disabled={loading}>
               {loading ? 'Saving…' : customer.id ? 'Save Changes' : 'Add Customer'}
             </button>
           </div>

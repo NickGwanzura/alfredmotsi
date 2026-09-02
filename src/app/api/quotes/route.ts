@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const safeValidUntil = isoDate(validUntil);
   if (!customerId || !safeValidUntil || !safeIssueDate || !items || !totals) return NextResponse.json({ error: 'Customer, valid dates, and valid line items are required' }, { status: 400 });
   if (!['basic', 'standard', 'premium', 'custom'].includes(tier)) return NextResponse.json({ error: 'Invalid quote tier' }, { status: 400 });
-  const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+  const customer = await prisma.customer.findFirst({ where: { id: customerId, archivedAt: null }, select: { id: true } });
   if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
   const itemIds = [...new Set(items.flatMap((item) => item.itemId ? [item.itemId] : []))];
   const pricebookIds = [...new Set(items.flatMap((item) => item.pricebookItemId ? [item.pricebookItemId] : []))];

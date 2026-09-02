@@ -39,7 +39,7 @@ import { isLowGasStock } from '@/app/lib/gasStockRules';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage, canManageInventory,
   canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
-  canViewFinancials, canManageFunds
+  canViewFinancials, canManageFunds, isAdmin as isAdminRole
 } from '@/app/lib/permissions';
 
 // Lucide icons
@@ -335,21 +335,27 @@ export default function Home() {
   };
 
   const addCustomer = async (customerData: Partial<Customer>) => {
-    try {
-      const res = await fetch('/api/customers', {
-        method: 'POST',
+    const isEdit = Boolean(customerData.id);
+    const res = await fetch(isEdit ? `/api/customers/${customerData.id}` : '/api/customers', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerData),
       });
-      if (res.ok) {
-        const createdCustomer = await res.json();
-        setCustomers((prev) => [...prev, createdCustomer]);
-        setShowAddCustomer(false);
-        setNewCustomer({});
-      }
-    } catch (error) {
-      console.error('Error creating customer:', error);
+    const response = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(response?.error || `Failed to ${isEdit ? 'update' : 'create'} customer (server error ${res.status})`);
     }
+    const savedCustomer = response as Customer;
+    setCustomers((prev) => isEdit ? prev.map((customer) => customer.id === savedCustomer.id ? savedCustomer : customer) : [savedCustomer, ...prev]);
+    setShowAddCustomer(false);
+    setNewCustomer({});
+  };
+
+  const deleteCustomer = async (customer: Customer) => {
+    const res = await fetch(`/api/customers/${customer.id}`, { method: 'DELETE' });
+    const response = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(response?.error || `Failed to archive customer (server error ${res.status})`);
+    setCustomers((prev) => prev.filter((item) => item.id !== customer.id));
   };
 
   const addGasStock = async (stockData: Partial<GasStockItem>) => {
@@ -709,10 +715,15 @@ export default function Home() {
                   jobs={jobs}
                   currentUser={currentUser}
                   onJobClick={setSelectedJob}
-                  onAddCustomer={(customer) => {
+                  onAddCustomer={perm.canManageCustomers ? (customer) => {
                     setNewCustomer(customer);
                     setShowAddCustomer(true);
-                  }}
+                  } : undefined}
+                  onEditCustomer={perm.canManageCustomers ? (customer) => {
+                    setNewCustomer(customer);
+                    setShowAddCustomer(true);
+                  } : undefined}
+                  onDeleteCustomer={isAdminRole(user.role) ? deleteCustomer : undefined}
                 />
               )}
 

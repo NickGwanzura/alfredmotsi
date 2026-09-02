@@ -157,7 +157,7 @@ export async function PUT(
       const customerId = cleanText(updateData.customerId || existingJob.customerId, 100);
       const siteId = cleanText(updateData.siteId || existingJob.siteId, 100);
       const equipmentId = cleanText(updateData.equipmentId || existingJob.equipmentId, 100);
-      const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+      const customer = await prisma.customer.findFirst({ where: { id: customerId, archivedAt: null }, select: { id: true } });
       if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
       if (siteId && !await prisma.serviceSite.findFirst({ where: { id: siteId, customerId }, select: { id: true } })) return NextResponse.json({ error: 'Site does not belong to customer' }, { status: 400 });
       if (equipmentId && !await prisma.equipment.findFirst({ where: { id: equipmentId, customerId, ...(siteId ? { siteId } : {}) }, select: { id: true } })) return NextResponse.json({ error: 'Equipment does not belong to customer/site' }, { status: 400 });

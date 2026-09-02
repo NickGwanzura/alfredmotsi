@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, authorizeRole } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import crypto from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { getCustomerDisplayName, redactPortalCode } from '@/app/lib/customerTransform';
 
 export async function GET(): Promise<NextResponse> {
@@ -16,6 +17,7 @@ export async function GET(): Promise<NextResponse> {
     if (forbidden) return forbidden;
 
     const customers = await prisma.customer.findMany({
+      where: { archivedAt: null },
       orderBy: { createdAt: 'desc' },
       take: 500,
     });
@@ -36,9 +38,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const forbidden = authorizeRole(session, ['owner', 'admin', 'dispatcher', 'sales', 'tech']);
     if (forbidden) return forbidden;
 
-    const body = await request.json();
-    const { name, address, siteAddress, phone, whatsapp, notes } = body;
-    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'A valid JSON customer payload is required' }, { status: 400 });
+    }
+    const raw = body as Record<string, unknown>;
+    const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+    const address = typeof raw.address === 'string' ? raw.address.trim() : '';
+    const siteAddress = typeof raw.siteAddress === 'string' ? raw.siteAddress.trim() : '';
+    const phone = typeof raw.phone === 'string' ? raw.phone.trim() : '';
+    const whatsapp = typeof raw.whatsapp === 'string' ? raw.whatsapp.trim() : '';
+    const notes = typeof raw.notes === 'string' ? raw.notes.trim() : '';
+    const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
 
     if (!name || !address || !phone || !email) {
       return NextResponse.json(
@@ -49,6 +60,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 });
+    }
+
+    if (name.length > 200 || address.length > 500 || siteAddress.length > 500 || phone.length > 50 || whatsapp.length > 50 || email.length > 320 || notes.length > 5000) {
+      return NextResponse.json({ error: 'One or more customer fields exceed the allowed length' }, { status: 400 });
     }
 
     const existing = await prisma.customer.findUnique({
@@ -73,7 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
        phone,
        whatsapp: whatsapp || null,
        email,
-       notes: typeof notes === 'string' ? notes.trim().slice(0, 5000) || null : null,
+       notes: notes || null,
        portalCode,
        portalEnabled: false,
      },
@@ -94,6 +109,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
    return NextResponse.json(redactPortalCode(customer, ['owner', 'admin'].includes(session.user.role)), { status: 201 });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'A customer with this email already exists' }, { status: 409 });
+    }
     console.error('Error creating customer:', error);
     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
   }

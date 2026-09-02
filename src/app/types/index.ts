@@ -23,6 +23,8 @@ export interface Customer {
   email: string;
   portalCode: string;
   portalEnabled: boolean;
+  notes?: string;
+  archivedAt?: string | null;
 }
 
 export type JobType = 'installation' | 'maintenance' | 'repair' | 'sales' | 'inspection' | 'callout';

@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     if (!customerId || !cleanText(prismaData.title, 200) || !cleanText(prismaData.date, 10) || !/^\d{4}-\d{2}-\d{2}$/.test(String(prismaData.date)) || !/^\d{2}:\d{2}$/.test(String(prismaData.time || '')) || !validSources.has(String(prismaData.source)) || !validTypes.has(String(prismaData.type)) || !validUnits.has(String(prismaData.unitType)) || !validIssues.has(String(prismaData.issue)) || !validPriorities.has(String(prismaData.priority)) || !validStatuses.has(String(prismaData.status))) {
       return NextResponse.json({ error: 'Invalid customer, job details, date, time, or enum value' }, { status: 400 });
     }
-    const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true } });
+    const customer = await prisma.customer.findFirst({ where: { id: customerId, archivedAt: null }, select: { id: true } });
     if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     if (siteId) {
       const site = await prisma.serviceSite.findFirst({ where: { id: siteId, customerId }, select: { id: true } });

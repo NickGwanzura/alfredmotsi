@@ -407,6 +407,7 @@ model Customer {
   notes         String?  @db.Text
   portalCode    String?  @unique @map("portal_code")
   portalEnabled Boolean  @default(false) @map("portal_enabled")
+  archivedAt    DateTime? @map("archived_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

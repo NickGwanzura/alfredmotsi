@@ -7,7 +7,7 @@ import { canManageCustomers } from '@/app/lib/permissions';
 import { buildWA, buildMail, portalInviteText, fmtDate } from '@/app/lib/utils';
 import { sendPortalInviteEmail } from '@/app/lib/email/client';
 import { StatusTag, SectionTitle, Avatar, Notification, ContextBanner } from './ui';
-import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck, Search, Phone, Briefcase } from 'lucide-react';
+import { Plus, FileEdit, MessageCircle, Mail, Users, ChevronRight, X, Send, CheckCheck, Search, Phone, Briefcase, Trash2, AlertTriangle } from 'lucide-react';
 
 interface CustomerDBProps {
   customers: Customer[];
@@ -16,6 +16,7 @@ interface CustomerDBProps {
   onJobClick: (job: Job) => void;
   onEditCustomer?: (customer: Customer) => void;
   onAddCustomer?: (customer: Customer) => void;
+  onDeleteCustomer?: (customer: Customer) => Promise<void> | void;
 }
 
 type Compose = 'wa' | 'email' | null;
@@ -37,7 +38,7 @@ function getActiveJobCount(customerId: string, jobs: Job[]): number {
   return jobs.filter(j => j.customerId === customerId && j.status !== 'completed' && j.status !== 'cancelled').length;
 }
 
-export default function CustomerDB({ customers, jobs, currentUser, onJobClick, onEditCustomer, onAddCustomer }: CustomerDBProps) {
+export default function CustomerDB({ customers, jobs, currentUser, onJobClick, onEditCustomer, onAddCustomer, onDeleteCustomer }: CustomerDBProps) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Customer | null>(null);
   const [compose, setCompose] = useState<Compose>(null);
@@ -54,6 +55,8 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailSending, setEmailSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -66,7 +69,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
     );
   }, [customers, search]);
 
-  const active = selected ?? filtered[0] ?? null;
+  const active = (selected && customers.some((customer) => customer.id === selected.id)) ? selected : filtered[0] ?? null;
   const customerJobs = useMemo(
     () => active
       ? jobs.filter(j => j.customerId === active.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -197,6 +200,21 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
   };
 
   const openEmpty = () => onAddCustomer?.({ id: '', name: '', address: '', siteAddress: '', phone: '', whatsapp: '', email: '', portalCode: '', portalEnabled: false });
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || !onDeleteCustomer) return;
+    setDeleteLoading(true);
+    try {
+      await onDeleteCustomer(deleteTarget);
+      setToast({ kind: 's', msg: `${deleteTarget.name} was archived.` });
+      setSelected(null);
+      setDeleteTarget(null);
+    } catch (error) {
+      setToast({ kind: 'e', msg: error instanceof Error ? error.message : 'Failed to archive customer.' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
@@ -339,10 +357,19 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                 </div>
                 {onEditCustomer && (
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
                     onClick={() => onEditCustomer(active)}
                   >
                     <FileEdit size={14} /> Edit
+                  </button>
+                )}
+                {onDeleteCustomer && (
+                  <button
+                    className="inline-flex min-h-[44px] items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+                    onClick={() => setDeleteTarget(active)}
+                    aria-label={`Archive ${active.name}`}
+                  >
+                    <Trash2 size={14} /> Archive
                   </button>
                 )}
               </div>
@@ -599,6 +626,26 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
           </div>
         )}
       </div>
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6" onClick={() => !deleteLoading && setDeleteTarget(null)} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto overflow-hidden" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="archive-customer-title">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
+              <div><p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Customer Database</p><h2 id="archive-customer-title" className="text-xl font-bold text-gray-900 mt-1">Archive customer?</h2></div>
+              <button type="button" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer" onClick={() => setDeleteTarget(null)} aria-label="Close archive dialog"><X size={20} /></button>
+            </div>
+            <div className="px-6 py-5">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
+                <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">{deleteTarget.name} will be hidden from active customer lists and portal access will be disabled. Existing jobs, invoices, and history will be preserved.</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button type="button" className="inline-flex min-h-[44px] items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>Cancel</button>
+              <button type="button" className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 cursor-pointer disabled:opacity-50" onClick={confirmDelete} disabled={deleteLoading}><Trash2 size={15} />{deleteLoading ? 'Archiving…' : 'Archive customer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
