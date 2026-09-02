@@ -34,6 +34,6 @@ export function getAppOrigin(): string {
 
 export const BRAND_ORIGIN = getAppOrigin();
 export const BRAND_LOGO_URL = `${BRAND_ORIGIN}/logo.png`;
-export const BRAND_FONT_URL = `${BRAND_ORIGIN}/fonts/Grift-Regular.woff2`;
+export const BRAND_FONT_URL = `${BRAND_ORIGIN}/fonts/MonaSansVariable.woff2`;
 export const BRAND_EMAIL = process.env.BRAND_EMAIL || 'info@splashaircrmzw.site';
 export const BRAND_PHONE = process.env.BRAND_PHONE || '0715212141 / 0773034528';

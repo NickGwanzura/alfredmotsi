@@ -195,7 +195,7 @@ export default function Home() {
 
   if (user.role === 'client') {
     return (
-      <div className="min-h-screen bg-surface" style={{ fontFamily: "'Grift'" }}>
+      <div className="min-h-screen bg-surface" style={{ fontFamily: "'Mona Sans', sans-serif" }}>
         <header className="header no-print">
           <div style={{ overflow: 'hidden', height: '34px', flexShrink: 0 }}>
             <img src="/logos.svg" alt="Splash Air" style={{ width: '88px', height: 'auto', display: 'block' }} />
@@ -452,7 +452,7 @@ export default function Home() {
   const nav = isFieldTech ? techNav : officeNav;
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: "'Grift'" }}>
+    <div className="min-h-screen" style={{ fontFamily: "'Mona Sans', sans-serif" }}>
       {/* Header */}
       <header className="header no-print">
         <button

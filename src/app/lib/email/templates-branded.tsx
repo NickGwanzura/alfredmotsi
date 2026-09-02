@@ -35,7 +35,7 @@ import { BRAND_LOGO_URL, BRAND_ORIGIN } from '@/app/lib/brand';
 // ============================================
 
 const LOGO_URL = BRAND_LOGO_URL;
-const fontHead = <Head><style>{`@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Bold.woff2') format('woff2');font-weight:700}`}</style></Head>;
+const fontHead = <Head><style>{`@font-face{font-family:'Mona Sans';src:url('${BRAND_ORIGIN}/fonts/MonaSansVariable.woff2') format('woff2');font-weight:200 900}`}</style></Head>;
 
 const logoImgStyle: React.CSSProperties = {
   width: '200px',
@@ -81,8 +81,8 @@ const theme = {
   },
   
   fonts: {
-    sans: 'Grift',
-    mono: 'Grift',
+    sans: 'Mona Sans',
+    mono: 'Mona Sans',
   },
   
   spacing: {

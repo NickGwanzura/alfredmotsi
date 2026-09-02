@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center px-4 py-10 sm:px-6 font-grift" style={{ fontFamily: "'Grift'" }}>
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4 py-10 sm:px-6" style={{ fontFamily: "'Mona Sans', sans-serif" }}>
       <div className="w-full max-w-[520px]">
         {/* Full Splash Air mark, positioned like the main sign-in screen. */}
         <div className="relative z-20 flex justify-center -mb-5">

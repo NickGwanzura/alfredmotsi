@@ -44,7 +44,7 @@ const colors = {
 
 const main = {
   backgroundColor: colors.gray[100],
-  fontFamily: 'Grift',
+  fontFamily: 'Mona Sans',
 };
 
 const container = {
@@ -62,7 +62,7 @@ const header = {
 };
 
 const LOGO_URL = BRAND_LOGO_URL;
-const fontHead = <Head><style>{`@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Bold.woff2') format('woff2');font-weight:700}`}</style></Head>;
+const fontHead = <Head><style>{`@font-face{font-family:'Mona Sans';src:url('${BRAND_ORIGIN}/fonts/MonaSansVariable.woff2') format('woff2');font-weight:200 900}`}</style></Head>;
 const logoImg = {
   width: '180px',
   height: 'auto',
@@ -249,7 +249,7 @@ export function SecureUserInvitationEmail({
             </Text>
             
             <Section style={urlBox}>
-              <Text style={{ margin: 0, fontFamily: 'Grift' }}>
+              <Text style={{ margin: 0, fontFamily: 'Mona Sans' }}>
                 {inviteUrl}
               </Text>
             </Section>
@@ -354,7 +354,7 @@ export function PasswordResetEmail({
             </Text>
             
             <Section style={urlBox}>
-              <Text style={{ margin: 0, fontFamily: 'Grift' }}>
+              <Text style={{ margin: 0, fontFamily: 'Mona Sans' }}>
                 {resetUrl}
               </Text>
             </Section>

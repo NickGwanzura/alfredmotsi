@@ -41,7 +41,7 @@ const colors = {
 
 const main = {
   backgroundColor: colors.gray[100],
-  fontFamily: 'Grift',
+  fontFamily: 'Mona Sans',
 };
 
 const container = {
@@ -59,7 +59,7 @@ const header = {
 };
 
 const LOGO_URL = BRAND_LOGO_URL;
-const fontHead = <Head><style>{`@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Regular.woff2') format('woff2');font-weight:400}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-SemiBold.woff2') format('woff2');font-weight:600}@font-face{font-family:Grift;src:url('${BRAND_ORIGIN}/fonts/Grift-Bold.woff2') format('woff2');font-weight:700}`}</style></Head>;
+const fontHead = <Head><style>{`@font-face{font-family:'Mona Sans';src:url('${BRAND_ORIGIN}/fonts/MonaSansVariable.woff2') format('woff2');font-weight:200 900}`}</style></Head>;
 
 const logoImg = {
   width: '180px',
@@ -269,7 +269,7 @@ export function JobScheduledEmail({
               <Text style={detailItem}>{technicianName}</Text>
               
               <Text style={detailLabel}>Reference Number</Text>
-              <Text style={{ ...detailItem, fontFamily: 'Grift', fontSize: '16px' }}>{jobId}</Text>
+              <Text style={{ ...detailItem, fontFamily: 'Mona Sans', fontSize: '16px' }}>{jobId}</Text>
             </Section>
             
             <Section style={infoBox}>
@@ -466,7 +466,7 @@ export function PortalInviteEmail({
                 </Column>
                 <Column style={{ width: '50%' }}>
                   <Text style={detailLabel}>Portal Access Code</Text>
-                  <Text style={{ ...detailItem, fontSize: '20px', fontWeight: '600', fontFamily: 'Grift', letterSpacing: '2px' }}>
+                  <Text style={{ ...detailItem, fontSize: '20px', fontWeight: '600', fontFamily: 'Mona Sans', letterSpacing: '2px' }}>
                     {portalCode}
                   </Text>
                 </Column>
@@ -582,7 +582,7 @@ export function TechAssignmentEmail({
             
             <Section style={details}>
               <Text style={detailLabel}>Job Reference</Text>
-              <Text style={{ ...detailItem, fontFamily: 'Grift', fontSize: '16px' }}>{jobId}</Text>
+              <Text style={{ ...detailItem, fontFamily: 'Mona Sans', fontSize: '16px' }}>{jobId}</Text>
               
               <Text style={detailLabel}>Service</Text>
               <Text style={{ ...detailItem, fontSize: '18px', fontWeight: '500' }}>{jobTitle}</Text>
@@ -829,7 +829,7 @@ export function StatusUpdateEmail({
               <Text style={{ ...detailItem, fontSize: '18px', fontWeight: '500' }}>{jobTitle}</Text>
               
               <Text style={detailLabel}>Reference</Text>
-              <Text style={{ ...detailItem, fontFamily: 'Grift' }}>{jobId}</Text>
+              <Text style={{ ...detailItem, fontFamily: 'Mona Sans' }}>{jobId}</Text>
               
               <Text style={detailLabel}>Status Change</Text>
               <Text style={detailItem}>

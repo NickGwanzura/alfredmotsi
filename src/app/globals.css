@@ -1,85 +1,21 @@
 @import "tailwindcss";
 
 /* ============================================
-   GRIFT FONT FACE
+   MONA SANS FONT FACE
    ============================================ */
 
 @font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-Regular.woff2") format("woff2"),
-       url("/fonts/Grift-Regular.woff") format("woff"),
-       url("/fonts/Grift-Regular.ttf") format("truetype");
-  font-weight: 400;
+  font-family: "Mona Sans";
+  src: url("/fonts/MonaSansVariable.woff2") format("woff2");
+  font-weight: 200 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-Italic.woff2") format("woff2"),
-       url("/fonts/Grift-Italic.woff") format("woff"),
-       url("/fonts/Grift-Italic.ttf") format("truetype");
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-Medium.woff2") format("woff2"),
-       url("/fonts/Grift-Medium.woff") format("woff"),
-       url("/fonts/Grift-Medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-MediumItalic.woff2") format("woff2"),
-       url("/fonts/Grift-MediumItalic.woff") format("woff"),
-       url("/fonts/Grift-MediumItalic.ttf") format("truetype");
-  font-weight: 500;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-SemiBold.woff2") format("woff2"),
-       url("/fonts/Grift-SemiBold.woff") format("woff"),
-       url("/fonts/Grift-SemiBold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-SemiBoldItalic.woff2") format("woff2"),
-       url("/fonts/Grift-SemiBoldItalic.woff") format("woff"),
-       url("/fonts/Grift-SemiBoldItalic.ttf") format("truetype");
-  font-weight: 600;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-Bold.woff2") format("woff2"),
-       url("/fonts/Grift-Bold.woff") format("woff"),
-       url("/fonts/Grift-Bold.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Grift";
-  src: url("/fonts/Grift-BoldItalic.woff2") format("woff2"),
-       url("/fonts/Grift-BoldItalic.woff") format("woff"),
-       url("/fonts/Grift-BoldItalic.ttf") format("truetype");
-  font-weight: 700;
+  font-family: "Mona Sans";
+  src: url("/fonts/MonaSansVariable-Italic.woff2") format("woff2");
+  font-weight: 200 900;
   font-style: italic;
   font-display: swap;
 }
@@ -90,7 +26,7 @@
 
 @theme {
   /* Fonts */
-  --font-grift: "Grift";
+  --font-sans: "Mona Sans", sans-serif;
 
   /* Brand Colors */
   --color-brand-50: #e8eef5;
@@ -196,7 +132,7 @@ html {
 }
 
 body {
-  font-family: 'Grift';
+  font-family: 'Mona Sans', sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.28572;
@@ -308,7 +244,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
    ============================================ */
 
 .mono {
-  font-family: 'Grift';
+  font-family: 'Mona Sans', sans-serif;
   font-size: 12px;
 }
 
