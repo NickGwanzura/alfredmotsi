@@ -60,7 +60,8 @@ const UNIT_TYPE_OPTIONS: UnitType[] = [
 const REFRIGERANT_OPTIONS: readonly (RefrigerantType | string)[] = REFRIGERANT_TYPES;
 
 export default function JobCardModal({ job, customers, currentUser, gasUsage = [], onClose, onUpdate, onGasUsageRecorded, onDelete, onPrint }: JobCardModalProps) {
-  const cust = useMemo(() => customers.find(c => c.id === job.customerId), [customers, job.customerId]) || {} as Customer;
+  const [selectedCustomerId, setSelectedCustomerId] = useState(job.customerId);
+  const cust = useMemo(() => customers.find(c => c.id === selectedCustomerId), [customers, selectedCustomerId]) || {} as Customer;
   const userRole = currentUser.role;
   const isAssigned = job.techIds.includes(currentUser.id) || (job.coTechIds || []).includes(currentUser.id);
   const canEdit = ['owner', 'admin', 'dispatcher'].includes(userRole) || isAssigned;
@@ -247,7 +248,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
     setSaving(true);
     setSaveError(null);
     try {
-      await onUpdate({ ...job, status, clockIn, clockOut: co, diagnostics: hasAnyDiagnosticData(diag) ? diag : job.diagnostics, alerts: a, signature: sig, photos, jobCardRef, comments });
+      await onUpdate({ ...job, customerId: selectedCustomerId, status, clockIn, clockOut: co, diagnostics: hasAnyDiagnosticData(diag) ? diag : job.diagnostics, alerts: a, signature: sig, photos, jobCardRef, comments });
       if (status === "completed") captureAudit('complete_job', job.id);
       else captureAudit('edit_job', job.id);
       onClose();
@@ -470,7 +471,22 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className={cardBase}>
                   <SectionTitle>Customer</SectionTitle>
-                  <p className="font-semibold mb-1 text-gray-900">{cust.name}</p>
+                  {canEdit ? (
+                    <>
+                      <label htmlFor={`job-customer-${job.id}`} className="sr-only">Customer</label>
+                      <select
+                        id={`job-customer-${job.id}`}
+                        className={`${inputBase} mb-2`}
+                        value={selectedCustomerId}
+                        onChange={event => setSelectedCustomerId(event.target.value)}
+                      >
+                        {customers.map(customer => (
+                          <option key={customer.id} value={customer.id}>{customer.name} — {customer.email}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mb-1">Change the customer here when correcting imported records.</p>
+                    </>
+                  ) : <p className="font-semibold mb-1 text-gray-900">{cust.name}</p>}
                   <p className="text-sm text-gray-600">{cust.phone}</p>
                   <p className="text-sm text-gray-600">{cust.email}</p>
                 </div>
