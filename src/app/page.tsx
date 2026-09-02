@@ -97,6 +97,7 @@ export default function Home() {
   const [loginTime] = useState<Date>(new Date());
   const [sideNavOpen, setSideNavOpen] = useState(false);
   const [fetchErrors, setFetchErrors] = useState<string[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -114,6 +115,11 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     if (status === 'authenticated') {
       fetchData();
       if (!auditFiredRef.current) {
@@ -121,6 +127,10 @@ export default function Home() {
         captureAudit('login');
       }
     }
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [status]);
 
   const fetchData = async () => {
@@ -142,7 +152,9 @@ export default function Home() {
       else errors.push('Failed to load jobs');
 
       if (customersRes.ok) setCustomers(await customersRes.json());
+      else errors.push('Failed to load customers');
       if (techsRes.ok) setTechs(await techsRes.json());
+      else errors.push('Failed to load technicians');
 
       if (gasStockRes.ok) setGasStock(await gasStockRes.json());
       else errors.push('Failed to load gas stock');
@@ -616,7 +628,7 @@ export default function Home() {
                   <span className="flex-1 text-sm">{msg}</span>
                   <button
                     onClick={() => setFetchErrors([])}
-                    className="bg-transparent border-none cursor-pointer text-inherit p-0 shrink-0"
+                    className="bg-transparent border-none cursor-pointer text-inherit p-0 shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center"
                     aria-label="Dismiss error"
                   >
                     ×
@@ -624,11 +636,18 @@ export default function Home() {
                 </div>
               ))}
               <button
-                className="inline-flex items-center justify-center gap-2 h-8 px-3 text-xs bg-transparent border border-border-strong text-text-primary hover:bg-surface-hover active:bg-surface-active cursor-pointer mt-2"
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-3 text-xs bg-transparent border border-border-strong text-text-primary hover:bg-surface-hover active:bg-surface-active cursor-pointer mt-2"
                 onClick={fetchData}
               >
                 Retry
               </button>
+            </div>
+          )}
+
+          {!isOnline && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-900" role="status" aria-live="polite">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <span>Offline: saved data is still visible, but changes and email notifications need a connection.</span>
             </div>
           )}
 
@@ -661,7 +680,7 @@ export default function Home() {
               )}
 
               {!showAddJob && page === 'home' && isFieldTech && (
-                <TechDashboard jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} />
+                <TechDashboard jobs={jobs} techs={techs} customers={customers} currentUser={currentUser} onJobClick={setSelectedJob} onNavigate={setPage} />
               )}
 
               {!showAddJob && page === 'operations' && !isFieldTech && (

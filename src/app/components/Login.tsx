@@ -109,8 +109,8 @@ export default function Login({ onLogin }: LoginProps) {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center bg-surface p-6 relative z-10">
-        <div className="w-full max-w-[440px]">
+      <div className="flex-1 min-w-0 flex items-center justify-center bg-surface p-4 sm:p-6 relative z-10">
+        <div className="w-full min-w-0 max-w-[440px]">
           {/* Logo floating on top of the modal card — clip SVG bottom whitespace */}
           <div className="flex justify-center -mb-5 relative z-20">
             <div style={{ overflow: 'hidden', height: '110px', width: '280px' }}>
@@ -121,7 +121,7 @@ export default function Login({ onLogin }: LoginProps) {
               />
             </div>
           </div>
-          <div className="w-full bg-white pt-14 pb-12 px-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] relative z-10">
+          <div className="w-full min-w-0 bg-white pt-14 pb-12 px-6 sm:px-12 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] relative z-10">
 
           {/* Mode Toggle */}
           <div className="flex mb-8 border-b-2 border-[var(--color-border-subtle)]">
@@ -134,15 +134,16 @@ export default function Login({ onLogin }: LoginProps) {
                 key={key}
                 type="button"
                 onClick={() => switchMode(key)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium border-b-2 -mb-[2px] bg-transparent border-transparent cursor-pointer transition-all ${
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-1 py-3 text-[11px] leading-tight font-medium text-center border-b-2 -mb-[2px] bg-transparent border-transparent cursor-pointer transition-all ${
                   mode === key
                     ? 'text-[var(--color-text-primary)] font-semibold border-b-[var(--color-brand-600)]'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                 }`}
                 aria-pressed={mode === key}
+                aria-label={label}
               >
                 <Icon size={18} />
-                <span className="hidden sm:inline">{label}</span>
+                <span>{label}</span>
               </button>
             ))}
           </div>

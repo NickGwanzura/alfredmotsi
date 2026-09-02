@@ -193,7 +193,8 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
       {err && <div className="p-4 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">{err}</div>}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] border-collapse">
           <thead>
             <tr className="bg-gray-50">
               {[
@@ -242,6 +243,7 @@ export default function AuditLogView({ techs }: AuditLogViewProps) {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {!loading && logs.length > 0 && (

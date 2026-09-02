@@ -117,7 +117,7 @@ export function FormItem({
   return (
     <div className="mb-5">
       {label && (
-        <label className="block text-xs font-normal text-text-secondary mb-1 tracking-[0.32px]" htmlFor={htmlFor}>
+        <label className="block text-sm font-normal text-text-secondary mb-1 tracking-[0.32px]" htmlFor={htmlFor}>
           {label}
         </label>
       )}

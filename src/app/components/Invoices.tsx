@@ -96,7 +96,7 @@ function CustomerSelect({
           }
           if (event.key === 'Escape') setOpen(false);
         }}
-        className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full flex items-center justify-between gap-2 text-left"
+        className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full flex items-center justify-between gap-2 text-left"
       >
         <span className="truncate text-gray-900">
           {selected?.name || 'Select customer…'}
@@ -117,7 +117,7 @@ function CustomerSelect({
                 if (event.key === 'Escape') setOpen(false);
               }}
               placeholder="Search customers..."
-              className="h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+          className="h-11 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div role="listbox" aria-label="Customers" className="max-h-60 overflow-y-auto p-1">
@@ -126,7 +126,7 @@ function CustomerSelect({
               role="option"
               aria-selected={!value}
               onClick={() => choose('')}
-              className="flex min-h-9 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-900 hover:bg-brand-50 hover:text-brand-700"
+              className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-900 hover:bg-brand-50 hover:text-brand-700"
             >
               {!value ? <Check size={15} className="text-brand-600" /> : <span className="w-[15px]" />}
               Select customer…
@@ -303,7 +303,7 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
     setSendingEmail(null);
   };
 
-  const inputCls = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
+  const inputCls = "h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
   const btnPri = "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer";
   const btnSec = "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer";
 
@@ -317,7 +317,7 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
           <p className="text-sm text-gray-500 mt-0.5">{invoices.length} total · {invoices.filter((i) => i.status === 'paid').length} paid</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer bg-white">
+          <button onClick={load} aria-label="Refresh invoices" className="inline-flex items-center justify-center w-11 h-11 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer bg-white">
             <RefreshCw size={15} className="text-gray-600" />
           </button>
           <button onClick={() => setShowCreate(true)} className={btnPri}>
@@ -336,7 +336,7 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
           <div className="flex gap-1.5 flex-wrap">
             {['', 'draft', 'sent', 'paid', 'overdue'].map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
-                className={`h-8 px-3 text-xs rounded-full border cursor-pointer capitalize font-medium transition-colors ${statusFilter === s ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+              className={`min-h-[44px] px-3 text-xs rounded-full border cursor-pointer capitalize font-medium transition-colors ${statusFilter === s ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
                 {s || 'All'}
               </button>
             ))}
@@ -346,7 +346,8 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full border-collapse text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
           <thead>
             <tr className="bg-gray-50">
               {['Ref', 'Customer', 'Issue Date', 'Due Date', 'Total', 'Status', 'Actions'].map((h) => (
@@ -394,19 +395,20 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Invoice detail panel */}
       {selected && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setSelected(null)} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="invoice-detail-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Invoice</p>
+                <p id="invoice-detail-title" className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Invoice</p>
                 <h2 className="text-xl font-bold text-gray-900 mt-1 font-mono">{selected.invoiceRef}</h2>
               </div>
               <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold self-start mt-1 ${STATUS_COLORS[selected.status] || 'bg-gray-100 text-gray-600'}`}>{selected.status}</span>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1"><X size={20} /></button>
+              <button onClick={() => setSelected(null)} aria-label="Close invoice details" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1"><X size={20} /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -483,14 +485,14 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
 
       {/* Create Invoice Modal */}
       {showCreate && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setShowCreate(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-auto overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setShowCreate(false)} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-auto overflow-hidden" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="create-invoice-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Invoices</p>
+                <p id="create-invoice-title" className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Invoices</p>
                 <h2 className="text-xl font-bold text-gray-900 mt-1">New Invoice</h2>
               </div>
-              <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1"><X size={20} /></button>
+              <button onClick={() => setShowCreate(false)} aria-label="Close new invoice" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1"><X size={20} /></button>
             </div>
 
             <div className="px-6 py-5 space-y-4">
@@ -539,15 +541,15 @@ export default function Invoices({ customers, jobs }: { customers: Customer[]; j
                   {form.lineItems.map((l, i) => (
                     <div key={i} className="grid grid-cols-[1fr_60px_80px_80px_30px] gap-2 px-3 py-1.5 border-t border-gray-100 items-center">
                       <input value={l.description} onChange={(e) => updateLine(i, 'description', e.target.value)}
-                        placeholder="Description…" className="h-8 px-2 text-xs border border-gray-200 rounded outline-none focus:ring-2 focus:ring-brand-500" />
+                        placeholder="Description…" className="h-11 px-2 text-xs border border-gray-200 rounded outline-none focus:ring-2 focus:ring-brand-500" />
                       <input type="number" value={l.quantity} onChange={(e) => updateLine(i, 'quantity', e.target.value)} min="1"
-                        className="h-8 px-2 text-xs border border-gray-200 rounded text-center outline-none focus:ring-2 focus:ring-brand-500" />
+                        className="h-11 px-2 text-xs border border-gray-200 rounded text-center outline-none focus:ring-2 focus:ring-brand-500" />
                       <input type="number" value={l.unitPrice} onChange={(e) => updateLine(i, 'unitPrice', e.target.value)} min="0" step="0.01"
-                        className="h-8 px-2 text-xs border border-gray-200 rounded text-right outline-none focus:ring-2 focus:ring-brand-500" />
+                        className="h-11 px-2 text-xs border border-gray-200 rounded text-right outline-none focus:ring-2 focus:ring-brand-500" />
                       <span className="text-xs text-right font-semibold text-gray-900">${l.total.toFixed(2)}</span>
                       {form.lineItems.length > 1 && (
                         <button onClick={() => setForm((f) => ({ ...f, lineItems: f.lineItems.filter((_, j) => j !== i) }))}
-                          className="h-7 w-7 flex items-center justify-center text-red-500 hover:bg-red-50 rounded border-none cursor-pointer bg-transparent">
+                          className="h-11 w-11 flex items-center justify-center text-red-500 hover:bg-red-50 rounded border-none cursor-pointer bg-transparent" aria-label="Remove line item">
                           <X size={12} />
                         </button>
                       )}

@@ -120,7 +120,8 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] border-collapse">
           <thead>
             <tr className="bg-gray-50">
               <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3 border-b border-gray-100">Job ID</th>
@@ -140,7 +141,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
               const tech = techs.find(t => t.id === j.techIds[0]);
               const typeConfig = TYPE_CFG[j.type];
               return (
-                <tr key={j.id} onClick={() => onJobClick(j)} className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+                <tr key={j.id} onClick={() => onJobClick(j)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJobClick(j); } }} tabIndex={0} role="button" className="border-b border-gray-100 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-brand-600 transition-colors cursor-pointer">
                   <td className="px-4 py-3 font-mono text-xs text-gray-400">{j.jobCardRef}</td>
                   <td className="px-4 py-3 font-medium text-sm text-gray-900">{j.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{cust?.name}</td>
@@ -178,6 +179,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
             })}
           </tbody>
         </table>
+        </div>
         {rows.length === 0 && (
           <div className="flex flex-col items-center justify-center py-10 text-gray-400">
             <ClipboardList size={40} className="mb-3 opacity-30" />

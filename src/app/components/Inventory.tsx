@@ -131,7 +131,7 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
           <h2 className="text-xl font-semibold text-text-primary">Inventory</h2>
           <p className="text-sm text-text-secondary mt-0.5">{items.length} items · {lowStock.length} below reorder level</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700 border-none cursor-pointer">
+        <button onClick={() => setShowAdd(true)} className="inline-flex min-h-[44px] items-center gap-2 h-11 px-4 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700 border-none cursor-pointer">
           <Plus size={16} /> Add Item
         </button>
       </div>
@@ -142,7 +142,7 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
           <div className="space-y-2">
             {alarms.map((alarm) => <div key={alarm.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm text-red-900">
               <span><strong>{alarm.item.name}</strong> — requested {alarm.requested} {alarm.unit}, available {alarm.available} {alarm.unit}{alarm.job ? ` · ${alarm.job.jobCardRef}` : ''}</span>
-              <button onClick={() => resolveAlarm(alarm.id)} className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"><Check size={13} /> Resolve</button>
+              <button onClick={() => resolveAlarm(alarm.id)} className="inline-flex min-h-[44px] items-center gap-1 rounded-md border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Check size={13} /> Resolve</button>
             </div>)}
           </div>
         </div>
@@ -166,25 +166,26 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
       )}
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <input
           type="text" placeholder="Search name or SKU…" value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="h-9 px-3 text-sm border border-border-subtle rounded-lg flex-1 outline-none focus:border-brand-600"
+          className="h-11 px-3 text-sm border border-border-subtle rounded-lg flex-1 min-w-[180px] outline-none focus:border-brand-600"
         />
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
+          className="h-11 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
           <option value="">All Categories</option>
           {INVENTORY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <button onClick={load} className="h-9 w-9 flex items-center justify-center border border-border-subtle rounded-lg hover:bg-surface-hover cursor-pointer">
+        <button onClick={load} aria-label="Refresh inventory" className="h-11 w-11 flex items-center justify-center border border-border-subtle rounded-lg hover:bg-surface-hover cursor-pointer">
           <RefreshCw size={15} />
         </button>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-border-subtle overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-brand-600 text-white text-xs">
             <tr>
               {['Item', 'Category', 'SKU', 'Stock', 'Reorder At', 'Location', 'Actions'].map((h) => (
@@ -214,11 +215,11 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
                     <button onClick={() => { setMovementItem(item); setMovementType('in'); }}
-                      className="h-7 w-7 flex items-center justify-center rounded bg-green-50 text-green-700 hover:bg-green-100 border-none cursor-pointer" title="Stock In">
+                      className="h-11 w-11 flex items-center justify-center rounded bg-green-50 text-green-700 hover:bg-green-100 border-none cursor-pointer" title="Stock In" aria-label="Stock in">
                       <ArrowDown size={13} />
                     </button>
                     <button onClick={() => { setMovementItem(item); setMovementType('out'); }}
-                      className="h-7 w-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer" title="Stock Out">
+                      className="h-11 w-11 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer" title="Stock Out" aria-label="Stock out">
                       <ArrowUp size={13} />
                     </button>
                   </div>
@@ -227,6 +228,7 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Add Item Modal */}
@@ -263,14 +265,14 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
                     placeholder={placeholder}
                     value={(form as Record<string, unknown>)[key] as string || ''}
                     onChange={(e) => setForm((f) => ({ ...f, [key]: type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value }))}
-                    className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
+                    className="w-full h-11 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
                   />
                 </div>
               ))}
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-text-secondary mb-1">Category *</label>
                 <select value={form.category || ''} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
+                  className="w-full h-11 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
                   <option value="">Select…</option>
                   {INVENTORY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
@@ -283,9 +285,9 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
               </div>
             </div>
             <div className="flex gap-3 mt-6 justify-end">
-              <button onClick={() => setShowAdd(false)} className="h-9 px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover">Cancel</button>
+              <button onClick={() => setShowAdd(false)} className="min-h-[44px] px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover">Cancel</button>
               <button onClick={handleSave} disabled={saving || !form.name || !form.unit || !form.category}
-                className="h-9 px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50">
+                className="min-h-[44px] px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Add Item'}
               </button>
             </div>
@@ -307,7 +309,7 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
             <div className="flex gap-2 mb-4">
               {(['in', 'out', 'adjustment'] as const).map((t) => (
                 <button key={t} onClick={() => setMovementType(t)}
-                  className={`flex-1 h-8 text-xs font-semibold rounded-lg border cursor-pointer capitalize ${movementType === t ? 'bg-brand-600 text-white border-brand-600' : 'bg-transparent text-text-secondary border-border-subtle hover:bg-surface-hover'}`}>
+                  className={`flex-1 min-h-[44px] text-xs font-semibold rounded-lg border cursor-pointer capitalize ${movementType === t ? 'bg-brand-600 text-white border-brand-600' : 'bg-transparent text-text-secondary border-border-subtle hover:bg-surface-hover'}`}>
                   {t}
                 </button>
               ))}
@@ -316,18 +318,18 @@ export default function Inventory({ canEditFinancials = true }: { canEditFinanci
               <div>
                 <label className="block text-xs font-medium text-text-secondary mb-1">Quantity *</label>
                 <input type="number" value={movementQty} onChange={(e) => setMovementQty(e.target.value)} min="0"
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
+                  className="w-full h-11 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-text-secondary mb-1">Reference (job card, PO, etc.)</label>
                 <input type="text" value={movementRef} onChange={(e) => setMovementRef(e.target.value)}
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
+                  className="w-full h-11 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
               </div>
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setMovementItem(null)} className="h-9 px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover">Cancel</button>
+              <button onClick={() => setMovementItem(null)} className="min-h-[44px] px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover">Cancel</button>
               <button onClick={handleMovement} disabled={saving || !movementQty}
-                className="h-9 px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50">
+                className="min-h-[44px] px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Confirm'}
               </button>
             </div>

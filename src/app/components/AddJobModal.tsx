@@ -100,12 +100,12 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
   const textareaClass = "px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full resize-vertical";
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={onClose} role="presentation">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="add-job-title">
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Job Management</p>
-            <h2 className="text-xl font-bold text-gray-900 mt-1">Add New Job</h2>
+            <h2 id="add-job-title" className="text-xl font-bold text-gray-900 mt-1">Add New Job</h2>
           </div>
           <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
             <X size={20} />

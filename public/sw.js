@@ -4,7 +4,7 @@ const OFFLINE_URL = '/offline.html';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
-      .then((cache) => cache.addAll([OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png']))
+      .then((cache) => cache.addAll(['/', OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png']))
       .then(() => self.skipWaiting())
   );
 });
@@ -22,7 +22,17 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        try {
+          const response = await fetch(request);
+          if (response.ok) await cache.put(request, response.clone());
+          return response;
+        } catch {
+          return (await cache.match(request)) || (await cache.match('/')) || caches.match(OFFLINE_URL);
+        }
+      })
+    );
     return;
   }
   if (!['image', 'font', 'script', 'style'].includes(request.destination)) return;

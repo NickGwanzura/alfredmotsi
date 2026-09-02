@@ -37,14 +37,14 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={onClose} role="presentation">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="add-stock-title">
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Gas Stock</p>
-            <h2 className="text-xl font-bold text-gray-900 mt-1">Add New Stock</h2>
+            <h2 id="add-stock-title" className="text-xl font-bold text-gray-900 mt-1">Add New Stock</h2>
           </div>
-          <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
+          <button className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -61,7 +61,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
             <div>
               <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Cylinder Type *</label>
               <select
-                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 value={stock.stockKind || 'virgin'}
                 onChange={e => onChange({ ...stock, stockKind: e.target.value as GasStockItem['stockKind'] })}
               >
@@ -75,11 +75,11 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Cylinder Serial *</label>
-                <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={stock.serialNumber || ''} onChange={e => onChange({ ...stock, serialNumber: e.target.value })} placeholder="e.g. CYL-001" required />
+                <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={stock.serialNumber || ''} onChange={e => onChange({ ...stock, serialNumber: e.target.value })} placeholder="e.g. CYL-001" required />
               </div>
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Certification Expiry</label>
-                <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="date" value={stock.certificationExpiresAt?.slice(0, 10) || ''} onChange={e => onChange({ ...stock, certificationExpiresAt: e.target.value || null })} />
+                <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="date" value={stock.certificationExpiresAt?.slice(0, 10) || ''} onChange={e => onChange({ ...stock, certificationExpiresAt: e.target.value || null })} />
               </div>
             </div>
 
@@ -87,7 +87,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Gas Type *</label>
                 <select
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={stock.gasType || ''}
                   onChange={e => onChange({ ...stock, gasType: e.target.value })}
                   required
@@ -101,7 +101,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Brand *</label>
                 <input
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={stock.brand || ''}
                   onChange={e => onChange({ ...stock, brand: e.target.value })}
                   placeholder="e.g. Honeywell, Chemours"
@@ -112,14 +112,14 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
 
             <div>
               <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Tare Weight (kg)</label>
-              <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="number" min="0" step="0.01" value={stock.tareWeightKg ?? ''} onChange={e => onChange({ ...stock, tareWeightKg: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Empty cylinder weight" />
+              <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="number" min="0" step="0.01" value={stock.tareWeightKg ?? ''} onChange={e => onChange({ ...stock, tareWeightKg: e.target.value === '' ? null : Number(e.target.value) })} placeholder="Empty cylinder weight" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Capacity / supplied quantity *</label>
                 <input
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   type="number"
                   step="0.1"
                   min="0"
@@ -132,7 +132,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Unit</label>
                 <select
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={stock.unit || 'kg'}
                   onChange={e => onChange({ ...stock, unit: e.target.value })}
                 >
@@ -147,7 +147,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Supplier *</label>
                 <input
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={stock.supplier || ''}
                   onChange={e => onChange({ ...stock, supplier: e.target.value })}
                   placeholder="e.g. Aircon Spares"
@@ -157,7 +157,7 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
               <div>
                 <label className="block text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5">Supplier Reference</label>
                 <input
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={stock.supplierRef || ''}
                   onChange={e => onChange({ ...stock, supplierRef: e.target.value })}
                   placeholder="e.g. INV-12345"
@@ -178,10 +178,10 @@ export default function AddGasStockModal({ stock, onChange, onSave, onClose }: A
           </div>
 
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-            <button type="button" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>
+            <button type="button" className="min-h-[44px] px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer disabled:opacity-50" disabled={loading}>
+            <button type="submit" className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer disabled:opacity-50" disabled={loading}>
               {loading ? 'Adding...' : 'Add Stock'}
             </button>
           </div>

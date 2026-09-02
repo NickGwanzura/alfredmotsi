@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Job, User, Customer, FundAllocation } from '@/app/types';
+import { Job, User, Customer, FundAllocation, PageId } from '@/app/types';
 import { TYPE_CFG, STATUS_CFG } from '@/app/lib/config';
 import { StatusTag, Avatar, ContextBanner } from './ui';
 import { ClipboardList, MapPin, Clock, CalendarDays, CheckCircle, ArrowRight, Wrench, AlertTriangle, DollarSign, Beaker } from 'lucide-react';
@@ -12,12 +12,13 @@ interface TechDashboardProps {
   customers: Customer[];
   currentUser: User;
   onJobClick: (job: Job) => void;
+  onNavigate: (page: PageId) => void;
 }
 
 const today = new Date();
 const todayStr = today.toISOString().split('T')[0];
 
-export default function TechDashboard({ jobs, techs, customers, currentUser, onJobClick }: TechDashboardProps) {
+export default function TechDashboard({ jobs, techs, customers, currentUser, onJobClick, onNavigate }: TechDashboardProps) {
   const [funds, setFunds] = useState<FundAllocation[]>([]);
   const [fundsLoading, setFundsLoading] = useState(true);
 
@@ -169,7 +170,7 @@ export default function TechDashboard({ jobs, techs, customers, currentUser, onJ
                         </div>
                       </div>
                       <button onClick={(e) => { e.stopPropagation(); onJobClick(j); }}
-                        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all border-none cursor-pointer shrink-0">
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all border-none cursor-pointer shrink-0" aria-label={`Open ${j.title}`}>
                         <ArrowRight size={16} />
                       </button>
                     </div>
@@ -222,10 +223,10 @@ export default function TechDashboard({ jobs, techs, customers, currentUser, onJ
                 </div>
               </div>
               {funds.filter(f => f.status === 'active').length > 0 && (
-                <a href="#" onClick={(e) => { e.preventDefault(); const btn = document.querySelector('[data-page="funds"]'); if (btn) (btn as HTMLElement).click(); }}
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700">
+                <button type="button" onClick={() => onNavigate('funds')}
+                  className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 bg-transparent border-none cursor-pointer px-0">
                   <DollarSign size={13} /> View Funds
-                </a>
+                </button>
               )}
             </div>
           )}
@@ -259,18 +260,12 @@ export default function TechDashboard({ jobs, techs, customers, currentUser, onJ
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <button onClick={() => {
-                const calBtn = document.querySelector('[data-page="calendar"]');
-                if (calBtn) (calBtn as HTMLElement).click();
-              }}
-                className="w-full inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
+              <button type="button" onClick={() => onNavigate('calendar')}
+                className="w-full min-h-[44px] inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
                 <CalendarDays size={15} /> View My Calendar
               </button>
-              <button onClick={() => {
-                const usageBtn = document.querySelector('[data-page="gas-usage"]');
-                if (usageBtn) (usageBtn as HTMLElement).click();
-              }}
-                className="w-full inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
+              <button type="button" onClick={() => onNavigate('gas-usage')}
+                className="w-full min-h-[44px] inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
                 <Beaker size={15} /> Record Gas Usage
               </button>
             </div>

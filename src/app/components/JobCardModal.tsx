@@ -350,8 +350,8 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const ledgerReusedKg = activeJobMovements.filter(record => record.movementType === 'reused').reduce((sum, record) => sum + record.quantityKg, 0);
   const refrigerantNet = ledgerUsedKg + ledgerReusedKg - ledgerRecoveredKg;
 
-  const inputBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
-  const selectBase = "h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
+  const inputBase = "h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
+  const selectBase = "h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full";
   const textareaBase = "px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full resize-vertical";
   const cardBase = "bg-white rounded-xl border border-gray-100 p-5 shadow-sm";
   const btnBase = "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer";
@@ -360,13 +360,13 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const tagBase = "inline-flex items-center h-6 px-2 text-[11px] font-medium rounded-full";
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={e => e.target === e.currentTarget && onClose()} role="presentation">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-[780px] mx-auto overflow-hidden flex max-h-[calc(100dvh-env(safe-area-inset-bottom))] flex-col" role="dialog" aria-modal="true" aria-labelledby="job-card-title">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{job.id} — {t.label}</p>
-            <h2 className="text-xl font-bold text-gray-900 mt-1">{job.title}</h2>
+            <h2 id="job-card-title" className="text-xl font-bold text-gray-900 mt-1">{job.title}</h2>
             <div className="flex gap-1 mt-2 flex-wrap">
               <StatusTag status={status} />
               <PrioTag p={job.priority} />
@@ -378,7 +378,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
               )}
             </div>
           </div>
-          <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close modal">
+          <button className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close modal">
             <X size={20} />
           </button>
         </div>
@@ -411,16 +411,16 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
         {/* Quick Action Bar */}
         {canEdit && (
           <div className="border-b border-gray-100 p-3 px-6 grid grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2 bg-white">
-            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('diagnostics')}>
+            <button className={`${btnBase} min-h-[44px] text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('diagnostics')}>
               Diagnostics {diagDone ? 'started' : 'start'}
             </button>
-            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('ods')}>
+            <button className={`${btnBase} min-h-[44px] text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('ods')}>
               Gas usage
             </button>
-            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('media')}>
+            <button className={`${btnBase} min-h-[44px] text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('media')}>
               <Camera size={16} /> Photos
             </button>
-            <button className={`${btnBase} text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('sign-off')}>
+            <button className={`${btnBase} min-h-[44px] text-gray-700 bg-white border-gray-200 hover:bg-gray-50 justify-center`} onClick={() => setTab('sign-off')}>
               {sig ? 'Signed' : 'Signature'}
             </button>
           </div>
@@ -449,7 +449,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
           ))}
         </div>
 
-        <div className="px-6 py-5 overflow-y-auto max-h-[60vh] space-y-5">
+        <div className="px-6 py-5 overflow-y-auto flex-1 min-h-0 space-y-5">
           {(() => {
             const warn = getGasUsageWarning(job, gasUsage, job.id);
             if (!warn) return null;

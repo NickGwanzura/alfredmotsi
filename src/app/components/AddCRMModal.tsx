@@ -53,12 +53,12 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={onClose} role="presentation">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="crm-modal-title">
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">CRM</p>
-            <h2 className="text-xl font-bold text-gray-900 mt-1">Add Interaction Record</h2>
+            <h2 id="crm-modal-title" className="text-xl font-bold text-gray-900 mt-1">Add Interaction Record</h2>
           </div>
           <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
             <X size={20} />
@@ -71,7 +71,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
 
             <FormItem label="Customer *">
               <select
-                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 value={record.customerId || ''}
                 onChange={e => onChange({ ...record, customerId: e.target.value })}
                 required
@@ -86,7 +86,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormItem label="Type *">
                 <select
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={record.type || ''}
                   onChange={e => onChange({ ...record, type: e.target.value as CRMType })}
                   required
@@ -101,7 +101,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
               </FormItem>
               <FormItem label="Outcome *">
                 <select
-                  className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                  className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                   value={record.outcome || 'pending'}
                   onChange={e => onChange({ ...record, outcome: e.target.value as CRMOutcome })}
                   required
@@ -117,7 +117,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
 
             <FormItem label="Subject *">
               <input
-                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 value={record.subject || ''}
                 onChange={e => onChange({ ...record, subject: e.target.value })}
                 placeholder="e.g. Follow-up on service call"
@@ -138,7 +138,7 @@ export default function AddCRMModal({ record, customers, onChange, onSave, onClo
 
             <FormItem label="Follow-up Date (optional)">
               <input
-                className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
+                className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full"
                 type="date"
                 value={record.followUp || ''}
                 onChange={e => onChange({ ...record, followUp: e.target.value })}

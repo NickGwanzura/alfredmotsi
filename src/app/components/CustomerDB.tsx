@@ -220,7 +220,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
         </div>
         {onAddCustomer && (
           <button
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all duration-200 border-none cursor-pointer"
+            className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all duration-200 border-none cursor-pointer"
             onClick={openEmpty}
           >
             <Plus size={16} /> Add Customer
@@ -233,7 +233,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
         <div className="relative max-w-md">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
-            className="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"
+            className="w-full h-11 pl-9 pr-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-gray-900 placeholder-gray-400"
             placeholder="Search by name, address, phone, or email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -242,7 +242,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
       </div>
 
       {/* Two-panel layout */}
-      <div className="grid gap-6 items-start" style={{ gridTemplateColumns: '360px 1fr' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-6 items-start">
 
         {/* ── Left panel: Customer cards ── */}
         <div className="space-y-3">
@@ -259,6 +259,14 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                 <div
                   key={c.id}
                   onClick={() => setSelected(c)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelected(c);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   className={`bg-white rounded-lg border p-4 hover:border-gray-200 hover:shadow-sm cursor-pointer transition-all duration-200 ${
                     active?.id === c.id ? 'border-brand-500 ring-1 ring-brand-500/20' : 'border-gray-100'
                   }`}
@@ -290,7 +298,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                           href={buildWA(c.whatsapp || c.phone, `Hi ${c.name}, `)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                          className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                           onClick={e => e.stopPropagation()}
                           title="WhatsApp"
                         >
@@ -298,7 +306,7 @@ export default function CustomerDB({ customers, jobs, currentUser, onJobClick, o
                         </a>
                         <a
                           href={`mailto:${c.email}`}
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                           onClick={e => e.stopPropagation()}
                           title="Email"
                         >

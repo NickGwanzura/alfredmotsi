@@ -217,7 +217,8 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] border-collapse">
           <thead>
             <tr className="bg-gray-50">
               <th className="text-left text-xs uppercase tracking-wider text-gray-500 font-semibold px-4 py-3">User</th>
@@ -271,12 +272,12 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
                         <FileEdit size={13} /> Edit
                       </button>
                       <button onClick={() => openResend(u)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer" title="Resend login credentials">
+                        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer" title="Resend login credentials" aria-label="Resend login credentials">
                         <Mail size={13} />
                       </button>
                       {!isSelf && (
                         <button onClick={() => openDelete(u)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer" title="Remove user">
+                          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer" title="Remove user" aria-label="Remove user">
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -287,40 +288,41 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Invite Modal */}
       {modal === 'invite' && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setModal('none')}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setModal('none')} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="invite-user-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
-                <h2 className="text-xl font-bold text-gray-900 mt-1">Invite Team Member</h2>
+                <h2 id="invite-user-title" className="text-xl font-bold text-gray-900 mt-1">Invite Team Member</h2>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
+              <button aria-label="Close invite dialog" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               {inviteErr && <Notification kind="e" title="Check form" body={inviteErr} />}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Full name *">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Tendai Moyo" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Tendai Moyo" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
                 </FormItem>
                 <FormItem label="Email address *">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" placeholder="e.g. tendai@company.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" placeholder="e.g. tendai@company.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
                 </FormItem>
               </div>
               <FormItem label="Role *" helper="Administrators have full access. Technicians can only view their assigned jobs.">
-                <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
+                <select className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
                   <option value="tech">Technician</option><option value="dispatcher">Dispatcher</option><option value="accounts">Accounts</option><option value="sales">Sales / CSR</option><option value="admin">Administrator</option><option value="owner">Owner</option>
                 </select>
               </FormItem>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Phone number">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. +263 77 123 4567" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. +263 77 123 4567" value={inviteForm.phone} onChange={e => setInviteForm(f => ({ ...f, phone: e.target.value }))} />
                 </FormItem>
                 <FormItem label="Specialty" helper="e.g. VRV/VRF, Refrigeration">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, Ducted" value={inviteForm.specialty} onChange={e => setInviteForm(f => ({ ...f, specialty: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, Ducted" value={inviteForm.specialty} onChange={e => setInviteForm(f => ({ ...f, specialty: e.target.value }))} />
                 </FormItem>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
@@ -333,9 +335,9 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setModal('none')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
               <button onClick={handleInvite} disabled={inviting}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
                 {inviting ? 'Sending invite...' : 'Send Invite'}
               </button>
             </div>
@@ -345,44 +347,44 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Edit Modal */}
       {modal === 'edit' && target && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setModal('none')}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setModal('none')} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
-                <h2 className="text-xl font-bold text-gray-900 mt-1">Edit User</h2>
+                <h2 id="edit-user-title" className="text-xl font-bold text-gray-900 mt-1">Edit User</h2>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
+              <button aria-label="Close edit dialog" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               {editErr && <Notification kind="e" title="Error" body={editErr} />}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Full name *">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                 </FormItem>
                 <FormItem label="Email address *">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
                 </FormItem>
               </div>
               <FormItem label="Role" helper={target.id === currentUserId ? 'You cannot change your own role.' : 'Changing role takes effect immediately.'}>
-                <select className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.role} disabled={target.id === currentUserId} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
+                <select className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" value={editForm.role} disabled={target.id === currentUserId} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}>
                   <option value="tech">Technician</option><option value="dispatcher">Dispatcher</option><option value="accounts">Accounts</option><option value="sales">Sales / CSR</option><option value="admin">Administrator</option><option value="owner">Owner</option><option value="client">Client</option>
                 </select>
               </FormItem>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormItem label="Phone number">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="+263 77 123 4567" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="+263 77 123 4567" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
                 </FormItem>
                 <FormItem label="Specialty">
-                  <input className="h-9 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, VRV" value={editForm.specialty} onChange={e => setEditForm(f => ({ ...f, specialty: e.target.value }))} />
+                  <input className="h-11 px-3 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none w-full" placeholder="e.g. Split Systems, VRV" value={editForm.specialty} onChange={e => setEditForm(f => ({ ...f, specialty: e.target.value }))} />
                 </FormItem>
               </div>
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setModal('none')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
               <button onClick={handleEdit} disabled={editLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
                 {editLoading ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -392,14 +394,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Resend Modal */}
       {modal === 'resend' && target && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setModal('none')}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setModal('none')} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="resend-user-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
-                <h2 className="text-xl font-bold text-gray-900 mt-1">Resend Credentials</h2>
+                <h2 id="resend-user-title" className="text-xl font-bold text-gray-900 mt-1">Resend Credentials</h2>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
+              <button aria-label="Close resend dialog" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
             <div className="px-6 py-5 space-y-4">
               {resendErr && <Notification kind="e" title="Error" body={resendErr} />}
@@ -420,9 +422,9 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setModal('none')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
               <button onClick={handleResend} disabled={resending}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer disabled:opacity-50">
                 <Mail size={16} />{resending ? 'Sending...' : 'Send New Credentials'}
               </button>
             </div>
@@ -432,14 +434,14 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
 
       {/* Delete Modal */}
       {modal === 'delete' && target && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6 lg:p-8" onClick={() => setModal('none')}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 lg:p-8" onClick={() => setModal('none')} role="presentation">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-auto overflow-hidden" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="delete-user-title">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">User Management</p>
-                <h2 className="text-xl font-bold text-gray-900 mt-1">Remove User</h2>
+                <h2 id="delete-user-title" className="text-xl font-bold text-gray-900 mt-1">Remove User</h2>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
+              <button aria-label="Close remove dialog" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={() => setModal('none')}><X size={20} /></button>
             </div>
             <div className="px-6 py-5">
               <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
@@ -452,9 +454,9 @@ export default function UserManagement({ currentUserId }: { currentUserId: strin
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setModal('none')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer">Cancel</button>
               <button onClick={handleDelete} disabled={deleting}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer disabled:opacity-50">
+                className="inline-flex min-h-[44px] items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all cursor-pointer disabled:opacity-50">
                 {deleting ? 'Removing...' : 'Remove User'}
               </button>
             </div>
