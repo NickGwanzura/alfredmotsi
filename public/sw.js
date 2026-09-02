@@ -81,7 +81,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key.startsWith('splash-air-') && key !== STATIC_CACHE)
+      keys.filter((key) => key.startsWith('splash-air-') && key !== STATIC_CACHE && key !== API_CACHE)
         .map((key) => caches.delete(key))
     )).then(() => self.clients.claim())
   );
