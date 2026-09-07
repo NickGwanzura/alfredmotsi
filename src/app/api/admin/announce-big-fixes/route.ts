@@ -3,11 +3,11 @@ import { render } from '@react-email/components';
 import { auth, isAdmin } from '@/app/lib/auth/auth';
 import { prisma } from '@/app/lib/db';
 import { sendCustomEmail } from '@/app/lib/email/send';
-import { BigFixesEmail } from '@/app/lib/email/templates-big-fixes';
+import { AnnouncementEmail } from '@/app/lib/email/templates-new';
 
 /**
  * POST /api/admin/announce-big-fixes
- * Sends the "Big Fixes Deployed" announcement to ALL users (admins + techs).
+ * Sends the latest job workflow fixes announcement to all staff users.
  * Admin-only endpoint.
  */
 export async function POST(): Promise<NextResponse> {
@@ -17,7 +17,7 @@ export async function POST(): Promise<NextResponse> {
 
   // Guard: only allow one announcement per 24 hours to prevent accidental spam
   const recentLog = await prisma.emailDeliveryLog.findFirst({
-    where: { category: 'big-fixes-announcement', createdAt: { gte: new Date(Date.now() - 86400000) } },
+    where: { category: 'job-creation-fixes-announcement', createdAt: { gte: new Date(Date.now() - 86400000) } },
     orderBy: { createdAt: 'desc' },
   });
   if (recentLog) {
@@ -27,9 +27,9 @@ export async function POST(): Promise<NextResponse> {
     }, { status: 429 });
   }
 
-  // Fetch all active users (admins + techs)
+  // Notify every staff role that creates, dispatches, or works on jobs.
   const users = await prisma.user.findMany({
-    where: { role: { in: ['admin', 'tech'] } },
+    where: { role: { in: ['owner', 'admin', 'dispatcher', 'accounts', 'sales', 'tech'] } },
     select: { email: true, name: true, role: true },
   });
 
@@ -37,24 +37,49 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ ok: true, sent: 0, total: 0 });
   }
 
-  const subject = '✅ Critical Data Integrity Fixes Deployed';
+  const subject = '✅ Splash Air CRM — new job workflow fixes deployed';
 
   const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
   const results: Array<{ status: 'fulfilled' | 'rejected'; value?: { success: boolean; error?: unknown }; reason?: unknown }> = [];
 
   for (const u of users) {
     try {
-      const html = await render(
-        BigFixesEmail({
-          recipientName: u.name.split(' ')[0] || 'there',
-        })
-      );
+      const html = await render(AnnouncementEmail({
+        recipientName: u.name.split(' ')[0] || 'there',
+        preview: 'New job creation, scheduling, security, and stock-control fixes are now live.',
+        headline: 'New job workflow fixes are live',
+        kind: 'update',
+        intro: 'We have deployed a hardened job workflow so new jobs save reliably, scheduling conflicts are caught before they reach the calendar, and staff permissions are enforced consistently.',
+        sections: [
+          {
+            title: 'What was fixed',
+            bullets: [
+              'New jobs now receive a server-generated job card reference and save recurring schedules correctly.',
+              'Invalid dates, times, durations, duplicate assignments, and technician schedule conflicts are rejected with a clear message.',
+              'Technician and customer responses no longer expose password hashes or other sensitive fields.',
+              'Only owner, admin, and dispatcher users can draw stock for a job; technicians can view usage but cannot issue stock independently.',
+              'Assigned technicians receive a branded assignment email after a job is created.',
+            ],
+          },
+          {
+            title: 'Please test',
+            bullets: [
+              'Sign in and create a test job with a customer, date, time, duration, and technician.',
+              'Confirm recurring schedules and conflict messages behave as expected.',
+              'Report any issue to the CRM administrator with the job card reference and a screenshot.',
+            ],
+          },
+        ],
+        ctaLabel: 'Open Splash Air CRM',
+        ctaUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://splashaircrmzw.site',
+        closing: 'Thank you for helping us verify the release.',
+      }));
 
       const r = await sendCustomEmail({
         to: u.email,
         subject,
         html,
-        category: 'big-fixes-announcement',
+        category: 'job-creation-fixes-announcement',
         isTransactional: true,
       });
       results.push({ status: 'fulfilled', value: r });
