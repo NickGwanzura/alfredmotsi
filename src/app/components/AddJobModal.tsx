@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { User, Customer, Job, JobType, UnitType, IssueType, JobPriority, RecurringSchedule } from '@/app/types';
 import { TYPE_CFG, UNIT_TYPES } from '@/app/lib/config';
 import { hasConflict, newId } from '@/app/lib/utils';
@@ -11,7 +11,7 @@ interface AddJobModalProps {
   techs: User[];
   customers: Customer[];
   jobs: Job[];
-  onSave: (job: Job) => void;
+  onSave: (job: Job) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -23,6 +23,13 @@ const RECURRING_OPTIONS: { value: number | null; label: string }[] = [
   { value: 6, label: 'Every 6 months' },
   { value: 12, label: 'Every 12 months' },
 ];
+
+function isValidCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
 
 export default function AddJobModal({ techs, customers, jobs, onSave, onClose }: AddJobModalProps) {
   const [formData, setFormData] = useState({
@@ -43,6 +50,16 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !saving) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, saving]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -51,6 +68,9 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
     if (!formData.date) newErrors.date = 'Please select a date';
     if (!formData.time) newErrors.time = 'Please select a time';
     if (!formData.leadTechId) newErrors.leadTechId = 'Please select a lead technician';
+    if (formData.date && !isValidCalendarDate(formData.date)) newErrors.date = 'Please select a valid date';
+    if (formData.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(formData.time)) newErrors.time = 'Please select a valid time';
+    if (!Number.isInteger(formData.durationMinutes) || formData.durationMinutes < 30 || formData.durationMinutes > 1440) newErrors.durationMinutes = 'Duration must be between 30 and 1,440 minutes';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,20 +78,22 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
   const checkConflicts = (): boolean => {
     setConflictError(null);
     if (!formData.date || !formData.time || !formData.leadTechId) return false;
-    if (hasConflict(jobs, formData.leadTechId, formData.date, formData.time, null)) {
+    if (hasConflict(jobs, formData.leadTechId, formData.date, formData.time, null, formData.durationMinutes)) {
       setConflictError('Lead technician has a scheduling conflict at this time');
       return true;
     }
-    if (formData.coTechId && hasConflict(jobs, formData.coTechId, formData.date, formData.time, null)) {
+    if (formData.coTechId && hasConflict(jobs, formData.coTechId, formData.date, formData.time, null, formData.durationMinutes)) {
       setConflictError('Co-technician has a scheduling conflict at this time');
       return true;
     }
     return false;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate() || checkConflicts()) return;
+    setSaveError(null);
+    setSaving(true);
     const techIds = [formData.leadTechId];
     const coTechIds: string[] = [];
     if (formData.coTechId && formData.coTechId !== formData.leadTechId) coTechIds.push(formData.coTechId);
@@ -85,7 +107,13 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
       photos: [], signature: null, jobCardRef: `JC-${Date.now().toString().slice(-6)}`,
       alerts: [], recurring, comments: [], history: [],
     };
-    onSave(newJob);
+    try {
+      await onSave(newJob);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not create the job. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const availableCoTechs = useMemo(() => techs.filter(t => t.id !== formData.leadTechId), [techs, formData.leadTechId]);
@@ -107,7 +135,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
             <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Job Management</p>
             <h2 id="add-job-title" className="text-xl font-bold text-gray-900 mt-1">Add New Job</h2>
           </div>
-          <button className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close">
+          <button className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-1 transition-colors" onClick={onClose} aria-label="Close" disabled={saving}>
             <X size={20} />
           </button>
         </div>
@@ -119,6 +147,7 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
                 <Notification kind="w" title="Scheduling Conflict" body={conflictError} />
               </div>
             )}
+            {saveError && <Notification kind="e" title="Could not create job" body={saveError} />}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormItem label="Job Title" error={errors.title}>
@@ -170,8 +199,8 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
               <FormItem label="Time" error={errors.time}>
                 <input type="time" className={inputClass} value={formData.time} onChange={e => handleChange('time', e.target.value)} />
               </FormItem>
-              <FormItem label="Duration (minutes)">
-                <input type="number" min="30" step="30" inputMode="numeric" className={inputClass} value={formData.durationMinutes} onChange={e => handleChange('durationMinutes', parseInt(e.target.value) || 120)} />
+              <FormItem label="Duration (minutes)" error={errors.durationMinutes}>
+                <input type="number" min="30" max="1440" step="30" inputMode="numeric" className={inputClass} value={formData.durationMinutes} onChange={e => handleChange('durationMinutes', parseInt(e.target.value) || 0)} />
               </FormItem>
             </div>
 
@@ -196,8 +225,8 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
           </div>
 
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-            <button type="button" className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose}>Cancel</button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer">Save Job</button>
+            <button type="button" className="min-h-[44px] px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={onClose} disabled={saving}>Cancel</button>
+            <button type="submit" disabled={saving} className="min-h-[44px] px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">{saving ? 'Saving…' : 'Save Job'}</button>
           </div>
         </form>
       </div>

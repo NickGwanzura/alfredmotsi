@@ -6,7 +6,7 @@ import { STATUS_CFG, TYPE_CFG, ALERT_CFG } from '@/app/lib/config';
 import { getGasUsageWarning } from '@/app/lib/gasUsageWarning';
 import { StatusTag, PrioTag, ContextBanner } from './ui';
 import { Plus, AlertTriangle, Search, ClipboardList, UserCheck, BarChart3 } from 'lucide-react';
-import { canViewAllJobs, canManageJobs } from '@/app/lib/permissions';
+import { canViewAllJobs, canCreateJobs } from '@/app/lib/permissions';
 
 interface JobsTableProps {
   jobs: Job[];
@@ -44,14 +44,14 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
     <div className="animate-fade-in max-w-7xl mx-auto px-4 sm:px-6">
       <ContextBanner title="Jobs Overview" icon={<ClipboardList size={18} />}>
         <p>View all service jobs. Filter by <strong>status</strong> (Scheduled, On Site, Completed) or <strong>type</strong>. Click any row to open the <strong>Job Card</strong> — your central workspace for diagnostics, gas usage, photos, and sign-off.</p>
-        {canManageJobs(userRole) && onAddJob && <p className="mt-1">Click <strong>Add Job</strong> to create a new service call and assign a technician.</p>}
+        {canCreateJobs(userRole) && onAddJob && <p className="mt-1">Click <strong>Add Job</strong> to create a new service call and assign a technician.</p>}
       </ContextBanner>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{canViewAllJobs(userRole) ? "All Jobs" : "My Jobs"}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{rows.length} records</p>
         </div>
-        {canManageJobs(userRole) && onAddJob && (
+        {canCreateJobs(userRole) && onAddJob && (
           <button
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-800 transition-all border-none cursor-pointer"
             onClick={onAddJob}

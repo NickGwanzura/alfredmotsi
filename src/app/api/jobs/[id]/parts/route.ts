@@ -27,6 +27,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { session, error } = await serviceSession(FIELD_ROLES);
   if (error) return error;
+  if (!['owner', 'admin', 'dispatcher'].includes(session!.user.role as string)) {
+    return NextResponse.json({ error: 'Only inventory-authorized staff can draw stock for a job' }, { status: 403 });
+  }
   const { id } = await params;
   if (!await canAccessJob(session!.user.id!, session!.user.role as string, id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const body = await request.json();

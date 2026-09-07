@@ -8,6 +8,20 @@ import { auditServiceAction, cleanText } from '@/app/lib/serviceAuth';
 import { emitServiceNotification } from '@/app/lib/notifications/provider';
 import { toPrismaRefrigerantType, toPrismaSystemStatus } from '@/app/lib/refrigerantType';
 
+const safeUserSelect = { id: true, name: true, email: true, role: true, phone: true, specialty: true, status: true, image: true } as const;
+const safeCustomerSelect = { id: true, name: true, address: true, siteAddress: true, phone: true, whatsapp: true, email: true, portalEnabled: true } as const;
+
+function isValidDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+function isValidTime(value: unknown): value is string {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 // Valid status transitions
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   'draft':          ['unallocated', 'scheduled', 'cancelled'],
@@ -61,9 +75,9 @@ export async function GET(
     const job = await prisma.job.findUnique({
       where: { id },
       include: {
-        customer: true,
-        technicians: true,
-        coTechnicians: true,
+        customer: { select: safeCustomerSelect },
+        technicians: { select: safeUserSelect },
+        coTechnicians: { select: safeUserSelect },
         diagnostics: true,
         comments: true,
         history: true,
@@ -147,11 +161,16 @@ export async function PUT(
         delete updateData[key];
       }
     }
-    if (updateData.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(updateData.date))) {
+    if (updateData.date !== undefined && !isValidDate(updateData.date)) {
       return NextResponse.json({ error: 'Invalid job date' }, { status: 400 });
     }
-    if (updateData.time !== undefined && !/^\d{2}:\d{2}$/.test(String(updateData.time))) {
+    if (updateData.time !== undefined && !isValidTime(updateData.time)) {
       return NextResponse.json({ error: 'Invalid job time' }, { status: 400 });
+    }
+    if (updateData.durationMinutes !== undefined) {
+      const duration = Number(updateData.durationMinutes);
+      if (!Number.isInteger(duration) || duration < 30 || duration > 1_440) return NextResponse.json({ error: 'Duration must be an integer between 30 and 1,440 minutes' }, { status: 400 });
+      updateData.durationMinutes = duration;
     }
     if (updateData.customerId || updateData.siteId || updateData.equipmentId) {
       const customerId = cleanText(updateData.customerId || existingJob.customerId, 100);
@@ -166,6 +185,7 @@ export async function PUT(
     if (!isFieldTech && (techIds !== undefined || coTechIds !== undefined)) {
       if ((techIds !== undefined && !Array.isArray(techIds)) || (coTechIds !== undefined && !Array.isArray(coTechIds)) || assignmentIds.some((tid) => typeof tid !== 'string')) return NextResponse.json({ error: 'Technician assignments must be arrays' }, { status: 400 });
       if (assignmentIds.length) {
+        if (new Set(assignmentIds).size !== assignmentIds.length || (Array.isArray(techIds) && Array.isArray(coTechIds) && techIds.some((tid: string) => coTechIds.includes(tid)))) return NextResponse.json({ error: 'A technician cannot be assigned more than once to the same job' }, { status: 400 });
         const techCount = await prisma.user.count({ where: { id: { in: assignmentIds }, role: 'tech' } });
         if (techCount !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts' }, { status: 400 });
       }
@@ -221,7 +241,7 @@ export async function PUT(
           ...(!isFieldTech && coTechIds && { coTechnicians: { set: coTechIds.map((tid: string) => ({ id: tid })) } }),
         },
         include: {
-          customer: true, technicians: true, coTechnicians: true, diagnostics: true,
+          customer: { select: safeCustomerSelect }, technicians: { select: safeUserSelect }, coTechnicians: { select: safeUserSelect }, diagnostics: true,
           comments: true, history: true,
         },
       });
@@ -264,7 +284,7 @@ export async function PUT(
       return await tx.job.findUnique({
         where: { id },
         include: {
-          customer: true, technicians: true, coTechnicians: true, diagnostics: true,
+          customer: { select: safeCustomerSelect }, technicians: { select: safeUserSelect }, coTechnicians: { select: safeUserSelect }, diagnostics: true,
           comments: true, history: true, recurring: true,
         },
       });

@@ -38,7 +38,7 @@ import { fetchAllCursorPages } from '@/app/lib/clientPagination';
 import { isLowGasStock } from '@/app/lib/gasStockRules';
 import {
   canManageJobs, canManageCustomers, canManageGasStock, canManageGasUsage, canManageInventory,
-  canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog,
+  canManageCRM, canViewODSReport, canManageUsers, canViewAuditLog, canCreateJobs,
   canViewFinancials, canManageFunds, isAdmin as isAdminRole
 } from '@/app/lib/permissions';
 
@@ -242,6 +242,7 @@ export default function Home() {
 
   const perm = {
     canManageJobs: canManageJobs(user.role),
+    canCreateJobs: canCreateJobs(user.role),
     canManageCustomers: canManageCustomers(user.role),
     canManageGasStock: canManageGasStock(user.role),
     canManageGasUsage: canManageGasUsage(user.role),
@@ -317,21 +318,18 @@ export default function Home() {
   };
 
   const addJob = async (newJob: Job) => {
-    try {
-      const res = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newJob),
-      });
-      if (res.ok) {
-        const createdJob = await res.json();
-        setJobs((prev) => [...prev, createdJob]);
-        setShowAddJob(false);
-        setPage('jobs');
-      }
-    } catch (error) {
-      console.error('Error creating job:', error);
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newJob),
+    });
+    const response = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(response?.error || `Failed to create job (server error ${res.status})`);
     }
+    setJobs((prev) => [...prev, response as Job]);
+    setShowAddJob(false);
+    setPage('jobs');
   };
 
   const addCustomer = async (customerData: Partial<Customer>) => {
@@ -705,7 +703,7 @@ export default function Home() {
                   currentUser={currentUser}
                   gasUsage={gasUsage}
                   onJobClick={setSelectedJob}
-                  onAddJob={perm.canManageJobs ? () => setShowAddJob(true) : undefined}
+                  onAddJob={perm.canCreateJobs ? () => setShowAddJob(true) : undefined}
                 />
               )}
 

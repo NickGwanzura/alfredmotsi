@@ -65,7 +65,7 @@ export default function JobCardModal({ job, customers, currentUser, gasUsage = [
   const userRole = currentUser.role;
   const isAssigned = job.techIds.includes(currentUser.id) || (job.coTechIds || []).includes(currentUser.id);
   const canEdit = ['owner', 'admin', 'dispatcher'].includes(userRole) || isAssigned;
-  const canDrawStock = canEdit && !['completed', 'cancelled'].includes(job.status);
+  const canDrawStock = ['owner', 'admin', 'dispatcher'].includes(userRole) && !['completed', 'cancelled'].includes(job.status);
 
   const [tab, setTab] = useState<Tab>("details");
   const [status, setStatus] = useState<JobStatus>(job.status);

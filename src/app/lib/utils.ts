@@ -68,20 +68,23 @@ export function hasConflict(
   techId: string, 
   date: string, 
   time: string, 
-  excludeId: string | null = null
+  excludeId: string | null = null,
+  durationMinutes = 150,
 ): boolean {
   const slot = new Date(`${date}T${time}`);
   return jobs
     .filter(j => 
       j.id !== excludeId && 
-      j.techIds.includes(techId) && 
+      (j.techIds.includes(techId) || (j.coTechIds ?? []).includes(techId)) &&
       j.date === date && 
       j.status !== "cancelled" && 
       j.status !== "completed"
     )
     .some(j => { 
       const s = new Date(`${j.date}T${j.time}`); 
-      return slot >= s && slot < new Date(s.getTime() + 150 * 60000); 
+      const existingDuration = Math.max(30, Number(j.durationMinutes || 150));
+      const end = new Date(slot.getTime() + Math.max(30, durationMinutes) * 60000);
+      return slot < new Date(s.getTime() + existingDuration * 60000) && end > s;
     });
 }
 

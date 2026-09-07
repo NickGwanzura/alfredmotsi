@@ -44,6 +44,11 @@ export function canManageJobs(role: string): boolean {
   return TECH_MANAGE_ROLES.has(role as UserRole);
 }
 
+/** Roles allowed to create new jobs from the dispatch workflow. */
+export function canCreateJobs(role: string): boolean {
+  return ['owner', 'admin', 'dispatcher', 'sales'].includes(role);
+}
+
 export function canDeleteJobs(role: string): boolean {
   return ADMIN_ROLES.has(role as UserRole);
 }
