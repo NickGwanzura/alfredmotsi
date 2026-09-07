@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 18, left: 36, right: 36, borderTop: '1 solid #e0e0e0', paddingTop: 6, fontSize: 7, color: '#6f6f6f', textAlign: 'center' },
 });
 
-export function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: CompanyData }) {
+function GasUsagePdfDoc({ usage, dateStr, company: c }: { usage: GasUsageRecord[]; dateStr: string; company?: CompanyData }) {
   const totals = summarizeGasReport(usage);
   const co = c || FALLBACK;
   return (

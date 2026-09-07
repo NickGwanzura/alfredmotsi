@@ -148,11 +148,13 @@ export async function POST(request: NextRequest) {
     const siteId = cleanText(prismaData.siteId, 100);
     const equipmentId = cleanText(prismaData.equipmentId, 100);
     const title = cleanText(prismaData.title, 200);
-    const description = cleanText(prismaData.description, 10_000);
+    // Scope of work is optional in the create form; persist an empty string
+    // rather than rejecting an otherwise valid job.
+    const description = cleanText(prismaData.description, 10_000) || '';
     const date = cleanText(prismaData.date, 10);
     const time = cleanText(prismaData.time, 5);
     const durationMinutes = Number(prismaData.durationMinutes ?? 120);
-    if (!customerId || !title || !description || !isValidDate(date) || !isValidTime(time) || !Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 1_440 || !validSources.has(String(prismaData.source)) || !validTypes.has(String(prismaData.type)) || !validUnits.has(String(prismaData.unitType)) || !validIssues.has(String(prismaData.issue)) || !validPriorities.has(String(prismaData.priority)) || !validStatuses.has(String(prismaData.status))) {
+    if (!customerId || !title || !isValidDate(date) || !isValidTime(time) || !Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 1_440 || !validSources.has(String(prismaData.source)) || !validTypes.has(String(prismaData.type)) || !validUnits.has(String(prismaData.unitType)) || !validIssues.has(String(prismaData.issue)) || !validPriorities.has(String(prismaData.priority)) || !validStatuses.has(String(prismaData.status))) {
       return NextResponse.json({ error: 'Invalid customer, job details, date, time, or enum value' }, { status: 400 });
     }
     prismaData.customerId = customerId;
