@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, RefreshCw, X, Search, DollarSign,
+  Plus, RefreshCw, X, Search, DollarSign, Download,
   ArrowUpRight, Wallet, TrendingDown, Circle,
   Camera, Trash2, Pencil, Ban, Eye,
 } from 'lucide-react';
@@ -23,10 +23,15 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const [allocations, setAllocations] = useState<FundAllocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [reportFrom, setReportFrom] = useState('');
+  const [reportTo, setReportTo] = useState('');
+  const [reportTechId, setReportTechId] = useState('');
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   // Create allocation modal
   const [showCreate, setShowCreate] = useState(false);
@@ -57,12 +62,27 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch('/api/admin/funds');
-    if (res.ok) setAllocations(await res.json());
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/funds');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Unable to load funds (${res.status})`);
+      }
+      setAllocations(await res.json());
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load funds');
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const responseError = async (res: Response, fallback: string) => {
+    if (res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    return body.error || `${fallback} (${res.status})`;
+  };
 
   // Load jobs list when expense modal opens
   useEffect(() => {
@@ -118,19 +138,26 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const handleCreate = async () => {
     if (!createForm.amount || !createForm.techId) return;
     setSaving(true);
-    await fetch('/api/admin/funds', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: createForm.name || null,
-        amount: parseFloat(createForm.amount),
-        techId: createForm.techId,
-        notes: createForm.notes || null,
-      }),
-    });
-    await load();
-    setShowCreate(false);
-    setCreateForm({ name: '', amount: '', techId: '', notes: '' });
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/funds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: createForm.name || null,
+          amount: parseFloat(createForm.amount),
+          techId: createForm.techId,
+          notes: createForm.notes || null,
+        }),
+      });
+      const message = await responseError(res, 'Unable to allocate funds');
+      if (message) throw new Error(message);
+      await load();
+      setShowCreate(false);
+      setCreateForm({ name: '', amount: '', techId: '', notes: '' });
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Unable to allocate funds');
+    }
     setSaving(false);
   };
 
@@ -138,15 +165,22 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const handleCloseFund = async (fund: FundAllocation) => {
     if (!confirm(`Close this fund for ${fund.tech?.name}? No more expenses can be added.`)) return;
     setSaving(true);
-    await fetch(`/api/admin/funds/${fund.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'closed' }),
-    });
-    await load();
-    if (selected?.id === fund.id) {
-      const res = await fetch(`/api/admin/funds/${fund.id}`);
-      if (res.ok) setSelected(await res.json());
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/funds/${fund.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' }),
+      });
+      const message = await responseError(res, 'Unable to close fund');
+      if (message) throw new Error(message);
+      await load();
+      if (selected?.id === fund.id) {
+        const detail = await fetch(`/api/admin/funds/${fund.id}`);
+        if (detail.ok) setSelected(await detail.json());
+      }
+    } catch (closeError) {
+      setError(closeError instanceof Error ? closeError.message : 'Unable to close fund');
     }
     setSaving(false);
   };
@@ -155,9 +189,16 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const handleDeleteFund = async (fund: FundAllocation) => {
     if (!confirm(`Permanently delete this fund allocation for ${fund.tech?.name} ($${fund.amount})? This also deletes all expenses.`)) return;
     setSaving(true);
-    await fetch(`/api/admin/funds/${fund.id}`, { method: 'DELETE' });
-    await load();
-    setSelected(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/funds/${fund.id}`, { method: 'DELETE' });
+      const message = await responseError(res, 'Unable to delete fund');
+      if (message) throw new Error(message);
+      await load();
+      setSelected(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete fund');
+    }
     setSaving(false);
   };
 
@@ -165,6 +206,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const handleExpense = async () => {
     if (!expenseFund || !expenseForm.description || !expenseForm.amount) return;
     setSaving(true);
+    setError(null);
 
     // Convert receipt file to data URL if present
     let dataUrl = receiptPreview;
@@ -185,28 +227,23 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
       notes: expenseForm.notes || null,
     };
 
-    if (editingExpense) {
-      // UPDATE existing expense
-      await fetch(`/api/admin/funds/${expenseFund.id}/expenses`, {
-        method: 'PATCH',
+    try {
+      const res = await fetch(`/api/admin/funds/${expenseFund.id}/expenses`, {
+        method: editingExpense ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, expenseId: editingExpense.id }),
+        body: JSON.stringify(editingExpense ? { ...body, expenseId: editingExpense.id } : body),
       });
-    } else {
-      // CREATE new expense
-      await fetch(`/api/admin/funds/${expenseFund.id}/expenses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const message = await responseError(res, editingExpense ? 'Unable to update expense' : 'Unable to record expense');
+      if (message) throw new Error(message);
+      await load();
+      if (selected?.id === expenseFund.id) {
+        const detail = await fetch(`/api/admin/funds/${expenseFund.id}`);
+        if (detail.ok) setSelected(await detail.json());
+      }
+      closeExpenseModal();
+    } catch (expenseError) {
+      setError(expenseError instanceof Error ? expenseError.message : 'Unable to save expense');
     }
-
-    await load();
-    if (selected?.id === expenseFund.id) {
-      const res = await fetch(`/api/admin/funds/${expenseFund.id}`);
-      if (res.ok) setSelected(await res.json());
-    }
-    closeExpenseModal();
     setSaving(false);
   };
 
@@ -214,17 +251,53 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const handleDeleteExpense = async (fundId: string, expense: FundExpense) => {
     if (!confirm(`Delete expense "${expense.description}" ($${expense.amount})?`)) return;
     setSaving(true);
-    await fetch(`/api/admin/funds/${fundId}/expenses`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ expenseId: expense.id }),
-    });
-    await load();
-    if (selected?.id === fundId) {
-      const res = await fetch(`/api/admin/funds/${fundId}`);
-      if (res.ok) setSelected(await res.json());
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/funds/${fundId}/expenses`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expenseId: expense.id }),
+      });
+      const message = await responseError(res, 'Unable to delete expense');
+      if (message) throw new Error(message);
+      await load();
+      if (selected?.id === fundId) {
+        const detail = await fetch(`/api/admin/funds/${fundId}`);
+        if (detail.ok) setSelected(await detail.json());
+      }
+    } catch (expenseError) {
+      setError(expenseError instanceof Error ? expenseError.message : 'Unable to delete expense');
     }
     setSaving(false);
+  };
+
+  const handleExportReport = async () => {
+    if (!isAdmin) return;
+    setReporting(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (reportFrom) params.set('from', reportFrom);
+      if (reportTo) params.set('to', reportTo);
+      if (statusFilter) params.set('status', statusFilter);
+      if (reportTechId) params.set('techId', reportTechId);
+      const res = await fetch(`/api/admin/funds/report?${params.toString()}`);
+      const message = await responseError(res, 'Unable to produce report');
+      if (message) throw new Error(message);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `splash-air-funds-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (reportError) {
+      setError(reportError instanceof Error ? reportError.message : 'Unable to produce report');
+    } finally {
+      setReporting(false);
+    }
   };
 
   const openExpenseModal = (fund: FundAllocation, expense?: FundExpense) => {
@@ -284,7 +357,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-text-primary">Funds Management</h2>
           <p className="text-sm text-text-secondary mt-0.5">
@@ -295,12 +368,21 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
         {isAdmin && (
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700 border-none cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 text-sm font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-700 border-none cursor-pointer"
           >
             <Plus size={16} /> Allocate Funds
           </button>
         )}
       </div>
+
+      {error && (
+        <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error" className="min-h-[32px] min-w-[32px] inline-flex items-center justify-center border-none bg-transparent text-red-700 cursor-pointer">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Summary Cards — admin only */}
       {isAdmin && (
@@ -336,7 +418,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
       )}
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col lg:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
           <input
@@ -344,30 +426,45 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             placeholder="Search name, technician, or notes…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 pl-9 pr-3 text-sm border border-border-subtle rounded-lg w-full outline-none focus:border-brand-600"
+            className="min-h-[44px] pl-9 pr-3 text-sm border border-border-subtle rounded-lg w-full outline-none focus:border-brand-600"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
+          className="min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
         >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="exhausted">Exhausted</option>
           <option value="closed">Closed</option>
         </select>
-        <button
-          onClick={load}
-          className="h-9 w-9 flex items-center justify-center border border-border-subtle rounded-lg hover:bg-surface-hover cursor-pointer"
-        >
+        <button onClick={load} aria-label="Refresh funds" className="min-h-[44px] min-w-[44px] flex items-center justify-center border border-border-subtle rounded-lg hover:bg-surface-hover cursor-pointer">
           <RefreshCw size={15} />
         </button>
+        {isAdmin && (
+          <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+            <label className="sr-only" htmlFor="fund-report-from">Report from</label>
+            <input id="fund-report-from" type="date" value={reportFrom} onChange={(e) => setReportFrom(e.target.value)} aria-label="Report from date" className="min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
+            <span className="text-xs text-text-secondary">to</span>
+            <label className="sr-only" htmlFor="fund-report-to">Report to</label>
+            <input id="fund-report-to" type="date" value={reportTo} onChange={(e) => setReportTo(e.target.value)} aria-label="Report to date" className="min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600" />
+            <label className="sr-only" htmlFor="fund-report-tech">Report technician</label>
+            <select id="fund-report-tech" value={reportTechId} onChange={(e) => setReportTechId(e.target.value)} aria-label="Report technician" className="min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
+              <option value="">All technicians</option>
+              {techs.filter((tech) => tech.role === 'tech').map((tech) => <option key={tech.id} value={tech.id}>{tech.name}</option>)}
+            </select>
+            <button type="button" onClick={handleExportReport} disabled={reporting} className="min-h-[44px] inline-flex items-center justify-center gap-2 px-3 text-sm font-semibold border border-brand-200 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-60 cursor-pointer">
+              <Download size={15} /> {reporting ? 'Preparing…' : 'Export report'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Allocations Table */}
       <div className="bg-white rounded-xl border border-border-subtle overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] text-sm">
           <thead className="bg-brand-600 text-white text-xs">
             <tr>
               <th className="px-4 py-3 text-left font-semibold">Name / Tech</th>
@@ -419,15 +516,16 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                     <div className="flex gap-1 flex-wrap">
                       <button
                         onClick={() => setSelected(selected?.id === alloc.id ? null : alloc)}
-                        className="h-7 px-2 text-xs font-medium rounded bg-brand-50 text-brand-700 hover:bg-brand-100 border-none cursor-pointer"
+                          className="min-h-[44px] px-3 text-xs font-medium rounded bg-brand-50 text-brand-700 hover:bg-brand-100 border-none cursor-pointer"
                       >
                         {selected?.id === alloc.id ? 'Close' : 'Details'}
                       </button>
                       {(alloc.status === 'active' || isAdmin) && (
                         <button
                           onClick={() => openExpenseModal(alloc)}
-                          className="h-7 w-7 flex items-center justify-center rounded bg-green-50 text-green-700 hover:bg-green-100 border-none cursor-pointer"
-                          title={editingExpense ? 'Edit Expense' : 'Record Expense'}
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded bg-green-50 text-green-700 hover:bg-green-100 border-none cursor-pointer"
+                          title="Record Expense"
+                          aria-label={`Record expense for ${alloc.tech?.name || 'technician'}`}
                         >
                           <ArrowUpRight size={13} />
                         </button>
@@ -435,8 +533,9 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       {isAdmin && alloc.status === 'active' && (
                         <button
                           onClick={() => handleCloseFund(alloc)}
-                          className="h-7 w-7 flex items-center justify-center rounded bg-orange-50 text-orange-600 hover:bg-orange-100 border-none cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded bg-orange-50 text-orange-600 hover:bg-orange-100 border-none cursor-pointer"
                           title="Close Fund"
+                          aria-label={`Close fund for ${alloc.tech?.name || 'technician'}`}
                         >
                           <Ban size={13} />
                         </button>
@@ -444,8 +543,9 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteFund(alloc)}
-                          className="h-7 w-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer"
                           title="Delete Fund"
+                          aria-label={`Delete fund for ${alloc.tech?.name || 'technician'}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -457,6 +557,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Expanded Expenses Detail */}
@@ -476,7 +577,8 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             </div>
             <button
               onClick={() => setSelected(null)}
-              className="h-7 w-7 flex items-center justify-center bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary"
+              aria-label="Close expense details"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary"
             >
               <X size={16} />
             </button>
@@ -486,7 +588,8 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
               No expenses recorded yet for this fund.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-sm">
               <thead className="bg-gray-100 text-xs text-text-secondary">
                 <tr>
                   <th className="px-4 py-2.5 text-left font-semibold">Date</th>
@@ -520,7 +623,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       {exp.receiptDataUrl ? (
                         <button
                           onClick={() => setViewReceipt(exp.receiptDataUrl!)}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 bg-transparent border-none cursor-pointer"
+                          className="inline-flex items-center gap-1 min-h-[44px] px-2 text-xs font-medium text-brand-600 hover:text-brand-700 bg-transparent border-none cursor-pointer"
                         >
                           <Eye size={13} /> View
                         </button>
@@ -535,15 +638,17 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       <div className="flex gap-1">
                         <button
                           onClick={() => openExpenseModal(selected, exp)}
-                          className="h-7 w-7 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border-none cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border-none cursor-pointer"
                           title="Edit"
+                          aria-label={`Edit expense ${exp.description}`}
                         >
                           <Pencil size={12} />
                         </button>
                         <button
                           onClick={() => handleDeleteExpense(selected.id, exp)}
-                          className="h-7 w-7 flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer"
                           title="Delete"
+                          aria-label={`Delete expense ${exp.description}`}
                         >
                           <Trash2 size={12} />
                         </button>
@@ -562,19 +667,21 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                 </tr>
               </tfoot>
             </table>
+            </div>
           )}
         </div>
       )}
 
       {/* Create Allocation Modal */}
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal max-w-md p-6 rounded-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" role="presentation" onClick={() => setShowCreate(false)}>
+          <div className="modal max-w-md p-6 rounded-xl" role="dialog" aria-modal="true" aria-labelledby="allocate-funds-title" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-lg">Allocate Funds</h3>
+              <h3 id="allocate-funds-title" className="font-semibold text-lg">Allocate Funds</h3>
               <button
                 onClick={() => setShowCreate(false)}
-                className="bg-transparent border-none cursor-pointer text-text-secondary"
+                aria-label="Close allocate funds dialog"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center bg-transparent border-none cursor-pointer text-text-secondary"
               >
                 <X size={20} />
               </button>
@@ -587,7 +694,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                   value={createForm.name}
                   onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Project Alpha - Parts Budget"
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
                 />
               </div>
               <div>
@@ -595,10 +702,10 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                 <select
                   value={createForm.techId}
                   onChange={(e) => setCreateForm((f) => ({ ...f, techId: e.target.value }))}
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
                 >
                   <option value="">Select technician…</option>
-                  {techs.filter((t) => t.role === 'tech' || true).map((t) => (
+                  {techs.filter((t) => t.role === 'tech').map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -612,7 +719,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                   value={createForm.amount}
                   onChange={(e) => setCreateForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
                 />
               </div>
               <div>
@@ -629,14 +736,14 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             <div className="flex gap-3 mt-6 justify-end">
               <button
                 onClick={() => setShowCreate(false)}
-                className="h-9 px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover"
+                className="min-h-[44px] px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
                 disabled={saving || !createForm.amount || !createForm.techId}
-                className="h-9 px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50"
+                className="min-h-[44px] px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? 'Creating…' : 'Allocate Funds'}
               </button>
@@ -647,13 +754,13 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
 
       {/* Record / Edit Expense Modal */}
       {showExpense && expenseFund && (
-        <div className="modal-overlay" onClick={closeExpenseModal}>
-          <div className="modal max-w-lg p-6 rounded-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" role="presentation" onClick={closeExpenseModal}>
+          <div className="modal max-w-lg p-6 rounded-xl" role="dialog" aria-modal="true" aria-labelledby="record-expense-title" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-lg">
+              <h3 id="record-expense-title" className="font-semibold text-lg">
                 {editingExpense ? 'Edit Expense' : 'Record Expense'} — {expenseFund.tech?.name || 'Unknown'}
               </h3>
-              <button onClick={closeExpenseModal} className="bg-transparent border-none cursor-pointer text-text-secondary">
+              <button onClick={closeExpenseModal} aria-label="Close expense dialog" className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center bg-transparent border-none cursor-pointer text-text-secondary">
                 <X size={20} />
               </button>
             </div>
@@ -675,7 +782,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                   value={expenseForm.description}
                   onChange={(e) => setExpenseForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="What was purchased?"
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
                 />
               </div>
               <div>
@@ -687,7 +794,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                   value={expenseForm.amount}
                   onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600"
                 />
               </div>
               <div>
@@ -695,7 +802,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                 <select
                   value={expenseForm.jobId}
                   onChange={(e) => setExpenseForm((f) => ({ ...f, jobId: e.target.value }))}
-                  className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
+                  className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
                 >
                   <option value="">No specific job</option>
                   {jobsLookup.map((j) => (
@@ -716,9 +823,9 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       value={expenseForm.receiptRef}
                       onChange={(e) => setExpenseForm((f) => ({ ...f, receiptRef: e.target.value }))}
                       placeholder="Receipt reference / number"
-                      className="w-full h-9 px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 mb-2"
+                      className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 mb-2"
                     />
-                    <label className="inline-flex items-center gap-2 h-8 px-3 text-xs font-medium border border-border-subtle rounded-lg bg-transparent hover:bg-surface-hover cursor-pointer">
+                    <label className="inline-flex items-center gap-2 min-h-[44px] px-3 text-xs font-medium border border-border-subtle rounded-lg bg-transparent hover:bg-surface-hover cursor-pointer">
                       <Camera size={14} />
                       {receiptPreview ? 'Change Photo' : 'Upload Photo'}
                       <input
@@ -742,7 +849,8 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                       />
                       <button
                         onClick={() => { setReceiptPreview(null); setReceiptFile(null); }}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white border-none cursor-pointer text-xs"
+                        aria-label="Remove receipt photo"
+                        className="absolute -top-1.5 -right-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-full bg-red-500 text-white border-none cursor-pointer text-xs"
                       >
                         ×
                       </button>
@@ -765,14 +873,14 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             <div className="flex gap-3 mt-6 justify-end">
               <button
                 onClick={closeExpenseModal}
-                className="h-9 px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover"
+                className="min-h-[44px] px-4 text-sm border border-border-subtle rounded-lg bg-transparent cursor-pointer hover:bg-surface-hover"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExpense}
                 disabled={saving || !expenseForm.description || !expenseForm.amount}
-                className="h-9 px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50"
+                className="min-h-[44px] px-5 text-sm font-semibold bg-brand-600 text-white rounded-lg border-none cursor-pointer hover:bg-brand-700 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : editingExpense ? 'Update Expense' : 'Record Expense'}
               </button>
@@ -783,12 +891,13 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
 
       {/* Receipt Viewer Modal */}
       {viewReceipt && (
-        <div className="modal-overlay" onClick={() => setViewReceipt(null)}>
-          <div className="modal max-w-2xl p-4 rounded-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" role="presentation" onClick={() => setViewReceipt(null)}>
+          <div className="modal max-w-2xl p-4 rounded-xl" role="dialog" aria-modal="true" aria-label="Receipt preview" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end mb-2">
               <button
                 onClick={() => setViewReceipt(null)}
-                className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary"
+                aria-label="Close receipt preview"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-primary"
               >
                 <X size={20} />
               </button>

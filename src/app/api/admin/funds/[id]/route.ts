@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/app/lib/db';
 import { isAdmin } from '@/app/lib/auth/auth';
+import { cleanText, positiveNumber } from '@/app/lib/serviceAuth';
 
 const fundInclude = {
   tech: { select: { id: true, name: true, email: true } },
@@ -63,7 +64,11 @@ export async function PATCH(
   }
 
   // Validate: amount can't go below already spent
-  if (amount !== undefined && amount < existing.spent) {
+  const parsedAmount = amount === undefined ? undefined : positiveNumber(amount);
+  if (amount !== undefined && parsedAmount === null) {
+    return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 });
+  }
+  if (parsedAmount !== undefined && parsedAmount !== null && parsedAmount < existing.spent) {
     return NextResponse.json(
       { error: `Amount cannot be less than the already spent amount ($${existing.spent.toFixed(2)})` },
       { status: 400 }
@@ -73,16 +78,19 @@ export async function PATCH(
   const data: Record<string, unknown> = {};
   let auditReason = '';
 
-  if (name !== undefined) data.name = name;
-  if (amount !== undefined) {
-    data.amount = amount;
-    auditReason += ` amount changed from $${existing.amount} to $${amount}`;
+  if (name !== undefined) data.name = cleanText(name, 200) || null;
+  if (parsedAmount !== undefined && parsedAmount !== null) {
+    data.amount = parsedAmount;
+    auditReason += ` amount changed from $${existing.amount} to $${parsedAmount}`;
   }
   if (status !== undefined) {
+    if (!['active', 'exhausted', 'closed'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid fund status' }, { status: 400 });
+    }
     data.status = status;
     auditReason += ` status changed to ${status}`;
   }
-  if (notes !== undefined) data.notes = notes;
+  if (notes !== undefined) data.notes = cleanText(notes, 2_000) || null;
   if (notes !== undefined && notes !== existing.notes) {
     auditReason += ' notes updated';
   }
@@ -131,6 +139,10 @@ export async function DELETE(
   const existing = await prisma.fundAllocation.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: 'Allocation not found' }, { status: 404 });
+  }
+
+  if (existing.spent > 0) {
+    return NextResponse.json({ error: 'Funds with recorded expenses cannot be deleted. Close the fund instead.' }, { status: 400 });
   }
 
   await prisma.fundAllocation.delete({ where: { id } });
