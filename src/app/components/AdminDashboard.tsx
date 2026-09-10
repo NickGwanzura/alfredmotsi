@@ -10,6 +10,7 @@ import { isActiveServiceMovement } from '@/app/lib/gasLedger';
 interface AdminDashboardProps {
   jobs: Job[];
   techs: User[];
+  currentUser?: User;
   customers: Customer[];
   gasStock?: GasStockItem[];
   gasUsage?: GasUsageRecord[];
@@ -41,7 +42,7 @@ function sortByDateDesc(a: Job, b: Job) {
 }
 
 export default function AdminDashboard({
-  jobs, techs, customers, gasStock = [], gasUsage = [],
+  jobs, techs, currentUser, customers, gasStock = [], gasUsage = [],
   onJobClick, focus = 'dashboard',
 }: AdminDashboardProps) {
   const [sending, setSending] = useState(false);
@@ -240,7 +241,7 @@ export default function AdminDashboard({
             <div className="space-y-2">
               {todayJobs.slice(0, 5).map(j => {
                 const cust = customers.find(c => c.id === j.customerId);
-                const tech = techs.find(t => t.id === j.techIds[0]);
+                const tech = techs.find(t => t.id === j.techIds[0]) || (currentUser?.id === j.techIds[0] ? currentUser : undefined);
                 const typeColor = TYPE_CFG[j.type]?.color || '#888';
                 return (
                   <div key={j.id} className="group flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm cursor-pointer transition-all duration-200"

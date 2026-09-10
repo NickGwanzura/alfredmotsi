@@ -84,7 +84,9 @@ export default function CalendarView({ jobs, techs, customers, currentUser, onJo
   // Fall back to currentUser so the schedule still renders if the tech list
   // failed to load (or doesn't include the current user)
   const shownTechs = canViewAllJobs(userRole)
-    ? techs
+    ? (jobs.some((job) => jobAssignedTo(job, currentUser.id)) && !techs.some((tech) => tech.id === currentUser.id)
+      ? [currentUser, ...techs]
+      : techs)
     : [techs.find(t => t.id === currentUser.id) ?? currentUser];
   const visJobs = canViewAllJobs(userRole) ? jobs : jobs.filter(j => jobAssignedTo(j, currentUser.id));
 

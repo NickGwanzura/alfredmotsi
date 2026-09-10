@@ -677,6 +677,7 @@ export default function Home() {
                 <AdminDashboard
                   jobs={jobs}
                   techs={techs}
+                  currentUser={currentUser}
                   customers={customers}
                   gasStock={gasStock}
                   gasUsage={gasUsage}
