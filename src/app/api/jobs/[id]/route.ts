@@ -186,8 +186,10 @@ export async function PUT(
       if ((techIds !== undefined && !Array.isArray(techIds)) || (coTechIds !== undefined && !Array.isArray(coTechIds)) || assignmentIds.some((tid) => typeof tid !== 'string')) return NextResponse.json({ error: 'Technician assignments must be arrays' }, { status: 400 });
       if (assignmentIds.length) {
         if (new Set(assignmentIds).size !== assignmentIds.length || (Array.isArray(techIds) && Array.isArray(coTechIds) && techIds.some((tid: string) => coTechIds.includes(tid)))) return NextResponse.json({ error: 'A technician cannot be assigned more than once to the same job' }, { status: 400 });
-        const techCount = await prisma.user.count({ where: { id: { in: assignmentIds }, role: 'tech' } });
-        if (techCount !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts' }, { status: 400 });
+        const assignedUsers = await prisma.user.findMany({ where: { id: { in: assignmentIds } }, select: { id: true, role: true } });
+        const canAssignSelf = ['admin', 'owner'].includes(userRole);
+        const validAssignments = assignedUsers.filter((user) => user.role === 'tech' || (canAssignSelf && user.id === userId));
+        if (validAssignments.length !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts or the signed-in admin' }, { status: 400 });
       }
     }
 

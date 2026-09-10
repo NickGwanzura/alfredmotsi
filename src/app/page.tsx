@@ -575,7 +575,7 @@ export default function Home() {
             );
           })}
 
-          {perm.canManageJobs && (
+          {perm.canCreateJobs && (
             <>
               <div className="h-px bg-border-subtle my-4 mx-0" />
               <p className="px-5 pb-1 text-[11px] font-semibold text-text-primary uppercase tracking-[0.08em]">Actions</p>
@@ -662,9 +662,10 @@ export default function Home() {
             </div>
           ) : (
             <>
-              {showAddJob && perm.canManageJobs && (
+              {showAddJob && perm.canCreateJobs && (
                 <AddJobModal
                   techs={techs}
+                  currentUser={currentUser}
                   customers={customers}
                   jobs={jobs}
                   onSave={addJob}
@@ -816,7 +817,7 @@ export default function Home() {
         <JobCardPrint
           job={printJob}
           customer={customers.find((c) => c.id === printJob.customerId)}
-          technician={techs.find((t) => printJob.techIds.includes(t.id))}
+          technician={techs.find((t) => printJob.techIds.includes(t.id)) || (printJob.techIds.includes(currentUser.id) ? currentUser : undefined)}
           onClose={() => setPrintJob(null)}
         />
       )}

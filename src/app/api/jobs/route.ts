@@ -181,8 +181,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A technician cannot be assigned more than once to the same job' }, { status: 400 });
     }
     if (assignmentIds.length) {
-      const techCount = await prisma.user.count({ where: { id: { in: assignmentIds }, role: 'tech' } });
-      if (techCount !== new Set(assignmentIds).size) return NextResponse.json({ error: 'Assignments must reference technician accounts' }, { status: 400 });
+      const assignedUsers = await prisma.user.findMany({ where: { id: { in: assignmentIds } }, select: { id: true, role: true } });
+      const canAssignSelf = ['admin', 'owner'].includes(session.user.role);
+      const validAssignments = assignedUsers.filter((user) => user.role === 'tech' || (canAssignSelf && user.id === session.user.id));
+      if (validAssignments.length !== new Set(assignmentIds).size) {
+        return NextResponse.json({ error: 'Assignments must reference technician accounts or the signed-in admin' }, { status: 400 });
+      }
     }
 
     const recurringData = recurring && typeof recurring === 'object'

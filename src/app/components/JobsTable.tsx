@@ -138,7 +138,7 @@ export default function JobsTable({ jobs, techs, customers, currentUser, gasUsag
           <tbody>
             {rows.map(j => {
               const cust = customers.find(c => c.id === j.customerId);
-              const tech = techs.find(t => t.id === j.techIds[0]);
+              const tech = techs.find(t => t.id === j.techIds[0]) || (currentUser.id === j.techIds[0] ? currentUser : undefined);
               const typeConfig = TYPE_CFG[j.type];
               return (
                 <tr key={j.id} onClick={() => onJobClick(j)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJobClick(j); } }} tabIndex={0} role="button" className="border-b border-gray-100 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-brand-600 transition-colors cursor-pointer">

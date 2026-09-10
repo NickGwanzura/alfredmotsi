@@ -32,6 +32,13 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
   const [reportTechId, setReportTechId] = useState('');
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const fundRecipients = React.useMemo(() => {
+    const recipients = [...techs];
+    if (isAdmin && currentUser && !recipients.some((recipient) => recipient.id === currentUser.id)) {
+      recipients.unshift(currentUser);
+    }
+    return recipients;
+  }, [techs, currentUser, isAdmin]);
 
   // Create allocation modal
   const [showCreate, setShowCreate] = useState(false);
@@ -452,7 +459,7 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
             <label className="sr-only" htmlFor="fund-report-tech">Report technician</label>
             <select id="fund-report-tech" value={reportTechId} onChange={(e) => setReportTechId(e.target.value)} aria-label="Report technician" className="min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white">
               <option value="">All technicians</option>
-              {techs.filter((tech) => tech.role === 'tech').map((tech) => <option key={tech.id} value={tech.id}>{tech.name}</option>)}
+              {fundRecipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.name}{recipient.id === currentUser?.id ? ' (You)' : ''}</option>)}
             </select>
             <button type="button" onClick={handleExportReport} disabled={reporting} className="min-h-[44px] inline-flex items-center justify-center gap-2 px-3 text-sm font-semibold border border-brand-200 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 disabled:opacity-60 cursor-pointer">
               <Download size={15} /> {reporting ? 'Preparing…' : 'Export report'}
@@ -698,15 +705,15 @@ export default function FundsManagement({ techs, currentUser }: FundsManagementP
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1">Technician *</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Allocate to *</label>
                 <select
                   value={createForm.techId}
                   onChange={(e) => setCreateForm((f) => ({ ...f, techId: e.target.value }))}
                   className="w-full min-h-[44px] px-3 text-sm border border-border-subtle rounded-lg outline-none focus:border-brand-600 bg-white"
                 >
-                  <option value="">Select technician…</option>
-                  {techs.filter((t) => t.role === 'tech').map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="">Select technician or yourself…</option>
+                  {fundRecipients.map((recipient) => (
+                    <option key={recipient.id} value={recipient.id}>{recipient.name}{recipient.id === currentUser?.id ? ' (You)' : ''}</option>
                   ))}
                 </select>
               </div>

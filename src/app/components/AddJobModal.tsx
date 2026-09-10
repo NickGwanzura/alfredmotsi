@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 
 interface AddJobModalProps {
   techs: User[];
+  currentUser?: User;
   customers: Customer[];
   jobs: Job[];
   onSave: (job: Job) => void | Promise<void>;
@@ -31,7 +32,7 @@ function isValidCalendarDate(value: string): boolean {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-export default function AddJobModal({ techs, customers, jobs, onSave, onClose }: AddJobModalProps) {
+export default function AddJobModal({ techs, currentUser, customers, jobs, onSave, onClose }: AddJobModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     type: 'installation' as JobType,
@@ -116,7 +117,14 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
     }
   };
 
-  const availableCoTechs = useMemo(() => techs.filter(t => t.id !== formData.leadTechId), [techs, formData.leadTechId]);
+  const assignmentUsers = useMemo(() => {
+    const users = [...techs];
+    if (currentUser && ['admin', 'owner'].includes(currentUser.role) && !users.some((user) => user.id === currentUser.id)) {
+      users.unshift(currentUser);
+    }
+    return users;
+  }, [techs, currentUser]);
+  const availableCoTechs = useMemo(() => assignmentUsers.filter(t => t.id !== formData.leadTechId), [assignmentUsers, formData.leadTechId]);
 
   const handleChange = (field: keyof typeof formData, value: string | number | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -205,16 +213,16 @@ export default function AddJobModal({ techs, customers, jobs, onSave, onClose }:
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormItem label="Lead Technician" error={errors.leadTechId}>
+              <FormItem label="Lead Assignee" error={errors.leadTechId}>
                 <select className={inputClass} value={formData.leadTechId} onChange={e => handleChange('leadTechId', e.target.value)}>
                   <option value="">Select technician...</option>
-                  {techs.map(t => <option key={t.id} value={t.id}>{t.name} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
+                  {assignmentUsers.map(t => <option key={t.id} value={t.id}>{t.name}{t.id === currentUser?.id ? ' (You)' : ''} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
                 </select>
               </FormItem>
-              <FormItem label="Co-Technician (Optional)">
+              <FormItem label="Co-Assignee (Optional)">
                 <select className={inputClass} value={formData.coTechId} onChange={e => handleChange('coTechId', e.target.value)}>
                   <option value="">None</option>
-                  {availableCoTechs.map(t => <option key={t.id} value={t.id}>{t.name} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
+                  {availableCoTechs.map(t => <option key={t.id} value={t.id}>{t.name}{t.id === currentUser?.id ? ' (You)' : ''} {t.specialty ? `— ${t.specialty}` : ''}</option>)}
                 </select>
               </FormItem>
             </div>
